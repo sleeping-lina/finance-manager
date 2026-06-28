@@ -213,16 +213,77 @@
 
   /* Calendar (kept compact for phase 1) */
   .cal-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-  .cal-topbar button { background: none; border: 1.5px solid var(--border); border-radius: 7px; width: 30px; height: 30px; cursor: pointer; }
+  .cal-topbar button { background: none; border: 1.5px solid var(--border); border-radius: 7px; width: 32px; height: 32px; cursor: pointer; font-size: 15px; }
+  .cal-topbar button:active { transform: scale(0.94); }
+
+  /* View switcher (月/週/リスト) */
+  .cal-switch { display: flex; gap: 3px; background: var(--bg); border-radius: 9px; padding: 3px; margin-bottom: 12px; }
+  .cal-switch-btn { flex: 1; padding: 7px; text-align: center; border-radius: 6px; cursor: pointer; font-size: 12.5px; color: var(--text-secondary); user-select: none; transition: all 0.12s; }
+  .cal-switch-btn.active { background: #fff; color: var(--text-primary); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
   .cal-header { display: grid; grid-template-columns: repeat(7,1fr); text-align: center; }
-  .cal-day-name { font-size: 10px; color: var(--text-secondary); padding: 4px 0; }
-  .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; margin-top: 4px; }
-  .cal-day { aspect-ratio: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; position: relative; user-select: none; }
+  .cal-day-name { font-size: 11px; color: var(--text-secondary); padding: 5px 0; font-weight: 500; }
+
+  /* MONTH view — larger cells */
+  .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin-top: 4px; }
+  .cal-day {
+    aspect-ratio: 0.82;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 5px 2px 3px;
+    font-size: 13px;
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+    background: #FAFBFC;
+    border: 1.5px solid transparent;
+    transition: background 0.1s;
+    overflow: hidden;
+  }
   .cal-day:active { background: var(--bg); }
-  .cal-day.has-shift { background: #EBF5FF; color: #2B6CB0; font-weight: 600; }
-  .cal-day.today { border: 2px solid var(--mint); }
-  .cal-day.other-month { color: #C8D0E0; }
-  .cal-day .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--sky); position: absolute; bottom: 4px; }
+  .cal-day.today { border-color: var(--mint); }
+  .cal-day.other-month { opacity: 0.4; }
+  .cal-day .day-num { font-size: 12px; font-weight: 600; line-height: 1; margin-bottom: 1px; }
+  .cal-day.sun .day-num { color: #E57373; }
+  .cal-day.sat .day-num { color: #5B9CF6; }
+  /* tinted background by income type */
+  .cal-day.tint-shift { background: #EBF5FF; }
+  .cal-day.tint-freelance { background: #FFF8EC; }
+  .cal-day.tint-officer { background: #FFF0F5; }
+  .cal-day.tint-multi { background: linear-gradient(135deg,#EBF5FF 0%,#FFF8EC 60%,#FFF0F5 100%); }
+  /* stamps */
+  .cal-stamps { display: flex; flex-wrap: wrap; justify-content: center; gap: 1px; line-height: 1; margin-top: auto; }
+  .cal-stamp { font-size: 13px; }
+  .cal-amount { font-family: 'DM Mono'; font-size: 8.5px; color: var(--text-secondary); margin-top: 1px; line-height: 1; }
+
+  /* WEEK view */
+  .cal-week-list { display: flex; flex-direction: column; gap: 7px; }
+  .cal-week-row { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 11px; background: #FAFBFC; cursor: pointer; }
+  .cal-week-row:active { background: var(--bg); }
+  .cal-week-row.today { border: 1.5px solid var(--mint); }
+  .cal-week-date { width: 44px; text-align: center; flex-shrink: 0; }
+  .cal-week-date .wd { font-size: 10px; color: var(--text-secondary); }
+  .cal-week-date .dn { font-size: 18px; font-weight: 700; font-family: 'DM Mono'; line-height: 1.1; }
+  .cal-week-date.sun .dn { color: #E57373; } .cal-week-date.sat .dn { color: #5B9CF6; }
+  .cal-week-body { flex: 1; min-width: 0; }
+  .cal-week-stamps { font-size: 15px; }
+  .cal-week-empty { color: #C8D0E0; font-size: 12px; }
+  .cal-week-amount { font-family: 'DM Mono'; font-size: 13px; text-align: right; flex-shrink: 0; }
+
+  /* LIST view */
+  .cal-list-item { display: flex; align-items: center; gap: 11px; padding: 12px 4px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .cal-list-item:active { background: var(--bg); }
+  .cal-list-stamp { font-size: 20px; width: 28px; text-align: center; flex-shrink: 0; }
+  .cal-list-body { flex: 1; min-width: 0; }
+  .cal-list-title { font-size: 13px; font-weight: 500; }
+  .cal-list-sub { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
+  .cal-list-amount { font-family: 'DM Mono'; font-size: 13px; flex-shrink: 0; }
+
+  /* stamp legend */
+  .cal-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .cal-legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-secondary); }
 
   /* Empty */
   .empty { text-align: center; padding: 32px 16px; color: var(--text-secondary); }
@@ -322,7 +383,7 @@
   <header class="topbar">
     <div style="display:flex;align-items:center;gap:8px;">
       <span class="topbar-logo">Finance<span>Mgr</span></span>
-      <span class="version-badge" id="version-badge">v1.0</span>
+      <span class="version-badge" id="version-badge">v2</span>
     </div>
     <div class="topbar-total">
       <div class="topbar-total-label">今月合計</div>
@@ -398,29 +459,54 @@
       </div>
     </div>
 
-    <!-- ── CALENDAR (compact, phase 1) ── -->
+    <!-- ── CALENDAR (phase 2: large + stamps + view switch) ── -->
     <div class="page" id="page-calendar">
       <div class="page-head">
         <div>
-          <div class="page-title">シフト管理</div>
-          <div class="page-sub">アルバイトの勤務記録</div>
+          <div class="page-title">カレンダー</div>
+          <div class="page-sub">収入予定・実績をひと目で</div>
         </div>
         <button class="btn btn-primary" onclick="openModal('modal-shift')">＋ シフト</button>
       </div>
 
       <div class="card">
+        <div class="cal-switch">
+          <div class="cal-switch-btn active" data-view="month" onclick="setCalView('month',this)">月</div>
+          <div class="cal-switch-btn" data-view="week" onclick="setCalView('week',this)">週</div>
+          <div class="cal-switch-btn" data-view="list" onclick="setCalView('list',this)">リスト</div>
+        </div>
         <div class="cal-topbar">
           <button onclick="changeCalMonth(-1)">‹</button>
-          <span style="font-weight:700;font-size:14px;" id="cal-title">—</span>
+          <span style="font-weight:700;font-size:15px;" id="cal-title">—</span>
           <button onclick="changeCalMonth(1)">›</button>
         </div>
-        <div class="cal-header">
-          <div class="cal-day-name" style="color:#E57373">日</div>
-          <div class="cal-day-name">月</div><div class="cal-day-name">火</div><div class="cal-day-name">水</div>
-          <div class="cal-day-name">木</div><div class="cal-day-name">金</div>
-          <div class="cal-day-name" style="color:#5B9CF6">土</div>
+
+        <!-- MONTH view -->
+        <div id="cal-month-view">
+          <div class="cal-header">
+            <div class="cal-day-name" style="color:#E57373">日</div>
+            <div class="cal-day-name">月</div><div class="cal-day-name">火</div><div class="cal-day-name">水</div>
+            <div class="cal-day-name">木</div><div class="cal-day-name">金</div>
+            <div class="cal-day-name" style="color:#5B9CF6">土</div>
+          </div>
+          <div class="cal-grid" id="cal-grid"></div>
         </div>
-        <div class="cal-grid" id="cal-grid"></div>
+
+        <!-- WEEK view -->
+        <div id="cal-week-view" style="display:none">
+          <div class="cal-week-list" id="cal-week-list"></div>
+        </div>
+
+        <!-- LIST view -->
+        <div id="cal-list-view" style="display:none">
+          <div id="cal-list-wrap"></div>
+        </div>
+
+        <div class="cal-legend">
+          <div class="cal-legend-item">☕ バイト</div>
+          <div class="cal-legend-item">💻 在宅ワーク</div>
+          <div class="cal-legend-item">💰 役員報酬支払</div>
+        </div>
       </div>
 
       <div class="card">
@@ -516,6 +602,19 @@
   </nav>
 </div>
 
+<!-- Day Detail Modal -->
+<div class="modal-overlay" id="modal-day">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="day-detail-title">—</div>
+    <div id="day-detail-body"></div>
+    <div class="form-actions" style="margin-top:16px">
+      <button class="btn btn-ghost" onclick="closeModal('modal-day')">閉じる</button>
+      <button class="btn btn-primary" id="day-add-btn">＋ シフト追加</button>
+    </div>
+  </div>
+</div>
+
 <!-- Shift Modal -->
 <div class="modal-overlay" id="modal-shift">
   <div class="modal">
@@ -574,10 +673,10 @@
 
 <script>
 // ════════════════════════════════════════
-//  FinanceManager v1.0
+//  FinanceManager v2
 //  データスキーマのバージョン管理付き
 // ════════════════════════════════════════
-const APP_VERSION = '1.0';
+const APP_VERSION = '2';
 const SCHEMA_VERSION = 1;
 const STORAGE_KEY = 'financeManager';
 
@@ -843,31 +942,157 @@ function emptyHTML(icon, text) {
   return `<div class="empty"><div class="empty-icon">${icon}</div><div class="empty-text">${text}</div></div>`;
 }
 
+// ── Calendar view state ──
+let calView = 'month'; // 'month' | 'week' | 'list'
+
+function setCalView(v, el) {
+  calView = v;
+  document.querySelectorAll('.cal-switch-btn').forEach(b=>b.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('cal-month-view').style.display = v==='month'?'':'none';
+  document.getElementById('cal-week-view').style.display  = v==='week' ?'':'none';
+  document.getElementById('cal-list-view').style.display  = v==='list' ?'':'none';
+  renderCalendar();
+}
+
+// 指定日の収入イベントを集約（スタンプ・色・金額）
+function eventsOnDate(dateStr) {
+  const ev = [];
+  state.shifts.filter(s=>s.date===dateStr).forEach(s =>
+    ev.push({ type:'shift', stamp:'☕', label:s.place, sub:`${s.start}〜${s.end}`, amount:s.pay, ref:s }));
+  state.freelance.filter(f=>f.date===dateStr).forEach(f =>
+    ev.push({ type:'freelance', stamp:'💻', label:f.name, sub:f.category, amount:f.amount, ref:f }));
+  // 役員報酬の支払日
+  const pd = parseInt(state.officer.paydate);
+  if (state.officer.salary > 0 && pd) {
+    const dnum = parseInt(dateStr.slice(8,10));
+    if (dnum === pd) ev.push({ type:'officer', stamp:'💰', label:'役員報酬', sub:state.officer.company||'', amount:state.officer.salary, ref:null });
+  }
+  return ev;
+}
+
+function openShiftFor(dateStr) {
+  document.getElementById('sh-date').value=dateStr;
+  document.getElementById('sh-place').value=state.config.name;
+  document.getElementById('sh-wage').value=state.config.wage;
+  document.getElementById('sh-transport').value=state.config.transport*2;
+  openModal('modal-shift'); updateShiftPreview();
+}
+
 function renderCalendar() {
-  document.getElementById('cal-title').textContent = `${calYear}年 ${MONTHS[calMonth]}`;
+  const monthLabel = `${calYear}年 ${MONTHS[calMonth]}`;
+  document.getElementById('cal-title').textContent = monthLabel;
+  if (calView === 'month') renderCalMonth();
+  else if (calView === 'week') renderCalWeek();
+  else renderCalList();
+}
+
+function renderCalMonth() {
   const grid = document.getElementById('cal-grid');
   grid.innerHTML = '';
   const first = new Date(calYear, calMonth, 1).getDay();
   const days = new Date(calYear, calMonth+1, 0).getDate();
   const prevDays = new Date(calYear, calMonth, 0).getDate();
   const today = new Date();
-  const shiftDates = new Set(state.shifts.map(s => s.date));
-  for (let i=0;i<first;i++){ const d=document.createElement('div'); d.className='cal-day other-month'; d.textContent=prevDays-first+1+i; grid.appendChild(d); }
+  // leading days
+  for (let i=0;i<first;i++){
+    const d=document.createElement('div'); d.className='cal-day other-month';
+    d.innerHTML=`<div class="day-num">${prevDays-first+1+i}</div>`; grid.appendChild(d);
+  }
   for (let i=1;i<=days;i++){
     const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-    const d=document.createElement('div'); d.className='cal-day'; d.textContent=i;
-    if (shiftDates.has(dateStr)){ d.classList.add('has-shift'); const dot=document.createElement('div');dot.className='dot';d.appendChild(dot); }
+    const dow = new Date(calYear, calMonth, i).getDay();
+    const ev = eventsOnDate(dateStr);
+    const d=document.createElement('div'); d.className='cal-day';
+    if (dow===0) d.classList.add('sun'); if (dow===6) d.classList.add('sat');
+    // tint
+    const types = [...new Set(ev.map(e=>e.type))];
+    if (types.length>1) d.classList.add('tint-multi');
+    else if (types.length===1) d.classList.add('tint-'+types[0]);
     if (today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===i) d.classList.add('today');
-    d.onclick = () => {
-      document.getElementById('sh-date').value=dateStr;
-      document.getElementById('sh-place').value=state.config.name;
-      document.getElementById('sh-wage').value=state.config.wage;
-      document.getElementById('sh-transport').value=state.config.transport*2;
-      openModal('modal-shift'); updateShiftPreview();
-    };
+    const total = ev.reduce((a,e)=>a+e.amount,0);
+    const stamps = ev.slice(0,3).map(e=>`<span class="cal-stamp">${e.stamp}</span>`).join('');
+    d.innerHTML = `<div class="day-num">${i}</div>
+      <div class="cal-stamps">${stamps}</div>
+      ${total>0?`<div class="cal-amount">${(total/1000).toFixed(total>=10000?0:1)}k</div>`:''}`;
+    d.onclick = () => showDayDetail(dateStr, ev);
     grid.appendChild(d);
   }
 }
+
+function renderCalWeek() {
+  // calYear/calMonth の各週ではなく「今日を含む週」を起点に、月内の週をまとめて縦表示
+  const list = document.getElementById('cal-week-list');
+  list.innerHTML = '';
+  const days = new Date(calYear, calMonth+1, 0).getDate();
+  const today = new Date();
+  const WD = ['日','月','火','水','木','金','土'];
+  for (let i=1;i<=days;i++){
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+    const dow = new Date(calYear, calMonth, i).getDay();
+    const ev = eventsOnDate(dateStr);
+    const total = ev.reduce((a,e)=>a+e.amount,0);
+    const row = document.createElement('div');
+    row.className = 'cal-week-row';
+    if (today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===i) row.classList.add('today');
+    const dateCls = dow===0?'sun':dow===6?'sat':'';
+    row.innerHTML = `
+      <div class="cal-week-date ${dateCls}"><div class="wd">${WD[dow]}</div><div class="dn">${i}</div></div>
+      <div class="cal-week-body">
+        ${ev.length?`<span class="cal-week-stamps">${ev.map(e=>e.stamp).join(' ')}</span>`
+                   :`<span class="cal-week-empty">予定なし</span>`}
+      </div>
+      ${total>0?`<div class="cal-week-amount">${fmt(total)}</div>`:''}`;
+    row.onclick = () => showDayDetail(dateStr, ev);
+    list.appendChild(row);
+  }
+}
+
+function renderCalList() {
+  const wrap = document.getElementById('cal-list-wrap');
+  const items = [];
+  const days = new Date(calYear, calMonth+1, 0).getDate();
+  for (let i=1;i<=days;i++){
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+    eventsOnDate(dateStr).forEach(e => items.push({ ...e, date: dateStr }));
+  }
+  if (!items.length){ wrap.innerHTML = emptyHTML('🗓','今月の予定はありません'); return; }
+  wrap.innerHTML = items.map(e => `
+    <div class="cal-list-item" onclick="showDayDetail('${e.date}', eventsOnDate('${e.date}'))">
+      <div class="cal-list-stamp">${e.stamp}</div>
+      <div class="cal-list-body">
+        <div class="cal-list-title">${e.label}</div>
+        <div class="cal-list-sub">${e.date.slice(5).replace('-','/')}　${e.sub||''}</div>
+      </div>
+      <div class="cal-list-amount">${fmt(e.amount)}</div>
+    </div>`).join('');
+}
+
+// 日タップ時の詳細シート
+function showDayDetail(dateStr, ev) {
+  const body = document.getElementById('day-detail-body');
+  const [yy,mm,dd] = dateStr.split('-');
+  document.getElementById('day-detail-title').textContent = `${parseInt(mm)}月${parseInt(dd)}日`;
+  if (!ev || !ev.length) {
+    body.innerHTML = `<div style="text-align:center;color:var(--text-secondary);padding:16px 0;font-size:13px">この日の収入記録はありません</div>`;
+  } else {
+    const total = ev.reduce((a,e)=>a+e.amount,0);
+    body.innerHTML = ev.map(e => `
+      <div style="display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:22px">${e.stamp}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:500">${e.label}</div>
+          <div style="font-size:11px;color:var(--text-secondary)">${e.sub||''}</div>
+        </div>
+        <span class="mono" style="font-size:13px">${fmt(e.amount)}</span>
+      </div>`).join('') +
+      `<div style="display:flex;justify-content:space-between;padding-top:11px;font-weight:700">
+        <span>合計</span><span class="mono" style="color:var(--mint-dim)">${fmt(total)}</span></div>`;
+  }
+  document.getElementById('day-add-btn').onclick = () => { closeModal('modal-day'); openShiftFor(dateStr); };
+  openModal('modal-day');
+}
+
 function changeCalMonth(d){ calMonth+=d; if(calMonth<0){calMonth=11;calYear--;} if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
 
 function renderShiftList() {
