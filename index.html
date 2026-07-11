@@ -3,20 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-<title>収入管理 — FinanceManager</title>
+<title>FinanceManager v3</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+JP:wght@300;400;500;700&family=Inter:wght@400;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+JP:wght@300;400;500;700&family=Inter:wght@400;600;700;800&display=swap');
 
   :root {
-    --bg: #F0F2F5;
+    --bg: #F4F5F7;
     --surface: #FFFFFF;
     --navy: #1A2340;
-    --navy-light: #2C3A5C;
     --mint: #2DD4A0;
     --mint-dim: #1DB882;
-    --amber: #F5A623;
-    --rose: #F06292;
-    --sky: #5B9CF6;
     --text-primary: #1A2340;
     --text-secondary: #6B7A99;
     --border: #E4E8F0;
@@ -26,364 +22,202 @@
     --safe-top: env(safe-area-inset-top, 0px);
     --tabbar-h: 58px;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { overscroll-behavior: none; }
-  body {
-    font-family: 'Noto Sans JP', sans-serif;
-    background: var(--bg);
-    color: var(--text-primary);
-    font-size: 14px;
-    -webkit-font-smoothing: antialiased;
-  }
+  body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text-primary); font-size: 14px; -webkit-font-smoothing: antialiased; }
 
-  /* ── App shell ── */
-  .app {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
+  .app { min-height: 100vh; display: flex; flex-direction: column; }
 
   /* Top bar */
   .topbar {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    background: var(--navy);
-    color: #fff;
-    padding: calc(var(--safe-top) + 12px) 18px 12px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+    background: var(--navy); color: #fff;
+    padding: calc(var(--safe-top) + 10px) 16px 10px;
+    display: flex; align-items: center; justify-content: space-between;
   }
-  .topbar-logo {
-    font-family: 'Inter', sans-serif;
-    font-size: 17px;
-    font-weight: 700;
-    letter-spacing: -0.4px;
-  }
+  .topbar-logo { font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: -0.4px; }
   .topbar-logo span { color: var(--mint); }
-  .topbar-right { display: flex; align-items: center; gap: 10px; }
-  .version-badge {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: rgba(255,255,255,0.45);
-    background: rgba(255,255,255,0.08);
-    padding: 2px 7px;
-    border-radius: 5px;
-    letter-spacing: 0.5px;
-  }
-  .topbar-total {
-    text-align: right;
-  }
+  .version-badge { font-family: 'DM Mono', monospace; font-size: 10px; color: rgba(255,255,255,0.45); background: rgba(255,255,255,0.08); padding: 2px 7px; border-radius: 5px; margin-left: 7px; }
+  .topbar-total { text-align: right; }
   .topbar-total-label { font-size: 9px; color: rgba(45,212,160,0.7); letter-spacing: 1px; }
   .topbar-total-amount { font-family: 'DM Mono'; font-size: 15px; color: var(--mint); font-weight: 500; line-height: 1.1; }
 
-  /* Content area */
-  .content {
-    flex: 1;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 16px 14px calc(var(--tabbar-h) + var(--safe-bottom) + 20px);
-  }
-
-  /* Pages */
-  .page { display: none; animation: fade 0.2s; }
+  .content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px 10px calc(var(--tabbar-h) + var(--safe-bottom) + 18px); }
+  .page { display: none; animation: fade 0.18s; }
   .page.active { display: block; }
   @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
-  /* Page header */
-  .page-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
-  .page-title { font-size: 19px; font-weight: 700; }
-  .page-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .page-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; padding: 0 4px; }
+  .page-title { font-size: 18px; font-weight: 700; }
+  .page-sub { font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; }
 
-  /* Buttons */
-  .btn {
-    padding: 9px 16px;
-    border-radius: 9px;
-    border: none;
-    cursor: pointer;
-    font-family: 'Noto Sans JP', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    transition: all 0.12s;
-    white-space: nowrap;
-  }
+  .btn { padding: 9px 16px; border-radius: 9px; border: none; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; font-size: 13px; font-weight: 500; transition: transform 0.1s; white-space: nowrap; }
   .btn:active { transform: scale(0.96); }
   .btn-primary { background: var(--mint); color: #fff; }
-  .btn-ghost { background: transparent; border: 1.5px solid var(--border); color: var(--text-primary); }
+  .btn-ghost { background: #fff; border: 1.5px solid var(--border); color: var(--text-primary); }
   .btn-danger { background: #FFF0F3; color: #E53E3E; border: 1px solid #FFC5C5; }
   .btn-sm { padding: 5px 11px; font-size: 12px; }
+  .btn-block { width: 100%; }
 
-  /* Cards */
-  .card {
-    background: var(--surface);
-    border-radius: var(--radius);
-    padding: 18px;
-    box-shadow: var(--shadow);
-    margin-bottom: 14px;
-  }
-  .card-title { font-weight: 700; font-size: 14px; margin-bottom: 14px; }
+  .card { background: var(--surface); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); margin-bottom: 12px; }
+  .card-title { font-weight: 700; font-size: 14px; margin-bottom: 12px; }
 
-  /* Month nav */
-  .month-nav { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 14px; }
-  .month-nav button { background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 16px; box-shadow: var(--shadow); }
-  .month-nav button:active { transform: scale(0.94); }
-  .month-label { font-size: 15px; font-weight: 700; min-width: 110px; text-align: center; }
+  /* ═══ CALENDAR (fullscreen main) ═══ */
+  .cal-wrap { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 10px 6px 12px; margin-bottom: 12px; }
+  .cal-controls { display: flex; align-items: center; justify-content: space-between; padding: 2px 6px 8px; gap: 8px; }
+  .cal-nav { display: flex; align-items: center; gap: 8px; }
+  .cal-nav button { background: none; border: 1.5px solid var(--border); border-radius: 7px; width: 30px; height: 30px; cursor: pointer; font-size: 14px; }
+  .cal-title { font-weight: 700; font-size: 15px; min-width: 92px; text-align: center; }
+  .cal-switch { display: flex; gap: 2px; background: var(--bg); border-radius: 8px; padding: 3px; }
+  .cal-switch-btn { padding: 5px 11px; border-radius: 6px; cursor: pointer; font-size: 11.5px; color: var(--text-secondary); user-select: none; }
+  .cal-switch-btn.active { background: #fff; color: var(--text-primary); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .today-btn { font-size: 11px; color: var(--mint-dim); background: none; border: none; cursor: pointer; font-weight: 600; padding: 4px; }
 
-  /* Summary cards (2x2) */
-  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-  .sum-card {
-    background: var(--surface);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    box-shadow: var(--shadow);
-    border-left: 3px solid transparent;
-  }
-  .sum-card.shift { border-color: var(--sky); }
-  .sum-card.freelance { border-color: var(--amber); }
-  .sum-card.officer { border-color: var(--rose); }
-  .sum-card.total { border-color: var(--mint); background: var(--navy); }
-  .sum-label { font-size: 10.5px; color: var(--text-secondary); font-weight: 500; }
-  .sum-card.total .sum-label { color: rgba(255,255,255,0.5); }
-  .sum-amount { font-family: 'DM Mono', monospace; font-size: 19px; font-weight: 500; margin-top: 4px; letter-spacing: -0.5px; }
-  .sum-card.total .sum-amount { color: var(--mint); }
-  .sum-sub { font-size: 10px; color: var(--text-secondary); margin-top: 3px; }
-  .sum-card.total .sum-sub { color: rgba(255,255,255,0.4); }
+  .cal-header { display: grid; grid-template-columns: repeat(7,1fr); text-align: center; }
+  .cal-day-name { font-size: 10.5px; color: var(--text-secondary); padding: 3px 0 5px; font-weight: 500; }
 
-  /* Legend */
-  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
-  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-secondary); }
-  .legend-dot { width: 9px; height: 9px; border-radius: 2px; }
-  .legend-dot.shift { background: var(--sky); }
-  .legend-dot.freelance { background: var(--amber); }
-  .legend-dot.officer { background: var(--rose); }
+  /* week block: days grid + band lanes */
+  .cal-week { border-top: 1px solid var(--border); }
+  .cal-days { display: grid; grid-template-columns: repeat(7,1fr); }
+  .cal-day { min-height: 54px; padding: 3px 1px 2px; display: flex; flex-direction: column; align-items: center; cursor: pointer; user-select: none; border-radius: 8px; position: relative; overflow: hidden; }
+  .cal-day:active { background: var(--bg); }
+  .cal-day .day-num { font-size: 12px; font-weight: 600; line-height: 1.2; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+  .cal-day.today .day-num { background: var(--mint); color: #fff; }
+  .cal-day.other .day-num { color: #C8D0E0; }
+  .cal-day.sun .day-num { color: #E57373; } .cal-day.sat .day-num { color: #5B9CF6; }
+  .cal-day.today.sun .day-num, .cal-day.today.sat .day-num { color: #fff; }
+  .cal-stamps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; line-height: 0; margin-top: 1px; max-width: 100%; }
+  .cal-stamps svg { width: 15px; height: 15px; }
+  .cal-more { font-size: 8px; color: var(--text-secondary); line-height: 1; }
+  .cal-amount { font-family: 'DM Mono'; font-size: 8px; color: var(--text-secondary); line-height: 1.2; margin-top: auto; }
+  /* band lanes */
+  .cal-bands { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px 0; padding: 0 1px 3px; }
+  .cal-band { height: 15px; border-radius: 4px; font-size: 9px; line-height: 15px; padding: 0 4px; white-space: nowrap; overflow: hidden; color: rgba(0,0,0,0.65); font-weight: 600; cursor: pointer; }
+  .cal-band.cont-l { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+  .cal-band.cont-r { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 
-  /* Bar chart */
-  .bar-section { display: flex; gap: 4px; align-items: flex-end; height: 100px; margin: 6px 0; }
+  /* week view / list view */
+  .cal-week-row { display: flex; align-items: center; gap: 10px; padding: 10px 10px; border-radius: 11px; background: #FAFBFC; cursor: pointer; margin-bottom: 6px; }
+  .cal-week-row.today { border: 1.5px solid var(--mint); }
+  .cal-week-date { width: 42px; text-align: center; flex-shrink: 0; }
+  .cal-week-date .wd { font-size: 10px; color: var(--text-secondary); }
+  .cal-week-date .dn { font-size: 17px; font-weight: 700; font-family: 'DM Mono'; line-height: 1.1; }
+  .cal-week-date.sun .dn { color: #E57373; } .cal-week-date.sat .dn { color: #5B9CF6; }
+  .cal-week-body { flex: 1; min-width: 0; display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+  .cal-week-body svg { width: 18px; height: 18px; }
+  .cal-week-empty { color: #C8D0E0; font-size: 11.5px; }
+  .cal-week-amount { font-family: 'DM Mono'; font-size: 12.5px; flex-shrink: 0; }
+  .cal-list-item { display: flex; align-items: center; gap: 10px; padding: 11px 6px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .cal-list-item svg { width: 24px; height: 24px; flex-shrink: 0; }
+  .cal-list-body { flex: 1; min-width: 0; }
+  .cal-list-title { font-size: 13px; font-weight: 500; }
+  .cal-list-sub { font-size: 10.5px; color: var(--text-secondary); margin-top: 1px; }
+  .cal-list-amount { font-family: 'DM Mono'; font-size: 12.5px; }
+
+  /* ═══ Summary / Home ═══ */
+  .month-nav { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 12px; }
+  .month-nav button { background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; width: 32px; height: 32px; cursor: pointer; font-size: 15px; box-shadow: var(--shadow); }
+  .month-label { font-size: 15px; font-weight: 700; min-width: 105px; text-align: center; }
+  .job-sum-row { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--border); }
+  .job-sum-row:last-child { border-bottom: none; }
+  .job-sum-row svg { width: 26px; height: 26px; flex-shrink: 0; }
+  .job-sum-name { flex: 1; font-size: 13px; font-weight: 500; min-width: 0; }
+  .job-sum-sub { font-size: 10.5px; color: var(--text-secondary); }
+  .job-sum-amount { font-family: 'DM Mono'; font-size: 14px; }
+  .total-banner { background: var(--navy); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+  .total-banner .lbl { color: rgba(255,255,255,0.5); font-size: 11px; }
+  .total-banner .amt { font-family: 'DM Mono'; font-size: 24px; color: var(--mint); font-weight: 500; }
+  .bar-section { display: flex; gap: 4px; align-items: flex-end; height: 90px; margin: 6px 0; }
   .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; }
-  .bar-stack { width: 100%; display: flex; flex-direction: column; align-items: center; }
-  .bar-seg { width: 78%; transition: height 0.4s; }
-  .bar-seg.shift { background: var(--sky); opacity: 0.85; }
-  .bar-seg.freelance { background: var(--amber); opacity: 0.85; }
-  .bar-seg.officer { background: var(--rose); opacity: 0.85; border-radius: 3px 3px 0 0; }
+  .bar-stack { width: 100%; display: flex; flex-direction: column-reverse; align-items: center; }
+  .bar-seg { width: 78%; }
+  .bar-seg:last-child { border-radius: 3px 3px 0 0; }
   .bar-labels { display: flex; gap: 4px; }
   .bar-labels > div { flex: 1; text-align: center; font-size: 10px; color: var(--text-secondary); }
 
-  /* Donut */
-  .donut-wrap { display: flex; align-items: center; gap: 18px; }
-  .donut-legend { display: flex; flex-direction: column; gap: 8px; flex: 1; }
-  .donut-legend-row { display: flex; align-items: center; gap: 7px; font-size: 12px; }
-  .donut-legend-bar { width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0; }
-  .donut-legend-row b { margin-left: auto; font-family: 'DM Mono'; }
+  /* ═══ Forms ═══ */
+  .form-grid { display: grid; gap: 12px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .form-group label { display: block; font-size: 11.5px; font-weight: 500; color: var(--text-secondary); margin-bottom: 5px; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 9px;
+    font-family: 'Noto Sans JP', sans-serif; font-size: 16px; color: var(--text-primary);
+    background: #fff; outline: none; -webkit-appearance: none;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--mint); }
+  .form-actions { display: flex; gap: 9px; justify-content: flex-end; margin-top: 4px; }
+  .field-note { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+  .calc-preview { padding: 11px 14px; background: var(--bg); border-radius: 10px; font-size: 12.5px; color: var(--text-secondary); }
+  .calc-preview b { color: var(--text-primary); font-family: 'DM Mono'; font-size: 15px; }
 
-  /* Table */
+  /* stamp picker */
+  .stamp-picker { display: grid; grid-template-columns: repeat(6,1fr); gap: 6px; }
+  .stamp-opt { padding: 6px 2px; border-radius: 10px; border: 2px solid transparent; cursor: pointer; text-align: center; }
+  .stamp-opt svg { width: 30px; height: 30px; }
+  .stamp-opt.sel { border-color: var(--mint); background: #E9FBF4; }
+  /* color picker */
+  .color-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+  .color-opt { width: 30px; height: 30px; border-radius: 9px; cursor: pointer; border: 2.5px solid transparent; }
+  .color-opt.sel { border-color: var(--navy); }
+
+  /* job list in settings */
+  .job-item { display: flex; align-items: center; gap: 10px; padding: 11px 4px; border-bottom: 1px solid var(--border); }
+  .job-item:last-child { border-bottom: none; }
+  .job-item svg { width: 28px; height: 28px; flex-shrink: 0; }
+  .job-item-body { flex: 1; min-width: 0; }
+  .job-item-name { font-size: 13.5px; font-weight: 600; }
+  .job-item-sub { font-size: 11px; color: var(--text-secondary); }
+  .job-item.inactive { opacity: 0.45; }
+  .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 4px; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+  .settings-row:last-child { border-bottom: none; }
+
+  /* segmented (pay type) */
+  .seg { display: flex; gap: 3px; background: var(--bg); border-radius: 9px; padding: 3px; }
+  .seg-btn { flex: 1; padding: 8px 4px; text-align: center; border-radius: 6px; cursor: pointer; font-size: 12px; color: var(--text-secondary); user-select: none; }
+  .seg-btn.active { background: #fff; color: var(--text-primary); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
   table { width: 100%; border-collapse: collapse; }
   th { font-size: 10px; color: var(--text-secondary); font-weight: 500; text-align: left; padding: 0 8px 8px; border-bottom: 1.5px solid var(--border); }
   td { padding: 10px 8px; font-size: 12.5px; border-bottom: 1px solid var(--border); vertical-align: middle; }
   tr:last-child td { border-bottom: none; }
-
-  .badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 10.5px; font-weight: 500; white-space: nowrap; }
-  .badge-shift { background: #EBF5FF; color: #3182CE; }
-  .badge-freelance { background: #FFFBEB; color: #C05621; }
-  .badge-officer { background: #FFF0F5; color: #B83280; }
   .mono { font-family: 'DM Mono', monospace; }
-
-  /* Table scroll wrapper for narrow screens */
   .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-
-  /* Form */
-  .form-grid { display: grid; gap: 13px; }
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
-  .form-group label { display: block; font-size: 11.5px; font-weight: 500; color: var(--text-secondary); margin-bottom: 5px; }
-  .form-group input, .form-group select, .form-group textarea {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1.5px solid var(--border);
-    border-radius: 9px;
-    font-family: 'Noto Sans JP', sans-serif;
-    font-size: 16px; /* iOS zoom-prevention */
-    color: var(--text-primary);
-    background: #fff;
-    outline: none;
-    -webkit-appearance: none;
-  }
-  .form-group input:focus, .form-group select:focus { border-color: var(--mint); }
-  .form-actions { display: flex; gap: 9px; justify-content: flex-end; margin-top: 4px; }
-
-  /* Calendar (kept compact for phase 1) */
-  .cal-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-  .cal-topbar button { background: none; border: 1.5px solid var(--border); border-radius: 7px; width: 32px; height: 32px; cursor: pointer; font-size: 15px; }
-  .cal-topbar button:active { transform: scale(0.94); }
-
-  /* View switcher (月/週/リスト) */
-  .cal-switch { display: flex; gap: 3px; background: var(--bg); border-radius: 9px; padding: 3px; margin-bottom: 12px; }
-  .cal-switch-btn { flex: 1; padding: 7px; text-align: center; border-radius: 6px; cursor: pointer; font-size: 12.5px; color: var(--text-secondary); user-select: none; transition: all 0.12s; }
-  .cal-switch-btn.active { background: #fff; color: var(--text-primary); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-
-  .cal-header { display: grid; grid-template-columns: repeat(7,1fr); text-align: center; }
-  .cal-day-name { font-size: 11px; color: var(--text-secondary); padding: 5px 0; font-weight: 500; }
-
-  /* MONTH view — larger cells */
-  .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin-top: 4px; }
-  .cal-day {
-    aspect-ratio: 0.82;
-    border-radius: 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 5px 2px 3px;
-    font-size: 13px;
-    cursor: pointer;
-    position: relative;
-    user-select: none;
-    background: #FAFBFC;
-    border: 1.5px solid transparent;
-    transition: background 0.1s;
-    overflow: hidden;
-  }
-  .cal-day:active { background: var(--bg); }
-  .cal-day.today { border-color: var(--mint); }
-  .cal-day.other-month { opacity: 0.4; }
-  .cal-day .day-num { font-size: 12px; font-weight: 600; line-height: 1; margin-bottom: 1px; }
-  .cal-day.sun .day-num { color: #E57373; }
-  .cal-day.sat .day-num { color: #5B9CF6; }
-  /* tinted background by income type */
-  .cal-day.tint-shift { background: #EBF5FF; }
-  .cal-day.tint-freelance { background: #FFF8EC; }
-  .cal-day.tint-officer { background: #FFF0F5; }
-  .cal-day.tint-multi { background: linear-gradient(135deg,#EBF5FF 0%,#FFF8EC 60%,#FFF0F5 100%); }
-  /* stamps */
-  .cal-stamps { display: flex; flex-wrap: wrap; justify-content: center; gap: 1px; line-height: 1; margin-top: auto; }
-  .cal-stamp { font-size: 13px; }
-  .cal-amount { font-family: 'DM Mono'; font-size: 8.5px; color: var(--text-secondary); margin-top: 1px; line-height: 1; }
-
-  /* WEEK view */
-  .cal-week-list { display: flex; flex-direction: column; gap: 7px; }
-  .cal-week-row { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 11px; background: #FAFBFC; cursor: pointer; }
-  .cal-week-row:active { background: var(--bg); }
-  .cal-week-row.today { border: 1.5px solid var(--mint); }
-  .cal-week-date { width: 44px; text-align: center; flex-shrink: 0; }
-  .cal-week-date .wd { font-size: 10px; color: var(--text-secondary); }
-  .cal-week-date .dn { font-size: 18px; font-weight: 700; font-family: 'DM Mono'; line-height: 1.1; }
-  .cal-week-date.sun .dn { color: #E57373; } .cal-week-date.sat .dn { color: #5B9CF6; }
-  .cal-week-body { flex: 1; min-width: 0; }
-  .cal-week-stamps { font-size: 15px; }
-  .cal-week-empty { color: #C8D0E0; font-size: 12px; }
-  .cal-week-amount { font-family: 'DM Mono'; font-size: 13px; text-align: right; flex-shrink: 0; }
-
-  /* LIST view */
-  .cal-list-item { display: flex; align-items: center; gap: 11px; padding: 12px 4px; border-bottom: 1px solid var(--border); cursor: pointer; }
-  .cal-list-item:active { background: var(--bg); }
-  .cal-list-stamp { font-size: 20px; width: 28px; text-align: center; flex-shrink: 0; }
-  .cal-list-body { flex: 1; min-width: 0; }
-  .cal-list-title { font-size: 13px; font-weight: 500; }
-  .cal-list-sub { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
-  .cal-list-amount { font-family: 'DM Mono'; font-size: 13px; flex-shrink: 0; }
-
-  /* stamp legend */
-  .cal-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
-  .cal-legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-secondary); }
-
-  /* Empty */
-  .empty { text-align: center; padding: 32px 16px; color: var(--text-secondary); }
-  .empty-icon { font-size: 32px; margin-bottom: 6px; }
+  .empty { text-align: center; padding: 28px 16px; color: var(--text-secondary); }
+  .empty-icon { font-size: 30px; margin-bottom: 6px; }
   .empty-text { font-size: 12.5px; }
 
-  /* Officer preview */
-  .officer-preview { margin-top: 18px; padding: 14px; background: var(--bg); border-radius: 10px; }
-  .officer-preview-label { font-size: 11px; color: var(--text-secondary); }
-  .officer-preview-amount { font-family: 'DM Mono'; font-size: 20px; font-weight: 500; margin-top: 3px; }
-
-  /* ── Bottom Tab Bar ── */
-  .tabbar {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    z-index: 60;
-    background: rgba(255,255,255,0.96);
-    backdrop-filter: saturate(180%) blur(16px);
-    -webkit-backdrop-filter: saturate(180%) blur(16px);
-    border-top: 1px solid var(--border);
-    display: flex;
-    padding-bottom: var(--safe-bottom);
-    height: calc(var(--tabbar-h) + var(--safe-bottom));
-  }
-  .tab {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    cursor: pointer;
-    color: var(--text-secondary);
-    transition: color 0.12s;
-    user-select: none;
-    padding-top: 6px;
-  }
+  /* tabbar */
+  .tabbar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 60; background: rgba(255,255,255,0.96); backdrop-filter: saturate(180%) blur(16px); -webkit-backdrop-filter: saturate(180%) blur(16px); border-top: 1px solid var(--border); display: flex; padding-bottom: var(--safe-bottom); height: calc(var(--tabbar-h) + var(--safe-bottom)); }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; color: var(--text-secondary); user-select: none; padding-top: 6px; }
   .tab.active { color: var(--mint-dim); }
-  .tab-icon { font-size: 21px; line-height: 1; filter: grayscale(0.3); }
+  .tab-icon { font-size: 20px; line-height: 1; filter: grayscale(0.35); }
   .tab.active .tab-icon { filter: none; }
   .tab-label { font-size: 9.5px; font-weight: 500; }
 
-  /* Modal */
-  .modal-overlay {
-    display: none;
-    position: fixed; inset: 0;
-    background: rgba(20,30,60,0.45);
-    z-index: 100;
-    align-items: flex-end;
-    justify-content: center;
-  }
+  /* modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(20,30,60,0.45); z-index: 100; align-items: flex-end; justify-content: center; }
   .modal-overlay.open { display: flex; }
-  .modal {
-    background: #fff;
-    border-radius: 20px 20px 0 0;
-    padding: 22px 18px calc(22px + var(--safe-bottom));
-    width: 100%;
-    max-width: 520px;
-    max-height: 92vh;
-    overflow-y: auto;
-    animation: slideup 0.25s;
-  }
+  .modal { background: #fff; border-radius: 20px 20px 0 0; padding: 20px 16px calc(20px + var(--safe-bottom)); width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto; animation: slideup 0.22s; }
   @keyframes slideup { from { transform: translateY(100%); } to { transform: none; } }
-  .modal-handle { width: 38px; height: 4px; background: var(--border); border-radius: 3px; margin: 0 auto 16px; }
-  .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
-  .modal-preview { padding: 11px 0; font-size: 13px; color: var(--text-secondary); }
-  .modal-preview b { color: var(--text-primary); font-family: 'DM Mono'; }
+  .modal-handle { width: 38px; height: 4px; background: var(--border); border-radius: 3px; margin: 0 auto 14px; }
+  .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+  .add-menu-item { display: flex; align-items: center; gap: 12px; padding: 13px 8px; border-radius: 12px; cursor: pointer; }
+  .add-menu-item:active { background: var(--bg); }
+  .add-menu-item svg { width: 30px; height: 30px; }
+  .add-menu-label { font-size: 14px; font-weight: 600; }
+  .add-menu-sub { font-size: 11px; color: var(--text-secondary); }
 
-  /* Toast */
-  .toast {
-    position: fixed;
-    bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 16px);
-    left: 50%;
-    transform: translateX(-50%) translateY(10px);
-    background: var(--navy);
-    color: #fff;
-    padding: 11px 20px;
-    border-radius: 10px;
-    font-size: 13px;
-    z-index: 999;
-    opacity: 0;
-    transition: all 0.3s;
-    border-left: 4px solid var(--mint);
-    pointer-events: none;
-    white-space: nowrap;
-  }
+  .toast { position: fixed; bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 14px); left: 50%; transform: translateX(-50%) translateY(10px); background: var(--navy); color: #fff; padding: 11px 20px; border-radius: 10px; font-size: 13px; z-index: 999; opacity: 0; transition: all 0.3s; border-left: 4px solid var(--mint); pointer-events: none; white-space: nowrap; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-  /* Settings list rows */
-  .config-summary { font-family: 'DM Mono'; font-size: 12.5px; line-height: 1.9; }
 </style>
 </head>
 <body>
 <div class="app">
-
-  <!-- Top bar -->
   <header class="topbar">
-    <div style="display:flex;align-items:center;gap:8px;">
+    <div style="display:flex;align-items:center;">
       <span class="topbar-logo">Finance<span>Mgr</span></span>
-      <span class="version-badge" id="version-badge">v2</span>
+      <span class="version-badge" id="version-badge">v3</span>
     </div>
     <div class="topbar-total">
       <div class="topbar-total-label">今月合計</div>
@@ -391,280 +225,222 @@
     </div>
   </header>
 
-  <!-- Content -->
-  <div class="content">
+  <div class="content" id="content">
 
-    <!-- ── DASHBOARD ── -->
-    <div class="page active" id="page-dashboard">
+    <!-- ═══ CALENDAR (main) ═══ -->
+    <div class="page active" id="page-calendar">
+      <div class="cal-wrap">
+        <div class="cal-controls">
+          <div class="cal-nav">
+            <button onclick="changeCalMonth(-1)">‹</button>
+            <span class="cal-title" id="cal-title">—</span>
+            <button onclick="changeCalMonth(1)">›</button>
+          </div>
+          <button class="today-btn" onclick="goToday()">今日</button>
+          <div class="cal-switch">
+            <div class="cal-switch-btn active" onclick="setCalView('month',this)">月</div>
+            <div class="cal-switch-btn" onclick="setCalView('week',this)">週</div>
+            <div class="cal-switch-btn" onclick="setCalView('list',this)">一覧</div>
+          </div>
+        </div>
+
+        <div id="cal-month-view">
+          <div class="cal-header" id="cal-header"></div>
+          <div id="cal-weeks"></div>
+        </div>
+        <div id="cal-week-view" style="display:none"></div>
+        <div id="cal-list-view" style="display:none"></div>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="openAddMenu(todayStr())">＋ 予定・収入を追加</button>
+    </div>
+
+    <!-- ═══ HOME (集計) ═══ -->
+    <div class="page" id="page-home">
       <div class="month-nav">
-        <button onclick="changeMonth(-1)">‹</button>
-        <span class="month-label" id="month-nav-label">—</span>
-        <button onclick="changeMonth(1)">›</button>
+        <button onclick="changeHomeMonth(-1)">‹</button>
+        <span class="month-label" id="home-month-label">—</span>
+        <button onclick="changeHomeMonth(1)">›</button>
       </div>
-
-      <div class="summary-grid">
-        <div class="sum-card shift">
-          <div class="sum-label">🗓 アルバイト</div>
-          <div class="sum-amount" id="sum-shift">¥0</div>
-          <div class="sum-sub" id="sum-shift-sub">0回</div>
-        </div>
-        <div class="sum-card freelance">
-          <div class="sum-label">💻 在宅ワーク</div>
-          <div class="sum-amount" id="sum-freelance">¥0</div>
-          <div class="sum-sub" id="sum-freelance-sub">0件</div>
-        </div>
-        <div class="sum-card officer">
-          <div class="sum-label">🏢 役員報酬</div>
-          <div class="sum-amount" id="sum-officer">¥0</div>
-          <div class="sum-sub">月額固定</div>
-        </div>
-        <div class="sum-card total">
-          <div class="sum-label">💰 月合計</div>
-          <div class="sum-amount" id="sum-total">¥0</div>
-          <div class="sum-sub" id="sum-total-sub">手取り概算 ¥0</div>
-        </div>
+      <div class="total-banner">
+        <span class="lbl">月合計収入</span>
+        <span class="amt" id="home-total">¥0</span>
       </div>
-
       <div class="card">
-        <div class="card-title">月別収入推移</div>
-        <div class="legend">
-          <div class="legend-item"><span class="legend-dot officer"></span>役員報酬</div>
-          <div class="legend-item"><span class="legend-dot freelance"></span>在宅ワーク</div>
-          <div class="legend-item"><span class="legend-dot shift"></span>アルバイト</div>
-        </div>
+        <div class="card-title">仕事別の内訳</div>
+        <div id="home-jobs"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">月別収入推移（6ヶ月）</div>
         <div class="bar-section" id="bar-chart"></div>
         <div class="bar-labels" id="bar-labels"></div>
       </div>
-
       <div class="card">
-        <div class="card-title">今月の収入内訳</div>
-        <div class="donut-wrap">
-          <svg width="110" height="110" viewBox="0 0 42 42" style="flex-shrink:0">
-            <circle r="16" cx="21" cy="21" fill="none" stroke="#E4E8F0" stroke-width="8"/>
-            <circle r="16" cx="21" cy="21" fill="none" stroke="#5B9CF6" stroke-width="8" stroke-dasharray="0 100" id="d-shift" style="transform:rotate(-90deg);transform-origin:center;transition:stroke-dasharray 0.5s"/>
-            <circle r="16" cx="21" cy="21" fill="none" stroke="#F5A623" stroke-width="8" stroke-dasharray="0 100" id="d-freelance" style="transform:rotate(-90deg);transform-origin:center;transition:stroke-dasharray 0.5s"/>
-            <circle r="16" cx="21" cy="21" fill="none" stroke="#F06292" stroke-width="8" stroke-dasharray="0 100" id="d-officer" style="transform:rotate(-90deg);transform-origin:center;transition:stroke-dasharray 0.5s"/>
-          </svg>
-          <div class="donut-legend">
-            <div class="donut-legend-row"><span class="donut-legend-bar" style="background:var(--rose)"></span>役員報酬<b id="dl-officer">¥0</b></div>
-            <div class="donut-legend-row"><span class="donut-legend-bar" style="background:var(--amber)"></span>在宅ワーク<b id="dl-freelance">¥0</b></div>
-            <div class="donut-legend-row"><span class="donut-legend-bar" style="background:var(--sky)"></span>アルバイト<b id="dl-shift">¥0</b></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">直近の収入記録</div>
-        <div id="recent-table-wrap"></div>
+        <div class="card-title">今月の記録</div>
+        <div class="table-scroll" id="home-records"></div>
       </div>
     </div>
 
-    <!-- ── CALENDAR (phase 2: large + stamps + view switch) ── -->
-    <div class="page" id="page-calendar">
+    <!-- ═══ INCOME INPUT ═══ -->
+    <div class="page" id="page-input">
       <div class="page-head">
         <div>
-          <div class="page-title">カレンダー</div>
-          <div class="page-sub">収入予定・実績をひと目で</div>
-        </div>
-        <button class="btn btn-primary" onclick="openModal('modal-shift')">＋ シフト</button>
-      </div>
-
-      <div class="card">
-        <div class="cal-switch">
-          <div class="cal-switch-btn active" data-view="month" onclick="setCalView('month',this)">月</div>
-          <div class="cal-switch-btn" data-view="week" onclick="setCalView('week',this)">週</div>
-          <div class="cal-switch-btn" data-view="list" onclick="setCalView('list',this)">リスト</div>
-        </div>
-        <div class="cal-topbar">
-          <button onclick="changeCalMonth(-1)">‹</button>
-          <span style="font-weight:700;font-size:15px;" id="cal-title">—</span>
-          <button onclick="changeCalMonth(1)">›</button>
-        </div>
-
-        <!-- MONTH view -->
-        <div id="cal-month-view">
-          <div class="cal-header">
-            <div class="cal-day-name" style="color:#E57373">日</div>
-            <div class="cal-day-name">月</div><div class="cal-day-name">火</div><div class="cal-day-name">水</div>
-            <div class="cal-day-name">木</div><div class="cal-day-name">金</div>
-            <div class="cal-day-name" style="color:#5B9CF6">土</div>
-          </div>
-          <div class="cal-grid" id="cal-grid"></div>
-        </div>
-
-        <!-- WEEK view -->
-        <div id="cal-week-view" style="display:none">
-          <div class="cal-week-list" id="cal-week-list"></div>
-        </div>
-
-        <!-- LIST view -->
-        <div id="cal-list-view" style="display:none">
-          <div id="cal-list-wrap"></div>
-        </div>
-
-        <div class="cal-legend">
-          <div class="cal-legend-item">☕ バイト</div>
-          <div class="cal-legend-item">💻 在宅ワーク</div>
-          <div class="cal-legend-item">💰 役員報酬支払</div>
+          <div class="page-title">収入入力</div>
+          <div class="page-sub">仕事を選んで記録します</div>
         </div>
       </div>
-
       <div class="card">
-        <div class="card-title">バイト設定</div>
-        <div class="form-grid">
-          <div class="form-group"><label>バイト先名</label><input id="cfg-name" type="text" oninput="saveConfig()"></div>
-          <div class="form-row">
-            <div class="form-group"><label>時給（円）</label><input id="cfg-wage" type="number" oninput="saveConfig()"></div>
-            <div class="form-group"><label>交通費（片道・円）</label><input id="cfg-transport" type="number" oninput="saveConfig()"></div>
-          </div>
-        </div>
-        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
-          <div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;">今月の集計</div>
-          <div class="config-summary" id="shift-monthly-summary"></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">勤務記録</div>
-        <div class="table-scroll" id="shift-list-wrap"></div>
+        <div class="form-grid" id="input-form-area"></div>
       </div>
     </div>
 
-    <!-- ── FREELANCE ── -->
-    <div class="page" id="page-freelance">
+    <!-- ═══ SETTINGS ═══ -->
+    <div class="page" id="page-settings">
       <div class="page-head">
         <div>
-          <div class="page-title">在宅ワーク</div>
-          <div class="page-sub">業務委託・不定期収入</div>
-        </div>
-        <button class="btn btn-primary" onclick="openModal('modal-freelance')">＋ 案件</button>
-      </div>
-      <div class="card">
-        <div class="table-scroll" id="freelance-list-wrap"></div>
-      </div>
-    </div>
-
-    <!-- ── OFFICER ── -->
-    <div class="page" id="page-officer">
-      <div class="page-head">
-        <div>
-          <div class="page-title">役員報酬</div>
-          <div class="page-sub">月額固定報酬の設定</div>
+          <div class="page-title">設定</div>
+          <div class="page-sub">仕事の登録・アプリ設定</div>
         </div>
       </div>
       <div class="card">
-        <div class="card-title">報酬設定</div>
-        <div class="form-grid">
-          <div class="form-group"><label>会社名</label><input id="off-company" type="text" placeholder="株式会社〇〇" oninput="saveOfficer()"></div>
-          <div class="form-group"><label>月額報酬（円）</label><input id="off-salary" type="number" placeholder="300000" oninput="saveOfficer()"></div>
-          <div class="form-group"><label>支払日（毎月）</label><input id="off-paydate" type="number" min="1" max="31" placeholder="25" oninput="saveOfficer()"></div>
-          <div class="form-group"><label>メモ</label><textarea id="off-memo" rows="2" placeholder="社会保険など控除メモ" oninput="saveOfficer()"></textarea></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div class="card-title" style="margin-bottom:0">仕事の管理</div>
+          <button class="btn btn-primary btn-sm" onclick="openJobModal()">＋ 追加</button>
         </div>
-        <div class="officer-preview">
-          <div class="officer-preview-label">年収見込み</div>
-          <div class="officer-preview-amount" id="officer-annual">¥0</div>
-        </div>
+        <div id="job-list"></div>
       </div>
-    </div>
-
-    <!-- ── HISTORY ── -->
-    <div class="page" id="page-history">
-      <div class="page-head">
-        <div>
-          <div class="page-title">収入履歴</div>
-          <div class="page-sub">すべての収入記録</div>
+      <div class="card">
+        <div class="card-title">データ</div>
+        <div class="settings-row">
+          <span>バックアップ（書き出し）</span>
+          <button class="btn btn-ghost btn-sm" onclick="exportData()">JSON保存</button>
+        </div>
+        <div class="settings-row">
+          <span>復元（読み込み）</span>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('import-file').click()">ファイル選択</button>
+          <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
         </div>
       </div>
       <div class="card">
-        <div class="table-scroll" id="history-wrap"></div>
+        <div class="card-title">表示</div>
+        <div class="settings-row"><span>週の開始曜日ほか</span><span style="font-size:11px;color:var(--text-secondary)">次回更新で追加予定</span></div>
+      </div>
+      <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
+        FinanceManager <span id="ver-footer">v3</span> / schema <span id="schema-footer">2</span>
       </div>
     </div>
-
   </div>
 
-  <!-- Bottom Tab Bar -->
   <nav class="tabbar">
-    <div class="tab active" data-page="dashboard" onclick="showPage('dashboard', this)">
-      <span class="tab-icon">📊</span><span class="tab-label">ホーム</span>
-    </div>
-    <div class="tab" data-page="calendar" onclick="showPage('calendar', this)">
-      <span class="tab-icon">🗓</span><span class="tab-label">シフト</span>
-    </div>
-    <div class="tab" data-page="freelance" onclick="showPage('freelance', this)">
-      <span class="tab-icon">💻</span><span class="tab-label">在宅</span>
-    </div>
-    <div class="tab" data-page="officer" onclick="showPage('officer', this)">
-      <span class="tab-icon">🏢</span><span class="tab-label">役員</span>
-    </div>
-    <div class="tab" data-page="history" onclick="showPage('history', this)">
-      <span class="tab-icon">📋</span><span class="tab-label">履歴</span>
-    </div>
+    <div class="tab active" onclick="showPage('calendar', this)"><span class="tab-icon">🗓</span><span class="tab-label">カレンダー</span></div>
+    <div class="tab" onclick="showPage('home', this)"><span class="tab-icon">📊</span><span class="tab-label">ホーム</span></div>
+    <div class="tab" onclick="showPage('input', this)"><span class="tab-icon">✏️</span><span class="tab-label">収入入力</span></div>
+    <div class="tab" onclick="showPage('settings', this)"><span class="tab-icon">⚙️</span><span class="tab-label">設定</span></div>
   </nav>
 </div>
 
-<!-- Day Detail Modal -->
+<!-- ═══ Modals ═══ -->
+<!-- add menu -->
+<div class="modal-overlay" id="modal-addmenu">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="addmenu-title">追加する</div>
+    <div id="addmenu-items"></div>
+    <div class="form-actions"><button class="btn btn-ghost" onclick="closeModal('modal-addmenu')">閉じる</button></div>
+  </div>
+</div>
+
+<!-- day detail -->
 <div class="modal-overlay" id="modal-day">
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title" id="day-detail-title">—</div>
     <div id="day-detail-body"></div>
-    <div class="form-actions" style="margin-top:16px">
+    <div class="form-actions" style="margin-top:14px">
       <button class="btn btn-ghost" onclick="closeModal('modal-day')">閉じる</button>
-      <button class="btn btn-primary" id="day-add-btn">＋ シフト追加</button>
+      <button class="btn btn-primary" id="day-add-btn">＋ 追加</button>
     </div>
   </div>
 </div>
 
-<!-- Shift Modal -->
-<div class="modal-overlay" id="modal-shift">
+<!-- work/income record modal -->
+<div class="modal-overlay" id="modal-record">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-title">🗓 シフトを追加</div>
-    <div class="form-grid">
-      <div class="form-row">
-        <div class="form-group"><label>日付</label><input type="date" id="sh-date"></div>
-        <div class="form-group"><label>バイト先</label><input type="text" id="sh-place"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>開始</label><input type="time" id="sh-start" value="09:00"></div>
-        <div class="form-group"><label>終了</label><input type="time" id="sh-end" value="17:00"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>時給（円）</label><input type="number" id="sh-wage"></div>
-        <div class="form-group"><label>交通費（往復・円）</label><input type="number" id="sh-transport"></div>
-      </div>
-      <div class="form-group"><label>メモ</label><input type="text" id="sh-memo" placeholder="早番・夜番など"></div>
-    </div>
-    <div class="modal-preview">予定収入: <b id="sh-preview">¥0</b></div>
+    <div class="modal-title" id="record-title">記録を追加</div>
+    <div class="form-grid" id="record-form"></div>
     <div class="form-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modal-shift')">キャンセル</button>
-      <button class="btn btn-primary" onclick="addShift()">追加</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-record')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveRecord()">保存</button>
     </div>
   </div>
 </div>
 
-<!-- Freelance Modal -->
-<div class="modal-overlay" id="modal-freelance">
+<!-- generic event modal -->
+<div class="modal-overlay" id="modal-event">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-title">💻 案件を追加</div>
+    <div class="modal-title" id="event-title">予定を追加</div>
     <div class="form-grid">
-      <div class="form-group"><label>案件名・クライアント</label><input type="text" id="fl-name" placeholder="Webライティング / 株式会社〇〇"></div>
+      <div class="form-group"><label>タイトル</label><input type="text" id="ev-title" placeholder="例：請求書提出"></div>
       <div class="form-row">
-        <div class="form-group"><label>入金日</label><input type="date" id="fl-date"></div>
-        <div class="form-group"><label>金額（円）</label><input type="number" id="fl-amount"></div>
+        <div class="form-group"><label>開始日</label><input type="date" id="ev-start"></div>
+        <div class="form-group"><label>終了日（同日なら空欄OK）</label><input type="date" id="ev-end"></div>
       </div>
-      <div class="form-group"><label>カテゴリ</label>
-        <select id="fl-category">
-          <option>ライティング</option><option>デザイン</option><option>エンジニアリング</option>
-          <option>コンサル</option><option>翻訳</option><option>その他</option>
-        </select>
-      </div>
-      <div class="form-group"><label>メモ</label><input type="text" id="fl-memo" placeholder="請求書番号など"></div>
+      <div class="form-group"><label>スタンプ</label><div class="stamp-picker" id="ev-stamp-picker"></div></div>
+      <div class="form-group"><label>帯の色</label><div class="color-picker" id="ev-color-picker"></div></div>
+      <div class="form-group"><label>メモ</label><input type="text" id="ev-memo"></div>
     </div>
     <div class="form-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modal-freelance')">キャンセル</button>
-      <button class="btn btn-primary" onclick="addFreelance()">追加</button>
+      <button class="btn btn-danger" id="ev-delete-btn" style="margin-right:auto;display:none" onclick="deleteEvent()">削除</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-event')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveEvent()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- job edit modal -->
+<div class="modal-overlay" id="modal-job">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="job-modal-title">仕事を追加</div>
+    <div class="form-grid">
+      <div class="form-group"><label>仕事名</label><input type="text" id="job-name" placeholder="例：カフェABC / 〇〇社役員"></div>
+      <div class="form-group"><label>報酬タイプ</label>
+        <div class="seg">
+          <div class="seg-btn active" data-pt="hourly" onclick="setPayType('hourly',this)">時給制</div>
+          <div class="seg-btn" data-pt="piece" onclick="setPayType('piece',this)">案件ごと</div>
+          <div class="seg-btn" data-pt="monthly" onclick="setPayType('monthly',this)">月額固定</div>
+        </div>
+      </div>
+      <div id="job-fields-hourly">
+        <div class="form-row-3">
+          <div class="form-group"><label>時給（円）</label><input type="number" id="job-wage" placeholder="1100"></div>
+          <div class="form-group"><label>交通費/日（円）</label><input type="number" id="job-transport" placeholder="500"></div>
+          <div class="form-group"><label>休憩（分）</label><input type="number" id="job-break" placeholder="60"></div>
+        </div>
+        <div class="field-note">休憩は勤務入力時に変更できます（初期値）</div>
+      </div>
+      <div id="job-fields-monthly" style="display:none">
+        <div class="form-row">
+          <div class="form-group"><label>月額（円）</label><input type="number" id="job-salary" placeholder="300000"></div>
+          <div class="form-group"><label>支払日（毎月）</label><input type="number" id="job-payday" min="1" max="31" placeholder="25"></div>
+        </div>
+      </div>
+      <div class="form-group"><label>スタンプ</label><div class="stamp-picker" id="job-stamp-picker"></div></div>
+      <div class="form-group"><label>カレンダー色</label><div class="color-picker" id="job-color-picker"></div></div>
+      <div class="form-group" id="job-active-row" style="display:none">
+        <label>状態</label>
+        <div class="seg">
+          <div class="seg-btn active" data-act="1" onclick="setJobActive(true,this)">有効</div>
+          <div class="seg-btn" data-act="0" onclick="setJobActive(false,this)">無効（辞めた等）</div>
+        </div>
+        <div class="field-note">無効にしても過去の記録・集計は残ります</div>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-danger" id="job-delete-btn" style="margin-right:auto;display:none" onclick="deleteJob()">削除</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-job')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveJob()">保存</button>
     </div>
   </div>
 </div>
@@ -672,507 +448,604 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ════════════════════════════════════════
-//  FinanceManager v2
-//  データスキーマのバージョン管理付き
-// ════════════════════════════════════════
-const APP_VERSION = '2';
-const SCHEMA_VERSION = 1;
+// ════════════════════════════════════════════════
+//  FinanceManager v3  (schema 2)
+//  jobs(仕事マスタ) + records(収入記録) + events(汎用予定)
+// ════════════════════════════════════════════════
+const APP_VERSION = '3';
+const SCHEMA_VERSION = 2;
 const STORAGE_KEY = 'financeManager';
 
-// ── Default state ──
+// ── オリジナルSVGスタンプ（v2案 / 微調整は後日）──
+const C = {
+  blue:['#5B8DEF','#3D6BD1','#EAF1FF'], teal:['#2DC5A4','#189A7E','#E4FAF4'],
+  amber:['#F7B32B','#D3921A','#FFF6E0'], pink:['#F76D8E','#D94A6E','#FFEBF0'],
+  violet:['#9B7EDE','#7A5CC4','#F1EBFF'], slate:['#6B7A99','#4D5B78','#EEF1F6'],
+};
+const _b = c => `<rect x="2" y="2" width="44" height="44" rx="14" fill="${c[0]}"/>`;
+const STAMPS = {
+briefcase:{name:'カバン',svg:`<svg viewBox="0 0 48 48">${_b(C.amber)}<rect x="11" y="18" width="26" height="17" rx="4" fill="#fff"/><path d="M19 18v-2.5a3.5 3.5 0 0 1 3.5-3.5h3a3.5 3.5 0 0 1 3.5 3.5V18" fill="none" stroke="#fff" stroke-width="2.5"/><path d="M11 25h26" stroke="${C.amber[1]}" stroke-width="2.5"/><rect x="21" y="22.8" width="6" height="5" rx="1.6" fill="${C.amber[1]}"/></svg>`},
+laptop:{name:'パソコン',svg:`<svg viewBox="0 0 48 48">${_b(C.blue)}<rect x="13" y="13" width="22" height="15" rx="2.5" fill="#fff"/><rect x="16" y="16" width="16" height="9" rx="1.2" fill="${C.blue[2]}"/><path d="M20.5 20.5l2 2 4-4" stroke="${C.blue[0]}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 31.5h28l-1.6 2.6a2.5 2.5 0 0 1-2.1 1.2H13.7a2.5 2.5 0 0 1-2.1-1.2L10 31.5z" fill="#fff"/></svg>`},
+building:{name:'会社',svg:`<svg viewBox="0 0 48 48">${_b(C.slate)}<rect x="14" y="10" width="20" height="28" rx="2.5" fill="#fff"/><g fill="${C.slate[0]}"><rect x="18" y="14" width="4.5" height="4.5" rx="1"/><rect x="25.5" y="14" width="4.5" height="4.5" rx="1"/><rect x="18" y="21.5" width="4.5" height="4.5" rx="1"/><rect x="25.5" y="21.5" width="4.5" height="4.5" rx="1"/></g><rect x="20.8" y="29.5" width="6.4" height="8.5" rx="1.4" fill="${C.slate[1]}"/></svg>`},
+yen:{name:'お金',svg:`<svg viewBox="0 0 48 48">${_b(C.teal)}<circle cx="24" cy="24" r="13.5" fill="#fff"/><text x="24" y="31" text-anchor="middle" font-family="Inter,-apple-system,Arial,sans-serif" font-size="19" font-weight="800" fill="${C.teal[1]}">&#165;</text></svg>`},
+invoice:{name:'請求書',svg:`<svg viewBox="0 0 48 48">${_b(C.pink)}<path d="M15 9h12l7 7v22a2.5 2.5 0 0 1-2.5 2.5h-16A2.5 2.5 0 0 1 13 38V11.5A2.5 2.5 0 0 1 15.5 9z" fill="#fff"/><path d="M27 9v7h7" fill="${C.pink[2]}"/><g stroke="${C.pink[0]}" stroke-width="2.5" stroke-linecap="round"><path d="M18 23h12M18 28h12M18 33h7"/></g></svg>`},
+coin:{name:'ポイント',svg:`<svg viewBox="0 0 48 48">${_b(C.violet)}<circle cx="24" cy="24" r="13.5" fill="#fff"/><circle cx="24" cy="24" r="10" fill="none" stroke="${C.violet[2]}" stroke-width="2"/><text x="24" y="30.5" text-anchor="middle" font-family="Inter,-apple-system,Arial,sans-serif" font-size="17" font-weight="800" fill="${C.violet[1]}">P</text></svg>`},
+bank:{name:'銀行',svg:`<svg viewBox="0 0 48 48">${_b(C.blue)}<path d="M24 10l14 7.5H10L24 10z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><g fill="#fff"><rect x="14" y="20" width="4" height="10" rx="1.4"/><rect x="22" y="20" width="4" height="10" rx="1.4"/><rect x="30" y="20" width="4" height="10" rx="1.4"/></g><rect x="11" y="32.5" width="26" height="4.5" rx="2" fill="#fff"/></svg>`},
+wallet:{name:'財布',svg:`<svg viewBox="0 0 48 48">${_b(C.pink)}<rect x="10" y="15" width="28" height="19" rx="4.5" fill="#fff"/><path d="M28 21h10v8H28a4 4 0 0 1 0-8z" fill="${C.pink[2]}"/><circle cx="30.5" cy="25" r="2" fill="${C.pink[0]}"/></svg>`},
+receipt:{name:'レシート',svg:`<svg viewBox="0 0 48 48">${_b(C.slate)}<path d="M15 9h18v29l-3-2.2-3 2.2-3-2.2-3 2.2-3-2.2-3 2.2V9z" fill="#fff"/><g stroke="${C.slate[0]}" stroke-width="2.5" stroke-linecap="round"><path d="M19 16h10M19 21h10M19 26h6"/></g></svg>`},
+piggy:{name:'貯金',svg:`<svg viewBox="0 0 48 48">${_b(C.pink)}<ellipse cx="24" cy="26" rx="13" ry="10" fill="#fff"/><path d="M15.5 18.5c-.4-2 .8-3.6 2.8-3.8 1 1 1.4 2.4 1.2 3.6" fill="#fff"/><ellipse cx="12.6" cy="26" rx="3.6" ry="3" fill="${C.pink[2]}" stroke="${C.pink[0]}" stroke-width="1.4"/><circle cx="11.5" cy="26" r="0.8" fill="${C.pink[0]}"/><circle cx="13.8" cy="26" r="0.8" fill="${C.pink[0]}"/><circle cx="18" cy="23" r="1.4" fill="${C.pink[1]}"/><rect x="22" y="15.2" width="7" height="2.4" rx="1.2" fill="${C.pink[1]}"/><rect x="18" y="34" width="3.2" height="3.4" rx="1.5" fill="#fff"/><rect x="27" y="34" width="3.2" height="3.4" rx="1.5" fill="#fff"/></svg>`},
+train:{name:'交通費',svg:`<svg viewBox="0 0 48 48">${_b(C.teal)}<rect x="14" y="10" width="20" height="22" rx="5" fill="#fff"/><rect x="17.5" y="14" width="13" height="8" rx="1.8" fill="${C.teal[2]}"/><circle cx="19.5" cy="26.5" r="2" fill="${C.teal[0]}"/><circle cx="28.5" cy="26.5" r="2" fill="${C.teal[0]}"/><path d="M17 33l-3 5M31 33l3 5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>`},
+payday:{name:'給料日',svg:`<svg viewBox="0 0 48 48">${_b(C.amber)}<rect x="11" y="13" width="26" height="22" rx="3.5" fill="#fff"/><rect x="11" y="13" width="26" height="6.5" rx="3.5" fill="${C.amber[2]}"/><path d="M17 12v3.5M31 12v3.5" stroke="${C.amber[1]}" stroke-width="2.5" stroke-linecap="round"/><text x="24" y="32" text-anchor="middle" font-family="Inter,-apple-system,Arial,sans-serif" font-size="13" font-weight="800" fill="${C.amber[1]}">&#165;</text></svg>`},
+clock:{name:'時間',svg:`<svg viewBox="0 0 48 48">${_b(C.blue)}<circle cx="24" cy="24" r="13.5" fill="#fff"/><path d="M24 16.5V24l5.5 3.5" stroke="${C.blue[0]}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`},
+deadline:{name:'締切（〆）',svg:`<svg viewBox="0 0 48 48">${_b(C.pink)}<circle cx="24" cy="24" r="13.5" fill="#fff"/><text x="24" y="31" text-anchor="middle" font-family="'Noto Sans JP','Hiragino Sans',sans-serif" font-size="17" font-weight="700" fill="${C.pink[1]}">〆</text></svg>`},
+pin:{name:'重要',svg:`<svg viewBox="0 0 48 48">${_b(C.pink)}<path d="M24 9.5c-5.4 0-9.5 4-9.5 9.4 0 6.8 9.5 19.6 9.5 19.6s9.5-12.8 9.5-19.6c0-5.4-4.1-9.4-9.5-9.4z" fill="#fff"/><circle cx="24" cy="19" r="4" fill="${C.pink[0]}"/></svg>`},
+memo:{name:'メモ',svg:`<svg viewBox="0 0 48 48">${_b(C.amber)}<rect x="13" y="10" width="22" height="28" rx="3.5" fill="#fff"/><g stroke="${C.amber[0]}" stroke-width="2.5" stroke-linecap="round"><path d="M18 18h12M18 24h12M18 30h7"/></g></svg>`},
+cart:{name:'買い物',svg:`<svg viewBox="0 0 48 48">${_b(C.violet)}<path d="M12 13h4l3.2 14.5H33l3-10.5H17.5" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="21" cy="33.5" r="2.4" fill="#fff"/><circle cx="30.5" cy="33.5" r="2.4" fill="#fff"/></svg>`},
+star:{name:'イベント',svg:`<svg viewBox="0 0 48 48">${_b(C.amber)}<path d="M24 10.5l4 8.2 9 1.3-6.5 6.4 1.5 9-8-4.2-8 4.2 1.5-9L11 20l9-1.3 4-8.2z" fill="#fff" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>`},
+};
+const stampSVG = id => (STAMPS[id]||STAMPS.memo).svg;
+
+// band / job colors
+const PALETTE = ['#BFE3FF','#C6F3E4','#FFE9B8','#FFD3DE','#E3D9FF','#D9E2F0','#C9F0C4','#FFDDC2'];
+
+// ── state / schema ──
 function defaultState() {
   return {
     schemaVersion: SCHEMA_VERSION,
-    shifts: [],
-    freelance: [],
-    config: { name: 'カフェ ABC', wage: 1100, transport: 250 },
-    officer: { company: '', salary: 0, paydate: 25, memo: '' },
-    viewMonth: new Date().getMonth(),
-    viewYear: new Date().getFullYear(),
+    jobs: [],       // {id,name,payType,wage,transport,breakMin,salary,payday,stamp,color,active}
+    records: [],    // {id,jobId,date,start,end,breakMin,hours,transport,amount,name,memo}
+    events: [],     // {id,title,startDate,endDate,stamp,color,memo}
+    homeMonth: new Date().getMonth(),
+    homeYear: new Date().getFullYear(),
   };
 }
 
-// ── Migration: 古いデータを安全に最新スキーマへ変換 ──
 function migrate(data) {
   if (!data) return defaultState();
   let v = data.schemaVersion || 0;
-
-  // 旧 'incomeboard' キーや schemaVersion 無しのデータも吸収
-  // v0 → v1
-  if (v < 1) {
-    data.schemaVersion = 1;
-    data.shifts = data.shifts || [];
-    data.freelance = data.freelance || [];
-    data.config = data.config || { name: 'カフェ ABC', wage: 1100, transport: 250 };
-    data.officer = data.officer || { company: '', salary: 0, paydate: 25, memo: '' };
-    if (data.viewMonth === undefined) data.viewMonth = new Date().getMonth();
-    if (data.viewYear === undefined) data.viewYear = new Date().getFullYear();
-    v = 1;
+  if (v < 1) { data.shifts=data.shifts||[]; data.freelance=data.freelance||[]; data.config=data.config||{name:'アルバイト',wage:1100,transport:250}; data.officer=data.officer||{company:'',salary:0,paydate:25,memo:''}; v=1; }
+  if (v < 2) {
+    // v1 → v2 : shifts/freelance/officer → jobs + records
+    const out = defaultState();
+    const now = Date.now();
+    // hourly job from config
+    if ((data.shifts&&data.shifts.length) || (data.config&&data.config.name)) {
+      out.jobs.push({ id:'job_hourly_'+now, name:(data.config&&data.config.name)||'アルバイト', payType:'hourly',
+        wage:(data.config&&data.config.wage)||0, transport:((data.config&&data.config.transport)||0)*2, breakMin:0,
+        salary:0, payday:25, stamp:'briefcase', color:PALETTE[0], active:true });
+    }
+    // piece job if freelance exists
+    if (data.freelance && data.freelance.length) {
+      out.jobs.push({ id:'job_piece_'+now, name:'在宅ワーク', payType:'piece', wage:0, transport:0, breakMin:0,
+        salary:0, payday:25, stamp:'laptop', color:PALETTE[2], active:true });
+    }
+    // monthly job from officer
+    if (data.officer && data.officer.salary > 0) {
+      out.jobs.push({ id:'job_month_'+now, name:data.officer.company||'役員報酬', payType:'monthly', wage:0, transport:0, breakMin:0,
+        salary:data.officer.salary, payday:parseInt(data.officer.paydate)||25, stamp:'building', color:PALETTE[3], active:true });
+    }
+    const hJob = out.jobs.find(j=>j.payType==='hourly');
+    const pJob = out.jobs.find(j=>j.payType==='piece');
+    (data.shifts||[]).forEach(s => out.records.push({
+      id:'r'+s.id, jobId:hJob?hJob.id:null, date:s.date, start:s.start, end:s.end, breakMin:0,
+      hours:s.hours, transport:s.transport||0, amount:s.pay, name:s.place||'', memo:s.memo||'' }));
+    (data.freelance||[]).forEach(f => out.records.push({
+      id:'r'+f.id, jobId:pJob?pJob.id:null, date:f.date, start:'', end:'', breakMin:0,
+      hours:0, transport:0, amount:f.amount, name:f.name, memo:f.memo||'' }));
+    return out;
   }
-
-  // 将来のマイグレーションはここに追記:
-  // if (v < 2) { ...; v = 2; }
-
   data.schemaVersion = SCHEMA_VERSION;
+  data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[];
   return data;
 }
 
-// ── Load (旧キーからの引き継ぎも試行) ──
 function loadState() {
-  let raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) {
-    // 旧バージョン(incomeboard)のデータがあれば引き継ぐ
-    const legacy = localStorage.getItem('incomeboard');
-    if (legacy) raw = legacy;
-  }
+  let raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('incomeboard');
   let parsed = null;
-  try { parsed = raw ? JSON.parse(raw) : null; } catch(e) { parsed = null; }
+  try { parsed = raw ? JSON.parse(raw) : null; } catch(e){}
   return migrate(parsed);
 }
-
 let state = loadState();
-let calMonth = new Date().getMonth();
-let calYear = new Date().getFullYear();
+function save(){ state.schemaVersion=SCHEMA_VERSION; localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+const fmt = n => '¥' + Math.round(n).toLocaleString();
+const MONTHS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+const WD = ['日','月','火','水','木','金','土'];
+const pad = n => String(n).padStart(2,'0');
+const dstr = (y,m,d) => `${y}-${pad(m+1)}-${pad(d)}`;
+const todayStr = () => { const t=new Date(); return dstr(t.getFullYear(),t.getMonth(),t.getDate()); };
+const jobById = id => state.jobs.find(j=>j.id===id);
 
-function save() {
-  state.schemaVersion = SCHEMA_VERSION;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
-function fmt(n) { return '¥' + Math.round(n).toLocaleString(); }
-
-// ── NAV ──
+// ── nav ──
 function showPage(id, el) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
   if (el) el.classList.add('active');
-  document.querySelector('.content').scrollTop = 0;
+  document.getElementById('content').scrollTop = 0;
   renderAll();
 }
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); }));
+let toastTimer;
+function showToast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2200); }
 
-function changeMonth(d) {
-  state.viewMonth += d;
-  if (state.viewMonth < 0) { state.viewMonth = 11; state.viewYear--; }
-  if (state.viewMonth > 11) { state.viewMonth = 0; state.viewYear++; }
-  save(); renderAll();
-}
-
-// ── MODAL ──
-function openModal(id) {
-  document.getElementById(id).classList.add('open');
-  if (id === 'modal-shift') {
-    document.getElementById('sh-date').value = new Date().toISOString().slice(0,10);
-    document.getElementById('sh-place').value = state.config.name;
-    document.getElementById('sh-wage').value = state.config.wage;
-    document.getElementById('sh-transport').value = state.config.transport * 2;
-    updateShiftPreview();
-  }
-  if (id === 'modal-freelance') {
-    document.getElementById('fl-date').value = new Date().toISOString().slice(0,10);
-  }
-}
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-document.querySelectorAll('.modal-overlay').forEach(o => {
-  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
-});
-
-// ── SHIFT PREVIEW ──
-function updateShiftPreview() {
-  const s = document.getElementById('sh-start').value;
-  const e = document.getElementById('sh-end').value;
-  const w = parseFloat(document.getElementById('sh-wage').value) || 0;
-  const t = parseFloat(document.getElementById('sh-transport').value) || 0;
-  if (s && e) {
-    const [sh,sm] = s.split(':').map(Number);
-    const [eh,em] = e.split(':').map(Number);
-    const hrs = ((eh*60+em)-(sh*60+sm))/60;
-    document.getElementById('sh-preview').textContent = fmt(Math.max(0,hrs)*w + t);
-  }
-}
-['sh-start','sh-end','sh-wage','sh-transport'].forEach(id => {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener('input', updateShiftPreview);
-});
-
-// ── ADD SHIFT ──
-function addShift() {
-  const date = document.getElementById('sh-date').value;
-  const start = document.getElementById('sh-start').value;
-  const end = document.getElementById('sh-end').value;
-  const wage = parseFloat(document.getElementById('sh-wage').value) || 0;
-  const transport = parseFloat(document.getElementById('sh-transport').value) || 0;
-  const place = document.getElementById('sh-place').value || state.config.name;
-  const memo = document.getElementById('sh-memo').value;
-  if (!date || !start || !end) { showToast('日付・時刻を入力してください'); return; }
-  const [sh,sm] = start.split(':').map(Number);
-  const [eh,em] = end.split(':').map(Number);
-  const hours = ((eh*60+em)-(sh*60+sm))/60;
-  const pay = Math.max(0, hours) * wage + transport;
-  state.shifts.push({ id: Date.now(), date, start, end, hours: Math.max(0,hours), wage, transport, pay, place, memo });
-  save(); closeModal('modal-shift'); renderAll(); showToast('シフトを追加しました ✓');
-}
-
-// ── ADD FREELANCE ──
-function addFreelance() {
-  const name = document.getElementById('fl-name').value;
-  const date = document.getElementById('fl-date').value;
-  const amount = parseFloat(document.getElementById('fl-amount').value) || 0;
-  const category = document.getElementById('fl-category').value;
-  const memo = document.getElementById('fl-memo').value;
-  if (!name || !date || !amount) { showToast('案件名・日付・金額を入力してください'); return; }
-  state.freelance.push({ id: Date.now(), name, date, amount, category, memo });
-  save(); closeModal('modal-freelance'); renderAll(); showToast('案件を追加しました ✓');
-}
-
-// ── CONFIG ──
-function saveConfig() {
-  state.config.name = document.getElementById('cfg-name').value;
-  state.config.wage = parseFloat(document.getElementById('cfg-wage').value) || 0;
-  state.config.transport = parseFloat(document.getElementById('cfg-transport').value) || 0;
-  save();
-}
-function saveOfficer() {
-  state.officer.company = document.getElementById('off-company').value;
-  state.officer.salary = parseFloat(document.getElementById('off-salary').value) || 0;
-  state.officer.paydate = document.getElementById('off-paydate').value;
-  state.officer.memo = document.getElementById('off-memo').value;
-  save();
-  document.getElementById('officer-annual').textContent = fmt((state.officer.salary||0)*12);
-  renderTopbar();
-}
-
-// ── COMPUTE ──
-function getMonthData(y, m) {
-  const shifts = state.shifts.filter(s => { const d = new Date(s.date); return d.getFullYear()===y && d.getMonth()===m; });
-  const freelance = state.freelance.filter(f => { const d = new Date(f.date); return d.getFullYear()===y && d.getMonth()===m; });
-  const officer = state.officer.salary || 0;
-  const shiftTotal = shifts.reduce((a,s) => a + s.pay, 0);
-  const shiftTransport = shifts.reduce((a,s) => a + s.transport, 0);
-  const freelanceTotal = freelance.reduce((a,f) => a + f.amount, 0);
-  return { shifts, freelance, officer, shiftTotal, shiftTransport, freelanceTotal, total: shiftTotal+freelanceTotal+officer };
-}
-
-// ── RENDER ──
-function renderAll() {
-  renderTopbar();
-  renderDashboard();
-  renderCalendar();
-  renderShiftList();
-  renderShiftSummary();
-  renderFreelanceList();
-  renderOfficer();
-  renderHistory();
-}
-
-function renderTopbar() {
-  const now = new Date();
-  document.getElementById('topbar-total').textContent = fmt(getMonthData(now.getFullYear(), now.getMonth()).total);
-  document.getElementById('version-badge').textContent = 'v' + APP_VERSION;
-}
-
-const MONTHS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-
-function renderDashboard() {
-  const y = state.viewYear, m = state.viewMonth;
-  const d = getMonthData(y, m);
-  document.getElementById('month-nav-label').textContent = `${y}年 ${MONTHS[m]}`;
-  document.getElementById('sum-shift').textContent = fmt(d.shiftTotal);
-  document.getElementById('sum-shift-sub').textContent = `${d.shifts.length}回 / 交通費 ${fmt(d.shiftTransport)}`;
-  document.getElementById('sum-freelance').textContent = fmt(d.freelanceTotal);
-  document.getElementById('sum-freelance-sub').textContent = `${d.freelance.length}件`;
-  document.getElementById('sum-officer').textContent = fmt(d.officer);
-  document.getElementById('sum-total').textContent = fmt(d.total);
-  document.getElementById('sum-total-sub').textContent = `手取り概算 ${fmt(d.total*0.8)}`;
-
-  // Donut
-  const total = d.total || 1;
-  let offset = 0;
-  function seg(id, val) {
-    const el = document.getElementById(id);
-    const len = val/total*100;
-    el.style.strokeDasharray = `${len} ${100-len}`;
-    el.style.strokeDashoffset = -offset;
-    offset += len;
-  }
-  seg('d-officer', d.officer);
-  seg('d-freelance', d.freelanceTotal);
-  seg('d-shift', d.shiftTotal);
-  document.getElementById('dl-officer').textContent = fmt(d.officer);
-  document.getElementById('dl-freelance').textContent = fmt(d.freelanceTotal);
-  document.getElementById('dl-shift').textContent = fmt(d.shiftTotal);
-
-  // Bar (6 months)
-  const bar = document.getElementById('bar-chart');
-  const labels = document.getElementById('bar-labels');
-  bar.innerHTML = ''; labels.innerHTML = '';
-  const vals = [...Array(6)].map((_,i) => {
-    let mm=m-5+i, yy=y; while(mm<0){mm+=12;yy--;} while(mm>11){mm-=12;yy++;}
-    return getMonthData(yy,mm);
-  });
-  const maxVal = Math.max(1, ...vals.map(v=>v.total));
-  vals.forEach((md,i) => {
-    let mm=m-5+i; while(mm<0)mm+=12; while(mm>11)mm-=12;
-    const o = v => Math.round(v/maxVal*80);
-    const grp = document.createElement('div'); grp.className='bar-group';
-    const stack = document.createElement('div'); stack.className='bar-stack';
-    [['officer',md.officer],['freelance',md.freelanceTotal],['shift',md.shiftTotal]].forEach(([t,v]) => {
-      const seg = document.createElement('div'); seg.className=`bar-seg ${t}`; seg.style.height=o(v)+'px';
-      stack.appendChild(seg);
-    });
-    grp.appendChild(stack); bar.appendChild(grp);
-    const lb = document.createElement('div'); lb.textContent=(mm+1)+'月'; labels.appendChild(lb);
-  });
-
-  // Recent
-  const all = [
-    ...state.shifts.map(s => ({date:s.date, label:s.place, type:'shift', amount:s.pay})),
-    ...state.freelance.map(f => ({date:f.date, label:f.name, type:'freelance', amount:f.amount})),
-  ].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
-  const wrap = document.getElementById('recent-table-wrap');
-  if (!all.length) { wrap.innerHTML = emptyHTML('📭','まだ収入記録がありません'); return; }
-  wrap.innerHTML = `<table><tbody>${all.map(r=>`<tr>
-    <td style="white-space:nowrap;color:var(--text-secondary)">${r.date.slice(5)}</td>
-    <td>${r.label}</td>
-    <td><span class="badge badge-${r.type}">${r.type==='shift'?'バイト':'在宅'}</span></td>
-    <td class="mono" style="text-align:right">${fmt(r.amount)}</td></tr>`).join('')}</tbody></table>`;
-}
-
-function emptyHTML(icon, text) {
-  return `<div class="empty"><div class="empty-icon">${icon}</div><div class="empty-text">${text}</div></div>`;
-}
-
-// ── Calendar view state ──
-let calView = 'month'; // 'month' | 'week' | 'list'
-
-function setCalView(v, el) {
-  calView = v;
-  document.querySelectorAll('.cal-switch-btn').forEach(b=>b.classList.remove('active'));
-  if (el) el.classList.add('active');
+// ── month math ──
+let calMonth = new Date().getMonth(), calYear = new Date().getFullYear();
+let calView = 'month';
+function changeCalMonth(d){ calMonth+=d; if(calMonth<0){calMonth=11;calYear--;} if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
+function goToday(){ const t=new Date(); calMonth=t.getMonth(); calYear=t.getFullYear(); renderCalendar(); }
+function setCalView(v, el){ calView=v; document.querySelectorAll('.cal-switch-btn').forEach(b=>b.classList.remove('active')); el.classList.add('active');
   document.getElementById('cal-month-view').style.display = v==='month'?'':'none';
-  document.getElementById('cal-week-view').style.display  = v==='week' ?'':'none';
-  document.getElementById('cal-list-view').style.display  = v==='list' ?'':'none';
-  renderCalendar();
+  document.getElementById('cal-week-view').style.display = v==='week'?'':'none';
+  document.getElementById('cal-list-view').style.display = v==='list'?'':'none';
+  renderCalendar(); }
+
+// ── day items（records + monthly payday + events）──
+function dayItems(dateStr) {
+  const items = [];
+  state.records.filter(r=>r.date===dateStr).forEach(r=>{
+    const j = jobById(r.jobId);
+    items.push({ kind:'record', stamp:j?j.stamp:'yen', color:j?j.color:PALETTE[0],
+      label: r.name || (j?j.name:'収入'), sub: r.start?`${r.start}〜${r.end}${r.hours?` (実働${r.hours.toFixed(1)}h)`:''}`:(j?j.name:''),
+      amount:r.amount, ref:r });
+  });
+  const dnum = parseInt(dateStr.slice(8,10));
+  state.jobs.filter(j=>j.payType==='monthly'&&j.active&&j.salary>0&&j.payday===dnum).forEach(j=>{
+    items.push({ kind:'payday', stamp:'payday', color:j.color, label:j.name+'（支払日）', sub:'月額報酬', amount:j.salary, ref:j });
+  });
+  state.events.forEach(ev=>{
+    const end = ev.endDate || ev.startDate;
+    if (ev.startDate<=dateStr && dateStr<=end) {
+      items.push({ kind:'event', stamp:ev.stamp, color:ev.color, label:ev.title, sub:ev.memo||'', amount:0, ref:ev });
+    }
+  });
+  return items;
+}
+function monthTotal(y,m){
+  let t = state.records.filter(r=>{const d=new Date(r.date);return d.getFullYear()===y&&d.getMonth()===m;}).reduce((a,r)=>a+r.amount,0);
+  state.jobs.filter(j=>j.payType==='monthly'&&j.active).forEach(j=>t+=j.salary||0);
+  return t;
 }
 
-// 指定日の収入イベントを集約（スタンプ・色・金額）
-function eventsOnDate(dateStr) {
-  const ev = [];
-  state.shifts.filter(s=>s.date===dateStr).forEach(s =>
-    ev.push({ type:'shift', stamp:'☕', label:s.place, sub:`${s.start}〜${s.end}`, amount:s.pay, ref:s }));
-  state.freelance.filter(f=>f.date===dateStr).forEach(f =>
-    ev.push({ type:'freelance', stamp:'💻', label:f.name, sub:f.category, amount:f.amount, ref:f }));
-  // 役員報酬の支払日
-  const pd = parseInt(state.officer.paydate);
-  if (state.officer.salary > 0 && pd) {
-    const dnum = parseInt(dateStr.slice(8,10));
-    if (dnum === pd) ev.push({ type:'officer', stamp:'💰', label:'役員報酬', sub:state.officer.company||'', amount:state.officer.salary, ref:null });
-  }
-  return ev;
-}
-
-function openShiftFor(dateStr) {
-  document.getElementById('sh-date').value=dateStr;
-  document.getElementById('sh-place').value=state.config.name;
-  document.getElementById('sh-wage').value=state.config.wage;
-  document.getElementById('sh-transport').value=state.config.transport*2;
-  openModal('modal-shift'); updateShiftPreview();
-}
-
+// ── calendar month render (with multi-day bands) ──
 function renderCalendar() {
-  const monthLabel = `${calYear}年 ${MONTHS[calMonth]}`;
-  document.getElementById('cal-title').textContent = monthLabel;
-  if (calView === 'month') renderCalMonth();
-  else if (calView === 'week') renderCalWeek();
+  document.getElementById('cal-title').textContent = `${calYear}年 ${MONTHS[calMonth]}`;
+  if (calView==='month') renderCalMonth();
+  else if (calView==='week') renderCalWeek();
   else renderCalList();
 }
 
 function renderCalMonth() {
-  const grid = document.getElementById('cal-grid');
-  grid.innerHTML = '';
+  document.getElementById('cal-header').innerHTML =
+    WD.map((w,i)=>`<div class="cal-day-name" style="${i===0?'color:#E57373':''}${i===6?'color:#5B9CF6':''}">${w}</div>`).join('');
+  const wrap = document.getElementById('cal-weeks');
+  wrap.innerHTML = '';
   const first = new Date(calYear, calMonth, 1).getDay();
   const days = new Date(calYear, calMonth+1, 0).getDate();
+  const today = todayStr();
+  // build cells (prev/current/next month)
+  const cells = [];
   const prevDays = new Date(calYear, calMonth, 0).getDate();
-  const today = new Date();
-  // leading days
-  for (let i=0;i<first;i++){
-    const d=document.createElement('div'); d.className='cal-day other-month';
-    d.innerHTML=`<div class="day-num">${prevDays-first+1+i}</div>`; grid.appendChild(d);
-  }
-  for (let i=1;i<=days;i++){
-    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-    const dow = new Date(calYear, calMonth, i).getDay();
-    const ev = eventsOnDate(dateStr);
-    const d=document.createElement('div'); d.className='cal-day';
-    if (dow===0) d.classList.add('sun'); if (dow===6) d.classList.add('sat');
-    // tint
-    const types = [...new Set(ev.map(e=>e.type))];
-    if (types.length>1) d.classList.add('tint-multi');
-    else if (types.length===1) d.classList.add('tint-'+types[0]);
-    if (today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===i) d.classList.add('today');
-    const total = ev.reduce((a,e)=>a+e.amount,0);
-    const stamps = ev.slice(0,3).map(e=>`<span class="cal-stamp">${e.stamp}</span>`).join('');
-    d.innerHTML = `<div class="day-num">${i}</div>
-      <div class="cal-stamps">${stamps}</div>
-      ${total>0?`<div class="cal-amount">${(total/1000).toFixed(total>=10000?0:1)}k</div>`:''}`;
-    d.onclick = () => showDayDetail(dateStr, ev);
-    grid.appendChild(d);
+  for (let i=0;i<first;i++){ const d=prevDays-first+1+i; const m=calMonth-1<0?11:calMonth-1; const y=calMonth-1<0?calYear-1:calYear; cells.push({d, ds:dstr(y,m,d), other:true}); }
+  for (let d=1;d<=days;d++) cells.push({d, ds:dstr(calYear,calMonth,d), other:false});
+  while (cells.length%7!==0){ const idx=cells.length-(first+days)+1; const m=calMonth+1>11?0:calMonth+1; const y=calMonth+1>11?calYear+1:calYear; cells.push({d:idx, ds:dstr(y,m,idx), other:true}); }
+
+  for (let w=0; w<cells.length/7; w++) {
+    const week = cells.slice(w*7, w*7+7);
+    const weekEl = document.createElement('div');
+    weekEl.className = 'cal-week';
+    // day cells
+    const daysEl = document.createElement('div');
+    daysEl.className = 'cal-days';
+    week.forEach((c,i)=>{
+      const items = dayItems(c.ds).filter(x=>x.kind!=='event'); // events go to bands
+      const total = items.reduce((a,x)=>a+x.amount,0);
+      const cell = document.createElement('div');
+      cell.className = 'cal-day' + (c.other?' other':'') + (i===0?' sun':'') + (i===6?' sat':'') + (c.ds===today?' today':'');
+      const st = items.slice(0,3).map(x=>stampSVG(x.stamp)).join('');
+      cell.innerHTML = `<div class="day-num">${c.d}</div>
+        <div class="cal-stamps">${st}${items.length>3?`<span class="cal-more">+${items.length-3}</span>`:''}</div>
+        ${total>0?`<div class="cal-amount">${total>=10000?Math.round(total/1000)+'k':(total/1000).toFixed(1)+'k'}</div>`:''}`;
+      cell.onclick = ()=>showDayDetail(c.ds);
+      daysEl.appendChild(cell);
+    });
+    weekEl.appendChild(daysEl);
+    // bands (events spanning this week)
+    const weekStart = week[0].ds, weekEnd = week[6].ds;
+    const bands = state.events.filter(ev=>{
+      const end = ev.endDate||ev.startDate;
+      return ev.startDate<=weekEnd && end>=weekStart;
+    });
+    if (bands.length) {
+      const bandGrid = document.createElement('div');
+      bandGrid.className = 'cal-bands';
+      let lane = 0;
+      bands.slice(0,3).forEach(ev=>{
+        const end = ev.endDate||ev.startDate;
+        let sIdx = week.findIndex(c=>c.ds>=ev.startDate); if (ev.startDate<weekStart) sIdx=0; if(sIdx<0) sIdx=0;
+        let eIdx = 6; for(let i=6;i>=0;i--){ if(week[i].ds<=end){ eIdx=i; break; } }
+        const band = document.createElement('div');
+        band.className = 'cal-band' + (ev.startDate<weekStart?' cont-l':'') + (end>weekEnd?' cont-r':'');
+        band.style.gridColumn = `${sIdx+1} / ${eIdx+2}`;
+        band.style.gridRow = String(++lane);
+        band.style.background = ev.color||PALETTE[0];
+        band.textContent = ev.title;
+        band.onclick = (e)=>{ e.stopPropagation(); openEventModal(ev); };
+        bandGrid.appendChild(band);
+      });
+      weekEl.appendChild(bandGrid);
+    }
+    wrap.appendChild(weekEl);
   }
 }
 
 function renderCalWeek() {
-  // calYear/calMonth の各週ではなく「今日を含む週」を起点に、月内の週をまとめて縦表示
-  const list = document.getElementById('cal-week-list');
-  list.innerHTML = '';
+  const el = document.getElementById('cal-week-view');
+  el.innerHTML = '';
   const days = new Date(calYear, calMonth+1, 0).getDate();
-  const today = new Date();
-  const WD = ['日','月','火','水','木','金','土'];
-  for (let i=1;i<=days;i++){
-    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-    const dow = new Date(calYear, calMonth, i).getDay();
-    const ev = eventsOnDate(dateStr);
-    const total = ev.reduce((a,e)=>a+e.amount,0);
+  const today = todayStr();
+  for (let d=1; d<=days; d++) {
+    const ds = dstr(calYear, calMonth, d);
+    const dow = new Date(calYear, calMonth, d).getDay();
+    const items = dayItems(ds);
+    const total = items.reduce((a,x)=>a+x.amount,0);
     const row = document.createElement('div');
-    row.className = 'cal-week-row';
-    if (today.getFullYear()===calYear && today.getMonth()===calMonth && today.getDate()===i) row.classList.add('today');
-    const dateCls = dow===0?'sun':dow===6?'sat':'';
-    row.innerHTML = `
-      <div class="cal-week-date ${dateCls}"><div class="wd">${WD[dow]}</div><div class="dn">${i}</div></div>
-      <div class="cal-week-body">
-        ${ev.length?`<span class="cal-week-stamps">${ev.map(e=>e.stamp).join(' ')}</span>`
-                   :`<span class="cal-week-empty">予定なし</span>`}
-      </div>
+    row.className = 'cal-week-row' + (ds===today?' today':'');
+    row.innerHTML = `<div class="cal-week-date ${dow===0?'sun':dow===6?'sat':''}"><div class="wd">${WD[dow]}</div><div class="dn">${d}</div></div>
+      <div class="cal-week-body">${items.length?items.slice(0,5).map(x=>stampSVG(x.stamp)).join(''):'<span class="cal-week-empty">予定なし</span>'}</div>
       ${total>0?`<div class="cal-week-amount">${fmt(total)}</div>`:''}`;
-    row.onclick = () => showDayDetail(dateStr, ev);
-    list.appendChild(row);
+    row.onclick = ()=>showDayDetail(ds);
+    el.appendChild(row);
   }
 }
 
 function renderCalList() {
-  const wrap = document.getElementById('cal-list-wrap');
-  const items = [];
+  const el = document.getElementById('cal-list-view');
   const days = new Date(calYear, calMonth+1, 0).getDate();
-  for (let i=1;i<=days;i++){
-    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-    eventsOnDate(dateStr).forEach(e => items.push({ ...e, date: dateStr }));
+  let html = '';
+  for (let d=1; d<=days; d++) {
+    const ds = dstr(calYear, calMonth, d);
+    dayItems(ds).forEach(x=>{
+      html += `<div class="cal-list-item" onclick="showDayDetail('${ds}')">${stampSVG(x.stamp)}
+        <div class="cal-list-body"><div class="cal-list-title">${x.label}</div>
+        <div class="cal-list-sub">${parseInt(ds.slice(5,7))}/${parseInt(ds.slice(8,10))}　${x.sub||''}</div></div>
+        ${x.amount>0?`<div class="cal-list-amount">${fmt(x.amount)}</div>`:''}</div>`;
+    });
   }
-  if (!items.length){ wrap.innerHTML = emptyHTML('🗓','今月の予定はありません'); return; }
-  wrap.innerHTML = items.map(e => `
-    <div class="cal-list-item" onclick="showDayDetail('${e.date}', eventsOnDate('${e.date}'))">
-      <div class="cal-list-stamp">${e.stamp}</div>
-      <div class="cal-list-body">
-        <div class="cal-list-title">${e.label}</div>
-        <div class="cal-list-sub">${e.date.slice(5).replace('-','/')}　${e.sub||''}</div>
-      </div>
-      <div class="cal-list-amount">${fmt(e.amount)}</div>
-    </div>`).join('');
+  el.innerHTML = html || '<div class="empty"><div class="empty-icon">🗓</div><div class="empty-text">今月の予定はありません</div></div>';
 }
 
-// 日タップ時の詳細シート
-function showDayDetail(dateStr, ev) {
+// ── day detail ──
+function showDayDetail(ds) {
+  const items = dayItems(ds);
+  document.getElementById('day-detail-title').textContent = `${parseInt(ds.slice(5,7))}月${parseInt(ds.slice(8,10))}日`;
   const body = document.getElementById('day-detail-body');
-  const [yy,mm,dd] = dateStr.split('-');
-  document.getElementById('day-detail-title').textContent = `${parseInt(mm)}月${parseInt(dd)}日`;
-  if (!ev || !ev.length) {
-    body.innerHTML = `<div style="text-align:center;color:var(--text-secondary);padding:16px 0;font-size:13px">この日の収入記録はありません</div>`;
-  } else {
-    const total = ev.reduce((a,e)=>a+e.amount,0);
-    body.innerHTML = ev.map(e => `
-      <div style="display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--border)">
-        <span style="font-size:22px">${e.stamp}</span>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:500">${e.label}</div>
-          <div style="font-size:11px;color:var(--text-secondary)">${e.sub||''}</div>
-        </div>
-        <span class="mono" style="font-size:13px">${fmt(e.amount)}</span>
+  if (!items.length) body.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:14px 0;font-size:13px">この日の予定・記録はありません</div>';
+  else {
+    const total = items.reduce((a,x)=>a+x.amount,0);
+    body.innerHTML = items.map((x,i)=>`
+      <div style="display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <span style="width:26px;height:26px;flex-shrink:0">${stampSVG(x.stamp)}</span>
+        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">${x.label}</div>
+          <div style="font-size:11px;color:var(--text-secondary)">${x.sub||''}</div></div>
+        ${x.amount>0?`<span class="mono" style="font-size:13px">${fmt(x.amount)}</span>`:''}
+        ${x.kind==='record'?`<button class="btn btn-danger btn-sm" onclick="deleteRecord('${x.ref.id}');showDayDetail('${ds}')">削除</button>`:''}
+        ${x.kind==='event'?`<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openEventModal(state.events.find(e=>e.id==='${x.ref.id}'))">編集</button>`:''}
       </div>`).join('') +
-      `<div style="display:flex;justify-content:space-between;padding-top:11px;font-weight:700">
-        <span>合計</span><span class="mono" style="color:var(--mint-dim)">${fmt(total)}</span></div>`;
+      (total>0?`<div style="display:flex;justify-content:space-between;padding-top:10px;font-weight:700"><span>合計</span><span class="mono" style="color:var(--mint-dim)">${fmt(total)}</span></div>`:'');
   }
-  document.getElementById('day-add-btn').onclick = () => { closeModal('modal-day'); openShiftFor(dateStr); };
+  document.getElementById('day-add-btn').onclick = ()=>{ closeModal('modal-day'); openAddMenu(ds); };
   openModal('modal-day');
 }
 
-function changeCalMonth(d){ calMonth+=d; if(calMonth<0){calMonth=11;calYear--;} if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
-
-function renderShiftList() {
-  const wrap = document.getElementById('shift-list-wrap');
-  const sorted = [...state.shifts].sort((a,b)=>b.date.localeCompare(a.date));
-  if (!sorted.length){ wrap.innerHTML=emptyHTML('🗓','シフトを追加してください'); return; }
-  wrap.innerHTML = `<table><thead><tr><th>日付</th><th>時間</th><th>時給</th><th>交通</th><th style="text-align:right">収入</th><th></th></tr></thead><tbody>
-  ${sorted.map(s=>`<tr>
-    <td style="white-space:nowrap">${s.date.slice(5)}</td>
-    <td class="mono" style="white-space:nowrap">${s.start}〜${s.end}<br><span style="color:var(--text-secondary)">${s.hours.toFixed(1)}h</span></td>
-    <td class="mono">${fmt(s.wage)}</td>
-    <td class="mono">${fmt(s.transport)}</td>
-    <td class="mono" style="text-align:right">${fmt(s.pay)}</td>
-    <td><button class="btn btn-danger btn-sm" onclick="deleteItem('shift','${s.id}')">削除</button></td>
-  </tr>`).join('')}</tbody></table>`;
+// ── add menu ──
+function openAddMenu(ds) {
+  document.getElementById('addmenu-title').textContent = `${parseInt(ds.slice(5,7))}/${parseInt(ds.slice(8,10))} に追加`;
+  const el = document.getElementById('addmenu-items');
+  let html = '';
+  state.jobs.filter(j=>j.active&&j.payType!=='monthly').forEach(j=>{
+    html += `<div class="add-menu-item" onclick="closeModal('modal-addmenu');openRecordModal('${j.id}','${ds}')">
+      ${stampSVG(j.stamp)}<div><div class="add-menu-label">${j.name}の${j.payType==='hourly'?'勤務':'収入'}を記録</div>
+      <div class="add-menu-sub">${j.payType==='hourly'?'時給制 / 時間から自動計算':'金額を入力'}</div></div></div>`;
+  });
+  html += `<div class="add-menu-item" onclick="closeModal('modal-addmenu');openEventModal(null,'${ds}')">
+    ${stampSVG('star')}<div><div class="add-menu-label">予定・メモを追加</div>
+    <div class="add-menu-sub">スタンプ・色・複数日OK</div></div></div>`;
+  if (!state.jobs.filter(j=>j.active).length) {
+    html = `<div style="font-size:12.5px;color:var(--text-secondary);padding:6px 4px 12px">まだ仕事が登録されていません。設定タブから仕事を追加すると、ここから勤務・収入を記録できます。</div>` + html;
+  }
+  el.innerHTML = html;
+  openModal('modal-addmenu');
 }
 
-function renderShiftSummary() {
-  const d = getMonthData(state.viewYear, state.viewMonth);
-  document.getElementById('shift-monthly-summary').innerHTML =
-    `勤務回数: ${d.shifts.length} 回<br>総勤務時間: ${d.shifts.reduce((a,s)=>a+s.hours,0).toFixed(1)} h<br>給与: ${fmt(d.shiftTotal-d.shiftTransport)}<br>交通費: ${fmt(d.shiftTransport)}<br><b>合計: ${fmt(d.shiftTotal)}</b>`;
-  document.getElementById('cfg-name').value = state.config.name;
-  document.getElementById('cfg-wage').value = state.config.wage;
-  document.getElementById('cfg-transport').value = state.config.transport;
+// ── record modal (work/income by job) ──
+let recJobId = null;
+function openRecordModal(jobId, ds) {
+  recJobId = jobId;
+  const j = jobById(jobId); if (!j) return;
+  document.getElementById('record-title').textContent = `${j.name} — ${j.payType==='hourly'?'勤務を記録':'収入を記録'}`;
+  const f = document.getElementById('record-form');
+  if (j.payType==='hourly') {
+    f.innerHTML = `
+      <div class="form-group"><label>日付</label><input type="date" id="rec-date" value="${ds}"></div>
+      <div class="form-row-3">
+        <div class="form-group"><label>開始</label><input type="time" id="rec-start" value="09:00" oninput="updateRecPreview()"></div>
+        <div class="form-group"><label>終了</label><input type="time" id="rec-end" value="17:00" oninput="updateRecPreview()"></div>
+        <div class="form-group"><label>休憩(分)</label><input type="number" id="rec-break" value="${j.breakMin||0}" oninput="updateRecPreview()"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>時給（円）</label><input type="number" id="rec-wage" value="${j.wage}" oninput="updateRecPreview()"></div>
+        <div class="form-group"><label>交通費（円）</label><input type="number" id="rec-transport" value="${j.transport||0}" oninput="updateRecPreview()"></div>
+      </div>
+      <div class="form-group"><label>メモ</label><input type="text" id="rec-memo"></div>
+      <div class="calc-preview" id="rec-preview">実働 0h ／ 収入 <b>¥0</b></div>`;
+    updateRecPreview();
+  } else {
+    f.innerHTML = `
+      <div class="form-group"><label>案件名・内容</label><input type="text" id="rec-name" placeholder="例：記事執筆3本"></div>
+      <div class="form-row">
+        <div class="form-group"><label>日付（入金日）</label><input type="date" id="rec-date" value="${ds}"></div>
+        <div class="form-group"><label>金額（円）</label><input type="number" id="rec-amount" placeholder="50000"></div>
+      </div>
+      <div class="form-group"><label>メモ</label><input type="text" id="rec-memo"></div>`;
+  }
+  openModal('modal-record');
+}
+function calcHours() {
+  const s=document.getElementById('rec-start').value, e=document.getElementById('rec-end').value;
+  const br=parseFloat(document.getElementById('rec-break').value)||0;
+  if(!s||!e) return 0;
+  const [sh,sm]=s.split(':').map(Number), [eh,em]=e.split(':').map(Number);
+  let min=(eh*60+em)-(sh*60+sm); if(min<0)min+=24*60; // 日跨ぎ勤務対応
+  return Math.max(0,(min-br)/60);
+}
+function updateRecPreview() {
+  const h=calcHours();
+  const w=parseFloat(document.getElementById('rec-wage').value)||0;
+  const t=parseFloat(document.getElementById('rec-transport').value)||0;
+  document.getElementById('rec-preview').innerHTML=`実働 ${h.toFixed(2)}h ／ 収入 <b>${fmt(h*w+t)}</b>`;
+}
+function saveRecord() {
+  const j = jobById(recJobId); if(!j) return;
+  const date = document.getElementById('rec-date').value;
+  if(!date){ showToast('日付を入力してください'); return; }
+  let rec;
+  if (j.payType==='hourly') {
+    const h=calcHours();
+    const w=parseFloat(document.getElementById('rec-wage').value)||0;
+    const t=parseFloat(document.getElementById('rec-transport').value)||0;
+    if(h<=0){ showToast('勤務時間を確認してください'); return; }
+    rec={ id:'r'+Date.now(), jobId:j.id, date, start:document.getElementById('rec-start').value,
+      end:document.getElementById('rec-end').value, breakMin:parseFloat(document.getElementById('rec-break').value)||0,
+      hours:h, transport:t, amount:h*w+t, name:'', memo:document.getElementById('rec-memo').value };
+  } else {
+    const amount=parseFloat(document.getElementById('rec-amount').value)||0;
+    const name=document.getElementById('rec-name').value;
+    if(!name||!amount){ showToast('内容と金額を入力してください'); return; }
+    rec={ id:'r'+Date.now(), jobId:j.id, date, start:'', end:'', breakMin:0, hours:0, transport:0,
+      amount, name, memo:document.getElementById('rec-memo').value };
+  }
+  state.records.push(rec); save(); closeModal('modal-record'); renderAll(); showToast('記録しました ✓');
+}
+function deleteRecord(id){ state.records=state.records.filter(r=>r.id!==id); save(); renderAll(); showToast('削除しました'); }
+
+// ── event modal ──
+let evEditing=null, evStamp='star', evColor=PALETTE[0];
+function openEventModal(ev, ds) {
+  evEditing = ev;
+  evStamp = ev?ev.stamp:'star'; evColor = ev?ev.color:PALETTE[0];
+  document.getElementById('event-title').textContent = ev?'予定を編集':'予定を追加';
+  document.getElementById('ev-title').value = ev?ev.title:'';
+  document.getElementById('ev-start').value = ev?ev.startDate:(ds||todayStr());
+  document.getElementById('ev-end').value = ev?(ev.endDate||''):'';
+  document.getElementById('ev-memo').value = ev?(ev.memo||''):'';
+  document.getElementById('ev-delete-btn').style.display = ev?'':'none';
+  refreshEvPickers();
+  openModal('modal-event');
+}
+function refreshEvPickers(){
+  renderStampPicker('ev-stamp-picker', evStamp, id=>{evStamp=id;refreshEvPickers();});
+  renderColorPicker('ev-color-picker', evColor, c=>{evColor=c;refreshEvPickers();});
+}
+function saveEvent() {
+  const title=document.getElementById('ev-title').value;
+  const s=document.getElementById('ev-start').value;
+  let e=document.getElementById('ev-end').value;
+  if(!title||!s){ showToast('タイトルと開始日を入力してください'); return; }
+  if(e && e<s){ showToast('終了日は開始日以降にしてください'); return; }
+  if(!e) e='';
+  if (evEditing) { Object.assign(evEditing,{title,startDate:s,endDate:e,stamp:evStamp,color:evColor,memo:document.getElementById('ev-memo').value}); }
+  else state.events.push({ id:'e'+Date.now(), title, startDate:s, endDate:e, stamp:evStamp, color:evColor, memo:document.getElementById('ev-memo').value });
+  save(); closeModal('modal-event'); renderAll(); showToast('保存しました ✓');
+}
+function deleteEvent(){ if(evEditing){ state.events=state.events.filter(e=>e.id!==evEditing.id); save(); closeModal('modal-event'); renderAll(); showToast('削除しました'); } }
+
+// ── pickers ──
+function renderStampPicker(elId, sel, onPick) {
+  const el=document.getElementById(elId);
+  el.innerHTML = Object.keys(STAMPS).map(id=>`<div class="stamp-opt ${id===sel?'sel':''}" data-id="${id}">${STAMPS[id].svg}</div>`).join('');
+  el.querySelectorAll('.stamp-opt').forEach(o=>o.onclick=()=>onPick(o.dataset.id));
+}
+function renderColorPicker(elId, sel, onPick) {
+  const el=document.getElementById(elId);
+  el.innerHTML = PALETTE.map(c=>`<div class="color-opt ${c===sel?'sel':''}" style="background:${c}" data-c="${c}"></div>`).join('');
+  el.querySelectorAll('.color-opt').forEach(o=>o.onclick=()=>onPick(o.dataset.c));
 }
 
-function renderFreelanceList() {
-  const wrap = document.getElementById('freelance-list-wrap');
-  const sorted = [...state.freelance].sort((a,b)=>b.date.localeCompare(a.date));
-  if (!sorted.length){ wrap.innerHTML=emptyHTML('💻','案件を追加してください'); return; }
-  wrap.innerHTML = `<table><thead><tr><th>入金日</th><th>案件</th><th>分類</th><th style="text-align:right">金額</th><th></th></tr></thead><tbody>
-  ${sorted.map(f=>`<tr>
-    <td style="white-space:nowrap">${f.date.slice(5)}</td>
-    <td>${f.name}${f.memo?`<br><span style="color:var(--text-secondary);font-size:11px">${f.memo}</span>`:''}</td>
-    <td><span class="badge badge-freelance">${f.category}</span></td>
-    <td class="mono" style="text-align:right">${fmt(f.amount)}</td>
-    <td><button class="btn btn-danger btn-sm" onclick="deleteItem('freelance','${f.id}')">削除</button></td>
-  </tr>`).join('')}</tbody></table>`;
+// ── jobs (settings) ──
+let jobEditing=null, jobPayType='hourly', jobStamp='briefcase', jobColor=PALETTE[0], jobActive=true;
+function payTypeLabel(t){ return t==='hourly'?'時給制':t==='piece'?'案件ごと':'月額固定'; }
+function renderJobList() {
+  const el=document.getElementById('job-list');
+  if(!state.jobs.length){ el.innerHTML='<div class="empty"><div class="empty-icon">💼</div><div class="empty-text">「＋ 追加」から仕事を登録してください<br>（バイト・業務委託・役員報酬なんでもOK）</div></div>'; return; }
+  el.innerHTML = state.jobs.map(j=>`
+    <div class="job-item ${j.active?'':'inactive'}">
+      ${stampSVG(j.stamp)}
+      <div class="job-item-body"><div class="job-item-name">${j.name}${j.active?'':'（無効）'}</div>
+        <div class="job-item-sub">${payTypeLabel(j.payType)}${j.payType==='hourly'?` / 時給${fmt(j.wage)}`:''}${j.payType==='monthly'?` / 月額${fmt(j.salary)}・毎月${j.payday}日`:''}</div></div>
+      <button class="btn btn-ghost btn-sm" onclick="openJobModal('${j.id}')">編集</button>
+    </div>`).join('');
+}
+function openJobModal(id) {
+  jobEditing = id ? jobById(id) : null;
+  jobPayType = jobEditing?jobEditing.payType:'hourly';
+  jobStamp = jobEditing?jobEditing.stamp:'briefcase';
+  jobColor = jobEditing?jobEditing.color:PALETTE[0];
+  jobActive = jobEditing?jobEditing.active:true;
+  document.getElementById('job-modal-title').textContent = jobEditing?'仕事を編集':'仕事を追加';
+  document.getElementById('job-name').value = jobEditing?jobEditing.name:'';
+  document.getElementById('job-wage').value = jobEditing?(jobEditing.wage||''):'';
+  document.getElementById('job-transport').value = jobEditing?(jobEditing.transport||''):'';
+  document.getElementById('job-break').value = jobEditing?(jobEditing.breakMin||''):'';
+  document.getElementById('job-salary').value = jobEditing?(jobEditing.salary||''):'';
+  document.getElementById('job-payday').value = jobEditing?(jobEditing.payday||25):25;
+  document.getElementById('job-delete-btn').style.display = jobEditing?'':'none';
+  document.getElementById('job-active-row').style.display = jobEditing?'':'none';
+  document.querySelectorAll('#modal-job .seg-btn[data-pt]').forEach(b=>b.classList.toggle('active',b.dataset.pt===jobPayType));
+  document.querySelectorAll('#modal-job .seg-btn[data-act]').forEach(b=>b.classList.toggle('active',(b.dataset.act==='1')===jobActive));
+  applyPayTypeFields();
+  refreshJobPickers();
+  openModal('modal-job');
+}
+function refreshJobPickers(){
+  renderStampPicker('job-stamp-picker', jobStamp, id=>{jobStamp=id;refreshJobPickers();});
+  renderColorPicker('job-color-picker', jobColor, c=>{jobColor=c;refreshJobPickers();});
+}
+function setPayType(t, el){ jobPayType=t; document.querySelectorAll('#modal-job .seg-btn[data-pt]').forEach(b=>b.classList.remove('active')); el.classList.add('active'); applyPayTypeFields(); }
+function setJobActive(a, el){ jobActive=a; document.querySelectorAll('#modal-job .seg-btn[data-act]').forEach(b=>b.classList.remove('active')); el.classList.add('active'); }
+function applyPayTypeFields(){
+  document.getElementById('job-fields-hourly').style.display = jobPayType==='hourly'?'':'none';
+  document.getElementById('job-fields-monthly').style.display = jobPayType==='monthly'?'':'none';
+}
+function saveJob() {
+  const name=document.getElementById('job-name').value;
+  if(!name){ showToast('仕事名を入力してください'); return; }
+  const data = { name, payType:jobPayType, stamp:jobStamp, color:jobColor, active:jobActive,
+    wage:parseFloat(document.getElementById('job-wage').value)||0,
+    transport:parseFloat(document.getElementById('job-transport').value)||0,
+    breakMin:parseFloat(document.getElementById('job-break').value)||0,
+    salary:parseFloat(document.getElementById('job-salary').value)||0,
+    payday:parseInt(document.getElementById('job-payday').value)||25 };
+  if (jobEditing) Object.assign(jobEditing, data);
+  else state.jobs.push(Object.assign({id:'j'+Date.now()}, data));
+  save(); closeModal('modal-job'); renderAll(); showToast('保存しました ✓');
+}
+function deleteJob() {
+  if(!jobEditing) return;
+  const cnt = state.records.filter(r=>r.jobId===jobEditing.id).length;
+  if (cnt>0) { showToast(`記録が${cnt}件あるため削除できません（無効化を使ってください）`); return; }
+  state.jobs = state.jobs.filter(j=>j.id!==jobEditing.id);
+  save(); closeModal('modal-job'); renderAll(); showToast('削除しました');
 }
 
-function renderOfficer() {
-  document.getElementById('off-company').value = state.officer.company;
-  document.getElementById('off-salary').value = state.officer.salary || '';
-  document.getElementById('off-paydate').value = state.officer.paydate || 25;
-  document.getElementById('off-memo').value = state.officer.memo;
-  document.getElementById('officer-annual').textContent = fmt((state.officer.salary||0)*12);
+// ── income input tab ──
+function renderInputTab() {
+  const el = document.getElementById('input-form-area');
+  const jobs = state.jobs.filter(j=>j.active&&j.payType!=='monthly');
+  if (!jobs.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">💼</div><div class="empty-text">記録できる仕事がありません。<br>設定タブから仕事を登録してください。<br><span style="font-size:11px">（月額固定の仕事は自動計上のため入力不要です）</span></div></div>
+      <button class="btn btn-primary btn-block" onclick="showPage('settings',document.querySelectorAll('.tab')[3])">設定へ</button>`;
+    return;
+  }
+  el.innerHTML = `<div class="form-group"><label>どの仕事の記録？</label>
+    <div id="input-job-list">${jobs.map(j=>`
+      <div class="add-menu-item" onclick="openRecordModal('${j.id}','${todayStr()}')">
+        ${stampSVG(j.stamp)}<div><div class="add-menu-label">${j.name}</div>
+        <div class="add-menu-sub">${payTypeLabel(j.payType)}${j.payType==='hourly'?` / 時給${fmt(j.wage)}`:''}</div></div></div>`).join('')}
+    </div></div>
+    <div class="field-note">月額固定（役員報酬など）は支払日に自動でカレンダー・集計に反映されます。</div>`;
 }
 
-function renderHistory() {
-  const all = [
-    ...state.shifts.map(s => ({date:s.date, label:`${s.place} ${s.start}〜${s.end}`, type:'shift', amount:s.pay})),
-    ...state.freelance.map(f => ({date:f.date, label:f.name, type:'freelance', amount:f.amount})),
-  ].sort((a,b)=>b.date.localeCompare(a.date));
-  const wrap = document.getElementById('history-wrap');
-  if (!all.length){ wrap.innerHTML=emptyHTML('📋','収入記録がありません'); return; }
-  wrap.innerHTML = `<table><thead><tr><th>日付</th><th>内容</th><th>種別</th><th style="text-align:right">金額</th></tr></thead><tbody>
-  ${all.map(r=>`<tr>
-    <td style="white-space:nowrap">${r.date.slice(5)}</td>
-    <td>${r.label}</td>
-    <td><span class="badge badge-${r.type}">${r.type==='shift'?'バイト':'在宅'}</span></td>
-    <td class="mono" style="text-align:right">${fmt(r.amount)}</td></tr>`).join('')}</tbody></table>`;
+// ── home ──
+function changeHomeMonth(d){ state.homeMonth+=d; if(state.homeMonth<0){state.homeMonth=11;state.homeYear--;} if(state.homeMonth>11){state.homeMonth=0;state.homeYear++;} save(); renderHome(); }
+function renderHome() {
+  const y=state.homeYear, m=state.homeMonth;
+  document.getElementById('home-month-label').textContent = `${y}年 ${MONTHS[m]}`;
+  document.getElementById('home-total').textContent = fmt(monthTotal(y,m));
+  // per-job
+  const el = document.getElementById('home-jobs');
+  if (!state.jobs.length) { el.innerHTML='<div class="empty"><div class="empty-text">設定から仕事を登録すると内訳が表示されます</div></div>'; }
+  else {
+    el.innerHTML = state.jobs.map(j=>{
+      let amt=0, sub='';
+      if (j.payType==='monthly') { amt=j.active?(j.salary||0):0; sub=`毎月${j.payday}日`; }
+      else {
+        const recs = state.records.filter(r=>r.jobId===j.id).filter(r=>{const d=new Date(r.date);return d.getFullYear()===y&&d.getMonth()===m;});
+        amt = recs.reduce((a,r)=>a+r.amount,0);
+        sub = j.payType==='hourly' ? `${recs.length}回 / 実働${recs.reduce((a,r)=>a+r.hours,0).toFixed(1)}h` : `${recs.length}件`;
+      }
+      return `<div class="job-sum-row">${stampSVG(j.stamp)}
+        <div class="job-sum-name">${j.name}<div class="job-sum-sub">${sub}</div></div>
+        <div class="job-sum-amount">${fmt(amt)}</div></div>`;
+    }).join('');
+  }
+  // bar chart (stacked by job color)
+  const bar=document.getElementById('bar-chart'), labels=document.getElementById('bar-labels');
+  bar.innerHTML=''; labels.innerHTML='';
+  const monthsArr=[...Array(6)].map((_,i)=>{ let mm=m-5+i,yy=y; while(mm<0){mm+=12;yy--;} while(mm>11){mm-=12;yy++;} return {yy,mm}; });
+  const totals = monthsArr.map(({yy,mm})=>monthTotal(yy,mm));
+  const maxV = Math.max(1,...totals);
+  monthsArr.forEach(({yy,mm},idx)=>{
+    const grp=document.createElement('div'); grp.className='bar-group';
+    const stack=document.createElement('div'); stack.className='bar-stack';
+    state.jobs.forEach(j=>{
+      let v=0;
+      if (j.payType==='monthly') v=j.active?(j.salary||0):0;
+      else v=state.records.filter(r=>r.jobId===j.id).filter(r=>{const d=new Date(r.date);return d.getFullYear()===yy&&d.getMonth()===mm;}).reduce((a,r)=>a+r.amount,0);
+      if(v>0){ const seg=document.createElement('div'); seg.className='bar-seg'; seg.style.height=Math.round(v/maxV*80)+'px'; seg.style.background=j.color; stack.appendChild(seg); }
+    });
+    grp.appendChild(stack); bar.appendChild(grp);
+    const lb=document.createElement('div'); lb.textContent=(mm+1)+'月'; labels.appendChild(lb);
+  });
+  // records table
+  const recs = state.records.filter(r=>{const d=new Date(r.date);return d.getFullYear()===y&&d.getMonth()===m;}).sort((a,b)=>b.date.localeCompare(a.date));
+  const rw = document.getElementById('home-records');
+  if(!recs.length){ rw.innerHTML='<div class="empty"><div class="empty-text">この月の記録はありません</div></div>'; }
+  else rw.innerHTML = `<table><tbody>${recs.map(r=>{
+    const j=jobById(r.jobId);
+    return `<tr><td style="white-space:nowrap;color:var(--text-secondary)">${r.date.slice(5)}</td>
+      <td>${r.name||(j?j.name:'')}${r.start?`<br><span style="font-size:10.5px;color:var(--text-secondary)">${r.start}〜${r.end} 実働${r.hours.toFixed(1)}h</span>`:''}</td>
+      <td class="mono" style="text-align:right">${fmt(r.amount)}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}')">削除</button></td></tr>`;}).join('')}</tbody></table>`;
 }
 
-function deleteItem(type, id) {
-  const numId = Number(id);
-  if (type==='shift') state.shifts = state.shifts.filter(s=>s.id!==numId);
-  if (type==='freelance') state.freelance = state.freelance.filter(f=>f.id!==numId);
-  save(); renderAll(); showToast('削除しました');
+// ── export / import ──
+function exportData() {
+  const blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `finance-backup-${todayStr()}.json`;
+  a.click();
+  showToast('バックアップを保存しました ✓');
+}
+function importData(ev) {
+  const file = ev.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      state = migrate(data);
+      save(); renderAll(); showToast('データを復元しました ✓');
+    } catch(err) { showToast('読み込みに失敗しました'); }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
 }
 
-let toastTimer;
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+// ── render all ──
+function renderAll() {
+  const now = new Date();
+  document.getElementById('topbar-total').textContent = fmt(monthTotal(now.getFullYear(), now.getMonth()));
+  document.getElementById('version-badge').textContent = 'v'+APP_VERSION;
+  document.getElementById('ver-footer').textContent = 'v'+APP_VERSION;
+  document.getElementById('schema-footer').textContent = SCHEMA_VERSION;
+  renderCalendar();
+  renderHome();
+  renderInputTab();
+  renderJobList();
 }
-
-// ── INIT ──
-save(); // 初回マイグレーション結果を保存
+save();
 renderAll();
 </script>
 </body>
