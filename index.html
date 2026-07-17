@@ -3,54 +3,35 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-<title>FinanceManager v3</title>
+<title>FinanceManager v4</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+JP:wght@300;400;500;700&family=Inter:wght@400;600;700;800&display=swap');
-
   :root {
-    --bg: #F4F5F7;
-    --surface: #FFFFFF;
-    --navy: #1A2340;
-    --mint: #2DD4A0;
-    --mint-dim: #1DB882;
-    --text-primary: #1A2340;
-    --text-secondary: #6B7A99;
-    --border: #E4E8F0;
-    --radius: 14px;
-    --shadow: 0 2px 12px rgba(26,35,64,0.08);
-    --safe-bottom: env(safe-area-inset-bottom, 0px);
-    --safe-top: env(safe-area-inset-top, 0px);
+    --bg: #F4F5F7; --surface: #FFFFFF; --navy: #1A2340;
+    --mint: #2DD4A0; --mint-dim: #1DB882;
+    --text-primary: #1A2340; --text-secondary: #6B7A99; --border: #E4E8F0;
+    --radius: 14px; --shadow: 0 2px 12px rgba(26,35,64,0.08);
+    --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px);
     --tabbar-h: 58px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { overscroll-behavior: none; }
   body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text-primary); font-size: 14px; -webkit-font-smoothing: antialiased; }
-
   .app { min-height: 100vh; display: flex; flex-direction: column; }
-
-  /* Top bar */
-  .topbar {
-    position: sticky; top: 0; z-index: 50;
-    background: var(--navy); color: #fff;
-    padding: calc(var(--safe-top) + 10px) 16px 10px;
-    display: flex; align-items: center; justify-content: space-between;
-  }
+  .topbar { position: sticky; top: 0; z-index: 50; background: var(--navy); color: #fff; padding: calc(var(--safe-top) + 10px) 16px 10px; display: flex; align-items: center; justify-content: space-between; }
   .topbar-logo { font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: -0.4px; }
   .topbar-logo span { color: var(--mint); }
   .version-badge { font-family: 'DM Mono', monospace; font-size: 10px; color: rgba(255,255,255,0.45); background: rgba(255,255,255,0.08); padding: 2px 7px; border-radius: 5px; margin-left: 7px; }
   .topbar-total { text-align: right; }
   .topbar-total-label { font-size: 9px; color: rgba(45,212,160,0.7); letter-spacing: 1px; }
   .topbar-total-amount { font-family: 'DM Mono'; font-size: 15px; color: var(--mint); font-weight: 500; line-height: 1.1; }
-
   .content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px 10px calc(var(--tabbar-h) + var(--safe-bottom) + 18px); }
   .page { display: none; animation: fade 0.18s; }
   .page.active { display: block; }
   @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-
   .page-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; padding: 0 4px; }
   .page-title { font-size: 18px; font-weight: 700; }
   .page-sub { font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; }
-
   .btn { padding: 9px 16px; border-radius: 9px; border: none; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; font-size: 13px; font-weight: 500; transition: transform 0.1s; white-space: nowrap; }
   .btn:active { transform: scale(0.96); }
   .btn-primary { background: var(--mint); color: #fff; }
@@ -58,25 +39,21 @@
   .btn-danger { background: #FFF0F3; color: #E53E3E; border: 1px solid #FFC5C5; }
   .btn-sm { padding: 5px 11px; font-size: 12px; }
   .btn-block { width: 100%; }
-
   .card { background: var(--surface); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); margin-bottom: 12px; }
   .card-title { font-weight: 700; font-size: 14px; margin-bottom: 12px; }
-
-  /* ═══ CALENDAR (fullscreen main) ═══ */
-  .cal-wrap { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 10px 6px 12px; margin-bottom: 12px; }
-  .cal-controls { display: flex; align-items: center; justify-content: space-between; padding: 2px 6px 8px; gap: 8px; }
-  .cal-nav { display: flex; align-items: center; gap: 8px; }
+  .cal-wrap { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 10px 6px 12px; margin-bottom: 12px; touch-action: pan-y; }
+  .cal-controls { display: flex; align-items: center; justify-content: space-between; padding: 2px 6px 8px; gap: 6px; }
+  .cal-nav { display: flex; align-items: center; gap: 6px; }
   .cal-nav button { background: none; border: 1.5px solid var(--border); border-radius: 7px; width: 30px; height: 30px; cursor: pointer; font-size: 14px; }
-  .cal-title { font-weight: 700; font-size: 15px; min-width: 92px; text-align: center; }
+  .cal-title { font-weight: 700; font-size: 15px; min-width: 96px; text-align: center; cursor: pointer; padding: 4px 6px; border-radius: 8px; }
+  .cal-title:active { background: var(--bg); }
+  .cal-title::after { content: ' ▾'; font-size: 10px; color: var(--text-secondary); }
   .cal-switch { display: flex; gap: 2px; background: var(--bg); border-radius: 8px; padding: 3px; }
-  .cal-switch-btn { padding: 5px 11px; border-radius: 6px; cursor: pointer; font-size: 11.5px; color: var(--text-secondary); user-select: none; }
+  .cal-switch-btn { padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 11.5px; color: var(--text-secondary); user-select: none; }
   .cal-switch-btn.active { background: #fff; color: var(--text-primary); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-  .today-btn { font-size: 11px; color: var(--mint-dim); background: none; border: none; cursor: pointer; font-weight: 600; padding: 4px; }
-
+  .today-btn { font-size: 11px; color: var(--mint-dim); background: none; border: none; cursor: pointer; font-weight: 600; padding: 4px 2px; }
   .cal-header { display: grid; grid-template-columns: repeat(7,1fr); text-align: center; }
   .cal-day-name { font-size: 10.5px; color: var(--text-secondary); padding: 3px 0 5px; font-weight: 500; }
-
-  /* week block: days grid + band lanes */
   .cal-week { border-top: 1px solid var(--border); }
   .cal-days { display: grid; grid-template-columns: repeat(7,1fr); }
   .cal-day { min-height: 54px; padding: 3px 1px 2px; display: flex; flex-direction: column; align-items: center; cursor: pointer; user-select: none; border-radius: 8px; position: relative; overflow: hidden; }
@@ -84,43 +61,43 @@
   .cal-day .day-num { font-size: 12px; font-weight: 600; line-height: 1.2; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
   .cal-day.today .day-num { background: var(--mint); color: #fff; }
   .cal-day.other .day-num { color: #C8D0E0; }
-  .cal-day.sun .day-num { color: #E57373; } .cal-day.sat .day-num { color: #5B9CF6; }
-  .cal-day.today.sun .day-num, .cal-day.today.sat .day-num { color: #fff; }
-  .cal-stamps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; line-height: 0; margin-top: 1px; max-width: 100%; }
+  .cal-day.sun .day-num, .cal-day.hol .day-num { color: #E57373; } .cal-day.sat .day-num { color: #5B9CF6; }
+  .cal-day.today.sun .day-num, .cal-day.today.sat .day-num, .cal-day.today.hol .day-num { color: #fff; }
+  .cal-stamps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; line-height: 1; margin-top: 1px; max-width: 100%; align-items: center; }
   .cal-stamps svg { width: 15px; height: 15px; }
+  .cal-stamps .em { font-size: 12.5px; line-height: 1; }
   .cal-more { font-size: 8px; color: var(--text-secondary); line-height: 1; }
   .cal-amount { font-family: 'DM Mono'; font-size: 8px; color: var(--text-secondary); line-height: 1.2; margin-top: auto; }
-  /* band lanes */
   .cal-bands { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px 0; padding: 0 1px 3px; }
   .cal-band { height: 15px; border-radius: 4px; font-size: 9px; line-height: 15px; padding: 0 4px; white-space: nowrap; overflow: hidden; color: rgba(0,0,0,0.65); font-weight: 600; cursor: pointer; }
   .cal-band.cont-l { border-top-left-radius: 0; border-bottom-left-radius: 0; }
   .cal-band.cont-r { border-top-right-radius: 0; border-bottom-right-radius: 0; }
-
-  /* week view / list view */
-  .cal-week-row { display: flex; align-items: center; gap: 10px; padding: 10px 10px; border-radius: 11px; background: #FAFBFC; cursor: pointer; margin-bottom: 6px; }
+  .cal-week-row { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 11px; background: #FAFBFC; cursor: pointer; margin-bottom: 6px; }
   .cal-week-row.today { border: 1.5px solid var(--mint); }
   .cal-week-date { width: 42px; text-align: center; flex-shrink: 0; }
   .cal-week-date .wd { font-size: 10px; color: var(--text-secondary); }
   .cal-week-date .dn { font-size: 17px; font-weight: 700; font-family: 'DM Mono'; line-height: 1.1; }
-  .cal-week-date.sun .dn { color: #E57373; } .cal-week-date.sat .dn { color: #5B9CF6; }
+  .cal-week-date.sun .dn, .cal-week-date.hol .dn { color: #E57373; } .cal-week-date.sat .dn { color: #5B9CF6; }
   .cal-week-body { flex: 1; min-width: 0; display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
   .cal-week-body svg { width: 18px; height: 18px; }
+  .cal-week-body .em { font-size: 16px; }
   .cal-week-empty { color: #C8D0E0; font-size: 11.5px; }
   .cal-week-amount { font-family: 'DM Mono'; font-size: 12.5px; flex-shrink: 0; }
   .cal-list-item { display: flex; align-items: center; gap: 10px; padding: 11px 6px; border-bottom: 1px solid var(--border); cursor: pointer; }
   .cal-list-item svg { width: 24px; height: 24px; flex-shrink: 0; }
+  .cal-list-item .em { font-size: 21px; width: 26px; text-align: center; flex-shrink: 0; }
   .cal-list-body { flex: 1; min-width: 0; }
   .cal-list-title { font-size: 13px; font-weight: 500; }
   .cal-list-sub { font-size: 10.5px; color: var(--text-secondary); margin-top: 1px; }
   .cal-list-amount { font-family: 'DM Mono'; font-size: 12.5px; }
-
-  /* ═══ Summary / Home ═══ */
   .month-nav { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 12px; }
   .month-nav button { background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; width: 32px; height: 32px; cursor: pointer; font-size: 15px; box-shadow: var(--shadow); }
   .month-label { font-size: 15px; font-weight: 700; min-width: 105px; text-align: center; }
+  .agg-note { text-align: center; font-size: 10.5px; color: var(--text-secondary); margin: -6px 0 10px; }
   .job-sum-row { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--border); }
   .job-sum-row:last-child { border-bottom: none; }
   .job-sum-row svg { width: 26px; height: 26px; flex-shrink: 0; }
+  .job-sum-row .em { font-size: 22px; width: 26px; text-align: center; flex-shrink: 0; }
   .job-sum-name { flex: 1; font-size: 13px; font-weight: 500; min-width: 0; }
   .job-sum-sub { font-size: 10.5px; color: var(--text-secondary); }
   .job-sum-amount { font-family: 'DM Mono'; font-size: 14px; }
@@ -134,68 +111,73 @@
   .bar-seg:last-child { border-radius: 3px 3px 0 0; }
   .bar-labels { display: flex; gap: 4px; }
   .bar-labels > div { flex: 1; text-align: center; font-size: 10px; color: var(--text-secondary); }
-
-  /* ═══ Forms ═══ */
   .form-grid { display: grid; gap: 12px; }
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
   .form-group label { display: block; font-size: 11.5px; font-weight: 500; color: var(--text-secondary); margin-bottom: 5px; }
-  .form-group input, .form-group select, .form-group textarea {
-    width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 9px;
-    font-family: 'Noto Sans JP', sans-serif; font-size: 16px; color: var(--text-primary);
-    background: #fff; outline: none; -webkit-appearance: none;
-  }
+  .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 9px; font-family: 'Noto Sans JP', sans-serif; font-size: 16px; color: var(--text-primary); background: #fff; outline: none; -webkit-appearance: none; }
   .form-group input:focus, .form-group select:focus { border-color: var(--mint); }
   .form-actions { display: flex; gap: 9px; justify-content: flex-end; margin-top: 4px; }
-  .field-note { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+  .field-note { font-size: 11px; color: var(--text-secondary); margin-top: 4px; line-height: 1.5; }
   .calc-preview { padding: 11px 14px; background: var(--bg); border-radius: 10px; font-size: 12.5px; color: var(--text-secondary); }
   .calc-preview b { color: var(--text-primary); font-family: 'DM Mono'; font-size: 15px; }
-
-  /* stamp picker */
-  .stamp-picker { display: grid; grid-template-columns: repeat(6,1fr); gap: 6px; }
-  .stamp-opt { padding: 6px 2px; border-radius: 10px; border: 2px solid transparent; cursor: pointer; text-align: center; }
-  .stamp-opt svg { width: 30px; height: 30px; }
+  .subsection { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px; }
+  .subsection-title { font-size: 12.5px; font-weight: 700; margin-bottom: 10px; }
+  .lbl-s { font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 3px; }
+  .inp-s { padding: 8px 9px; font-size: 15px; border: 1.5px solid var(--border); border-radius: 8px; width: 100%; background: #fff; outline: none; -webkit-appearance: none; font-family: 'Noto Sans JP', sans-serif; }
+  .picker-tabs { display: flex; gap: 3px; background: var(--bg); border-radius: 9px; padding: 3px; margin-bottom: 8px; }
+  .picker-tab { flex: 1; padding: 6px; text-align: center; border-radius: 6px; cursor: pointer; font-size: 12px; color: var(--text-secondary); user-select: none; }
+  .picker-tab.active { background: #fff; color: var(--text-primary); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .stamp-picker { display: grid; grid-template-columns: repeat(6,1fr); gap: 5px; max-height: 168px; overflow-y: auto; }
+  .stamp-opt { padding: 5px 2px; border-radius: 10px; border: 2px solid transparent; cursor: pointer; text-align: center; }
+  .stamp-opt svg { width: 28px; height: 28px; }
+  .stamp-opt .em { font-size: 24px; line-height: 30px; }
   .stamp-opt.sel { border-color: var(--mint); background: #E9FBF4; }
-  /* color picker */
+  .emoji-free { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+  .emoji-free input { width: 70px; text-align: center; font-size: 20px; padding: 8px; border: 1.5px solid var(--border); border-radius: 9px; outline: none; }
   .color-picker { display: flex; gap: 8px; flex-wrap: wrap; }
   .color-opt { width: 30px; height: 30px; border-radius: 9px; cursor: pointer; border: 2.5px solid transparent; }
   .color-opt.sel { border-color: var(--navy); }
-
-  /* job list in settings */
+  .pat-row { background: var(--bg); border-radius: 10px; padding: 10px; margin-bottom: 8px; }
+  .pat-row-head { display: flex; gap: 8px; margin-bottom: 8px; }
+  .pat-row-head input { flex: 1; }
+  .pat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .pat-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+  .pat-row input { padding: 8px 9px; font-size: 15px; border: 1.5px solid var(--border); border-radius: 8px; width: 100%; background:#fff; outline:none; }
+  .pat-row label { font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 3px; }
+  .pat-del { background: #FFF0F3; color: #E53E3E; border: 1px solid #FFC5C5; border-radius: 8px; padding: 8px 10px; font-size: 12px; cursor: pointer; }
+  .pat-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pat-chip { padding: 7px 12px; border-radius: 20px; border: 1.5px solid var(--border); background: #fff; font-size: 12px; cursor: pointer; }
+  .pat-chip.sel { border-color: var(--mint); background: #E9FBF4; font-weight: 600; }
   .job-item { display: flex; align-items: center; gap: 10px; padding: 11px 4px; border-bottom: 1px solid var(--border); }
   .job-item:last-child { border-bottom: none; }
   .job-item svg { width: 28px; height: 28px; flex-shrink: 0; }
+  .job-item .em { font-size: 24px; width: 28px; text-align: center; flex-shrink: 0; }
   .job-item-body { flex: 1; min-width: 0; }
   .job-item-name { font-size: 13.5px; font-weight: 600; }
   .job-item-sub { font-size: 11px; color: var(--text-secondary); }
   .job-item.inactive { opacity: 0.45; }
-  .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 4px; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+  .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 4px; border-bottom: 1px solid var(--border); font-size: 13.5px; gap: 8px; }
   .settings-row:last-child { border-bottom: none; }
-
-  /* segmented (pay type) */
   .seg { display: flex; gap: 3px; background: var(--bg); border-radius: 9px; padding: 3px; }
-  .seg-btn { flex: 1; padding: 8px 4px; text-align: center; border-radius: 6px; cursor: pointer; font-size: 12px; color: var(--text-secondary); user-select: none; }
+  .seg-sm { display: inline-flex; }
+  .seg-btn { flex: 1; padding: 8px 4px; text-align: center; border-radius: 6px; cursor: pointer; font-size: 12px; color: var(--text-secondary); user-select: none; white-space: nowrap; }
+  .seg-sm .seg-btn { padding: 6px 10px; font-size: 11.5px; }
   .seg-btn.active { background: #fff; color: var(--text-primary); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-
   table { width: 100%; border-collapse: collapse; }
-  th { font-size: 10px; color: var(--text-secondary); font-weight: 500; text-align: left; padding: 0 8px 8px; border-bottom: 1.5px solid var(--border); }
   td { padding: 10px 8px; font-size: 12.5px; border-bottom: 1px solid var(--border); vertical-align: middle; }
   tr:last-child td { border-bottom: none; }
   .mono { font-family: 'DM Mono', monospace; }
   .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .empty { text-align: center; padding: 28px 16px; color: var(--text-secondary); }
   .empty-icon { font-size: 30px; margin-bottom: 6px; }
-  .empty-text { font-size: 12.5px; }
-
-  /* tabbar */
+  .empty-text { font-size: 12.5px; line-height: 1.7; }
   .tabbar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 60; background: rgba(255,255,255,0.96); backdrop-filter: saturate(180%) blur(16px); -webkit-backdrop-filter: saturate(180%) blur(16px); border-top: 1px solid var(--border); display: flex; padding-bottom: var(--safe-bottom); height: calc(var(--tabbar-h) + var(--safe-bottom)); }
   .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; color: var(--text-secondary); user-select: none; padding-top: 6px; }
   .tab.active { color: var(--mint-dim); }
   .tab-icon { font-size: 20px; line-height: 1; filter: grayscale(0.35); }
   .tab.active .tab-icon { filter: none; }
   .tab-label { font-size: 9.5px; font-weight: 500; }
-
-  /* modal */
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(20,30,60,0.45); z-index: 100; align-items: flex-end; justify-content: center; }
   .modal-overlay.open { display: flex; }
   .modal { background: #fff; border-radius: 20px 20px 0 0; padding: 20px 16px calc(20px + var(--safe-bottom)); width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto; animation: slideup 0.22s; }
@@ -204,10 +186,14 @@
   .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
   .add-menu-item { display: flex; align-items: center; gap: 12px; padding: 13px 8px; border-radius: 12px; cursor: pointer; }
   .add-menu-item:active { background: var(--bg); }
-  .add-menu-item svg { width: 30px; height: 30px; }
+  .add-menu-item svg { width: 30px; height: 30px; flex-shrink: 0; }
+  .add-menu-item .em { font-size: 26px; width: 30px; text-align: center; flex-shrink: 0; }
   .add-menu-label { font-size: 14px; font-weight: 600; }
   .add-menu-sub { font-size: 11px; color: var(--text-secondary); }
-
+  .ym-cols { display: flex; gap: 10px; height: 190px; margin-bottom: 14px; }
+  .ym-col { flex: 1; overflow-y: auto; scroll-snap-type: y mandatory; border: 1.5px solid var(--border); border-radius: 12px; -webkit-overflow-scrolling: touch; }
+  .ym-opt { scroll-snap-align: center; padding: 11px 0; text-align: center; font-size: 15px; cursor: pointer; color: var(--text-secondary); }
+  .ym-opt.sel { color: var(--text-primary); font-weight: 700; background: #E9FBF4; }
   .toast { position: fixed; bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 14px); left: 50%; transform: translateX(-50%) translateY(10px); background: var(--navy); color: #fff; padding: 11px 20px; border-radius: 10px; font-size: 13px; z-index: 999; opacity: 0; transition: all 0.3s; border-left: 4px solid var(--mint); pointer-events: none; white-space: nowrap; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 </style>
@@ -217,7 +203,7 @@
   <header class="topbar">
     <div style="display:flex;align-items:center;">
       <span class="topbar-logo">Finance<span>Mgr</span></span>
-      <span class="version-badge" id="version-badge">v3</span>
+      <span class="version-badge" id="version-badge">v4</span>
     </div>
     <div class="topbar-total">
       <div class="topbar-total-label">今月合計</div>
@@ -226,14 +212,12 @@
   </header>
 
   <div class="content" id="content">
-
-    <!-- ═══ CALENDAR (main) ═══ -->
     <div class="page active" id="page-calendar">
-      <div class="cal-wrap">
+      <div class="cal-wrap" id="cal-swipe-area">
         <div class="cal-controls">
           <div class="cal-nav">
             <button onclick="changeCalMonth(-1)">‹</button>
-            <span class="cal-title" id="cal-title">—</span>
+            <span class="cal-title" id="cal-title" onclick="openYmPicker()">—</span>
             <button onclick="changeCalMonth(1)">›</button>
           </div>
           <button class="today-btn" onclick="goToday()">今日</button>
@@ -243,7 +227,6 @@
             <div class="cal-switch-btn" onclick="setCalView('list',this)">一覧</div>
           </div>
         </div>
-
         <div id="cal-month-view">
           <div class="cal-header" id="cal-header"></div>
           <div id="cal-weeks"></div>
@@ -254,53 +237,27 @@
       <button class="btn btn-primary btn-block" onclick="openAddMenu(todayStr())">＋ 予定・収入を追加</button>
     </div>
 
-    <!-- ═══ HOME (集計) ═══ -->
     <div class="page" id="page-home">
       <div class="month-nav">
         <button onclick="changeHomeMonth(-1)">‹</button>
         <span class="month-label" id="home-month-label">—</span>
         <button onclick="changeHomeMonth(1)">›</button>
       </div>
-      <div class="total-banner">
-        <span class="lbl">月合計収入</span>
-        <span class="amt" id="home-total">¥0</span>
-      </div>
-      <div class="card">
-        <div class="card-title">仕事別の内訳</div>
-        <div id="home-jobs"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">月別収入推移（6ヶ月）</div>
-        <div class="bar-section" id="bar-chart"></div>
-        <div class="bar-labels" id="bar-labels"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">今月の記録</div>
-        <div class="table-scroll" id="home-records"></div>
-      </div>
+      <div class="agg-note" id="agg-note"></div>
+      <div class="total-banner"><span class="lbl">月合計収入</span><span class="amt" id="home-total">¥0</span></div>
+      <div class="card"><div class="card-title">仕事別の内訳</div><div id="home-jobs"></div></div>
+      <div class="card"><div class="card-title">月別収入推移（6ヶ月）</div>
+        <div class="bar-section" id="bar-chart"></div><div class="bar-labels" id="bar-labels"></div></div>
+      <div class="card"><div class="card-title">この月の記録</div><div class="table-scroll" id="home-records"></div></div>
     </div>
 
-    <!-- ═══ INCOME INPUT ═══ -->
     <div class="page" id="page-input">
-      <div class="page-head">
-        <div>
-          <div class="page-title">収入入力</div>
-          <div class="page-sub">仕事を選んで記録します</div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="form-grid" id="input-form-area"></div>
-      </div>
+      <div class="page-head"><div><div class="page-title">収入入力</div><div class="page-sub">仕事を選んで記録します</div></div></div>
+      <div class="card"><div class="form-grid" id="input-form-area"></div></div>
     </div>
 
-    <!-- ═══ SETTINGS ═══ -->
     <div class="page" id="page-settings">
-      <div class="page-head">
-        <div>
-          <div class="page-title">設定</div>
-          <div class="page-sub">仕事の登録・アプリ設定</div>
-        </div>
-      </div>
+      <div class="page-head"><div><div class="page-title">設定</div><div class="page-sub">仕事の登録・アプリ設定</div></div></div>
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
           <div class="card-title" style="margin-bottom:0">仕事の管理</div>
@@ -309,23 +266,27 @@
         <div id="job-list"></div>
       </div>
       <div class="card">
-        <div class="card-title">データ</div>
-        <div class="settings-row">
-          <span>バックアップ（書き出し）</span>
-          <button class="btn btn-ghost btn-sm" onclick="exportData()">JSON保存</button>
-        </div>
-        <div class="settings-row">
-          <span>復元（読み込み）</span>
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('import-file').click()">ファイル選択</button>
-          <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
-        </div>
+        <div class="card-title">表示・集計</div>
+        <div class="settings-row"><span>実働時間の表示</span>
+          <div class="seg seg-sm">
+            <div class="seg-btn" data-hf="decimal" onclick="setHoursFormat('decimal',this)">7.5h</div>
+            <div class="seg-btn" data-hf="colon" onclick="setHoursFormat('colon',this)">7:30</div>
+          </div></div>
+        <div class="settings-row"><span>月の集計基準</span>
+          <div class="seg seg-sm">
+            <div class="seg-btn" data-ag="work" onclick="setAggregation('work',this)">勤務日</div>
+            <div class="seg-btn" data-ag="pay" onclick="setAggregation('pay',this)">支払日</div>
+          </div></div>
+        <div class="field-note" style="padding:0 4px 6px">支払日ベースは、各仕事の「締め日・支払日」設定を使って入金月に計上します（未設定の仕事は勤務日ベース）。</div>
       </div>
       <div class="card">
-        <div class="card-title">表示</div>
-        <div class="settings-row"><span>週の開始曜日ほか</span><span style="font-size:11px;color:var(--text-secondary)">次回更新で追加予定</span></div>
+        <div class="card-title">データ</div>
+        <div class="settings-row"><span>バックアップ（書き出し）</span><button class="btn btn-ghost btn-sm" onclick="exportData()">JSON保存</button></div>
+        <div class="settings-row"><span>復元（読み込み）</span><button class="btn btn-ghost btn-sm" onclick="document.getElementById('import-file').click()">ファイル選択</button>
+          <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)"></div>
       </div>
       <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-        FinanceManager <span id="ver-footer">v3</span> / schema <span id="schema-footer">2</span>
+        FinanceManager <span id="ver-footer">v4</span> / schema <span id="schema-footer">3</span> / 祝日データ 2025–2027
       </div>
     </div>
   </div>
@@ -338,130 +299,142 @@
   </nav>
 </div>
 
-<!-- ═══ Modals ═══ -->
-<!-- add menu -->
-<div class="modal-overlay" id="modal-addmenu">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="addmenu-title">追加する</div>
-    <div id="addmenu-items"></div>
-    <div class="form-actions"><button class="btn btn-ghost" onclick="closeModal('modal-addmenu')">閉じる</button></div>
-  </div>
-</div>
+<div class="modal-overlay" id="modal-addmenu"><div class="modal">
+  <div class="modal-handle"></div><div class="modal-title" id="addmenu-title">追加する</div>
+  <div id="addmenu-items"></div>
+  <div class="form-actions"><button class="btn btn-ghost" onclick="closeModal('modal-addmenu')">閉じる</button></div>
+</div></div>
 
-<!-- day detail -->
-<div class="modal-overlay" id="modal-day">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="day-detail-title">—</div>
-    <div id="day-detail-body"></div>
-    <div class="form-actions" style="margin-top:14px">
-      <button class="btn btn-ghost" onclick="closeModal('modal-day')">閉じる</button>
-      <button class="btn btn-primary" id="day-add-btn">＋ 追加</button>
+<div class="modal-overlay" id="modal-day"><div class="modal">
+  <div class="modal-handle"></div><div class="modal-title" id="day-detail-title">—</div>
+  <div id="day-detail-body"></div>
+  <div class="form-actions" style="margin-top:14px">
+    <button class="btn btn-ghost" onclick="closeModal('modal-day')">閉じる</button>
+    <button class="btn btn-primary" id="day-add-btn">＋ 追加</button>
+  </div>
+</div></div>
+
+<div class="modal-overlay" id="modal-record"><div class="modal">
+  <div class="modal-handle"></div><div class="modal-title" id="record-title">記録を追加</div>
+  <div class="form-grid" id="record-form"></div>
+  <div class="form-actions">
+    <button class="btn btn-ghost" onclick="closeModal('modal-record')">キャンセル</button>
+    <button class="btn btn-primary" onclick="saveRecord()">保存</button>
+  </div>
+</div></div>
+
+<div class="modal-overlay" id="modal-event"><div class="modal">
+  <div class="modal-handle"></div><div class="modal-title" id="event-title">予定を追加</div>
+  <div class="form-grid">
+    <div class="form-group"><label>タイトル</label><input type="text" id="ev-title" placeholder="例：請求書提出"></div>
+    <div class="form-row">
+      <div class="form-group"><label>開始日</label><input type="date" id="ev-start"></div>
+      <div class="form-group"><label>終了日（同日なら空欄）</label><input type="date" id="ev-end"></div>
     </div>
+    <div class="form-group"><label>スタンプ</label><div id="ev-stamp-area"></div></div>
+    <div class="form-group"><label>帯の色</label><div class="color-picker" id="ev-color-picker"></div></div>
+    <div class="form-group"><label>メモ</label><input type="text" id="ev-memo"></div>
   </div>
-</div>
+  <div class="form-actions">
+    <button class="btn btn-danger" id="ev-delete-btn" style="margin-right:auto;display:none" onclick="deleteEvent()">削除</button>
+    <button class="btn btn-ghost" onclick="closeModal('modal-event')">キャンセル</button>
+    <button class="btn btn-primary" onclick="saveEvent()">保存</button>
+  </div>
+</div></div>
 
-<!-- work/income record modal -->
-<div class="modal-overlay" id="modal-record">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="record-title">記録を追加</div>
-    <div class="form-grid" id="record-form"></div>
-    <div class="form-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modal-record')">キャンセル</button>
-      <button class="btn btn-primary" onclick="saveRecord()">保存</button>
+<div class="modal-overlay" id="modal-job"><div class="modal">
+  <div class="modal-handle"></div><div class="modal-title" id="job-modal-title">仕事を追加</div>
+  <div class="form-grid">
+    <div class="form-group"><label>仕事名</label><input type="text" id="job-name" placeholder="例：カフェABC / 〇〇社役員"></div>
+    <div class="form-group"><label>報酬タイプ</label>
+      <div class="seg">
+        <div class="seg-btn active" data-pt="hourly" onclick="setPayType('hourly',this)">時給制</div>
+        <div class="seg-btn" data-pt="piece" onclick="setPayType('piece',this)">案件ごと</div>
+        <div class="seg-btn" data-pt="monthly" onclick="setPayType('monthly',this)">月額固定</div>
+      </div></div>
+    <div id="job-fields-hourly">
+      <div class="subsection-title">基本（パターン未選択時の初期値）</div>
+      <div class="pat-grid">
+        <div><label class="lbl-s">時給（円）</label><input type="number" class="inp-s" id="job-wage" placeholder="1100"></div>
+        <div><label class="lbl-s">交通費/日</label><input type="number" class="inp-s" id="job-transport" placeholder="500"></div>
+        <div><label class="lbl-s">休憩（分）</label><input type="number" class="inp-s" id="job-break" placeholder="60"></div>
+      </div>
+      <div class="pat-grid-2">
+        <div><label class="lbl-s">デフォルト開始</label><input type="time" class="inp-s" id="job-defstart" value="09:00"></div>
+        <div><label class="lbl-s">デフォルト終了</label><input type="time" class="inp-s" id="job-defend" value="17:00"></div>
+      </div>
+      <div class="subsection">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div class="subsection-title" style="margin-bottom:0">シフトパターン</div>
+          <button class="btn btn-ghost btn-sm" onclick="addPattern()">＋ パターン</button>
+        </div>
+        <div id="pattern-editor"></div>
+        <div class="field-note">勤務地や定時・時給が複数ある場合に登録。勤務入力時にワンタップで反映され、集計はこの仕事にまとめて合算されます。</div>
+      </div>
     </div>
-  </div>
-</div>
-
-<!-- generic event modal -->
-<div class="modal-overlay" id="modal-event">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="event-title">予定を追加</div>
-    <div class="form-grid">
-      <div class="form-group"><label>タイトル</label><input type="text" id="ev-title" placeholder="例：請求書提出"></div>
+    <div id="job-fields-monthly" style="display:none">
       <div class="form-row">
-        <div class="form-group"><label>開始日</label><input type="date" id="ev-start"></div>
-        <div class="form-group"><label>終了日（同日なら空欄OK）</label><input type="date" id="ev-end"></div>
+        <div class="form-group"><label>月額（円）</label><input type="number" id="job-salary" placeholder="300000"></div>
+        <div class="form-group"><label>支払日（毎月）</label><input type="number" id="job-payday" min="1" max="31" placeholder="25"></div>
       </div>
-      <div class="form-group"><label>スタンプ</label><div class="stamp-picker" id="ev-stamp-picker"></div></div>
-      <div class="form-group"><label>帯の色</label><div class="color-picker" id="ev-color-picker"></div></div>
-      <div class="form-group"><label>メモ</label><input type="text" id="ev-memo"></div>
+      <div class="form-group"><label>支払日が土日祝のとき</label>
+        <select id="job-holrule-m"><option value="none">そのまま</option><option value="before">前営業日払い</option><option value="after">翌営業日払い</option></select></div>
     </div>
-    <div class="form-actions">
-      <button class="btn btn-danger" id="ev-delete-btn" style="margin-right:auto;display:none" onclick="deleteEvent()">削除</button>
-      <button class="btn btn-ghost" onclick="closeModal('modal-event')">キャンセル</button>
-      <button class="btn btn-primary" onclick="saveEvent()">保存</button>
+    <div class="subsection" id="job-payment-rules">
+      <div class="subsection-title">締め日・支払日（任意）</div>
+      <div class="form-row">
+        <div class="form-group"><label>締め日</label>
+          <select id="job-closing"><option value="">設定しない</option><option value="31">末日</option>
+          <option value="5">5日</option><option value="10">10日</option><option value="15">15日</option><option value="20">20日</option><option value="25">25日</option></select></div>
+        <div class="form-group"><label>支払月</label>
+          <select id="job-payoffset"><option value="0">当月</option><option value="1" selected>翌月</option><option value="2">翌々月</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>支払日</label>
+          <select id="job-paydate"><option value="31">末日</option><option value="5">5日</option><option value="10">10日</option><option value="15">15日</option><option value="20">20日</option><option value="25" selected>25日</option></select></div>
+        <div class="form-group"><label>土日祝のとき</label>
+          <select id="job-holrule"><option value="none">そのまま</option><option value="before" selected>前営業日払い</option><option value="after">翌営業日払い</option></select></div>
+      </div>
+      <div class="field-note">設定すると、給料日がカレンダーに見込み額つきで表示され、「支払日ベース集計」で使われます。</div>
     </div>
+    <div class="form-group"><label>スタンプ</label><div id="job-stamp-area"></div></div>
+    <div class="form-group"><label>カレンダー色</label><div class="color-picker" id="job-color-picker"></div></div>
+    <div class="form-group" id="job-active-row" style="display:none"><label>状態</label>
+      <div class="seg">
+        <div class="seg-btn active" data-act="1" onclick="setJobActive(true,this)">有効</div>
+        <div class="seg-btn" data-act="0" onclick="setJobActive(false,this)">無効（辞めた等）</div>
+      </div>
+      <div class="field-note">無効にしても過去の記録・集計は残ります</div></div>
   </div>
-</div>
+  <div class="form-actions">
+    <button class="btn btn-danger" id="job-delete-btn" style="margin-right:auto;display:none" onclick="deleteJob()">削除</button>
+    <button class="btn btn-ghost" onclick="closeModal('modal-job')">キャンセル</button>
+    <button class="btn btn-primary" onclick="saveJob()">保存</button>
+  </div>
+</div></div>
 
-<!-- job edit modal -->
-<div class="modal-overlay" id="modal-job">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="job-modal-title">仕事を追加</div>
-    <div class="form-grid">
-      <div class="form-group"><label>仕事名</label><input type="text" id="job-name" placeholder="例：カフェABC / 〇〇社役員"></div>
-      <div class="form-group"><label>報酬タイプ</label>
-        <div class="seg">
-          <div class="seg-btn active" data-pt="hourly" onclick="setPayType('hourly',this)">時給制</div>
-          <div class="seg-btn" data-pt="piece" onclick="setPayType('piece',this)">案件ごと</div>
-          <div class="seg-btn" data-pt="monthly" onclick="setPayType('monthly',this)">月額固定</div>
-        </div>
-      </div>
-      <div id="job-fields-hourly">
-        <div class="form-row-3">
-          <div class="form-group"><label>時給（円）</label><input type="number" id="job-wage" placeholder="1100"></div>
-          <div class="form-group"><label>交通費/日（円）</label><input type="number" id="job-transport" placeholder="500"></div>
-          <div class="form-group"><label>休憩（分）</label><input type="number" id="job-break" placeholder="60"></div>
-        </div>
-        <div class="field-note">休憩は勤務入力時に変更できます（初期値）</div>
-      </div>
-      <div id="job-fields-monthly" style="display:none">
-        <div class="form-row">
-          <div class="form-group"><label>月額（円）</label><input type="number" id="job-salary" placeholder="300000"></div>
-          <div class="form-group"><label>支払日（毎月）</label><input type="number" id="job-payday" min="1" max="31" placeholder="25"></div>
-        </div>
-      </div>
-      <div class="form-group"><label>スタンプ</label><div class="stamp-picker" id="job-stamp-picker"></div></div>
-      <div class="form-group"><label>カレンダー色</label><div class="color-picker" id="job-color-picker"></div></div>
-      <div class="form-group" id="job-active-row" style="display:none">
-        <label>状態</label>
-        <div class="seg">
-          <div class="seg-btn active" data-act="1" onclick="setJobActive(true,this)">有効</div>
-          <div class="seg-btn" data-act="0" onclick="setJobActive(false,this)">無効（辞めた等）</div>
-        </div>
-        <div class="field-note">無効にしても過去の記録・集計は残ります</div>
-      </div>
-    </div>
-    <div class="form-actions">
-      <button class="btn btn-danger" id="job-delete-btn" style="margin-right:auto;display:none" onclick="deleteJob()">削除</button>
-      <button class="btn btn-ghost" onclick="closeModal('modal-job')">キャンセル</button>
-      <button class="btn btn-primary" onclick="saveJob()">保存</button>
-    </div>
+<div class="modal-overlay" id="modal-ym"><div class="modal">
+  <div class="modal-handle"></div><div class="modal-title">年月を選択</div>
+  <div class="ym-cols">
+    <div class="ym-col" id="ym-years"></div>
+    <div class="ym-col" id="ym-months"></div>
   </div>
-</div>
+  <div class="form-actions">
+    <button class="btn btn-ghost" onclick="closeModal('modal-ym')">キャンセル</button>
+    <button class="btn btn-primary" onclick="applyYm()">表示</button>
+  </div>
+</div></div>
 
 <div class="toast" id="toast"></div>
-
 <script>
 // ════════════════════════════════════════════════
-//  FinanceManager v3  (schema 2)
-//  jobs(仕事マスタ) + records(収入記録) + events(汎用予定)
+//  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '3';
-const SCHEMA_VERSION = 2;
+const APP_VERSION = '4';
+const SCHEMA_VERSION = 3;
 const STORAGE_KEY = 'financeManager';
 
-// ── オリジナルSVGスタンプ（v2案 / 微調整は後日）──
-const C = {
-  blue:['#5B8DEF','#3D6BD1','#EAF1FF'], teal:['#2DC5A4','#189A7E','#E4FAF4'],
-  amber:['#F7B32B','#D3921A','#FFF6E0'], pink:['#F76D8E','#D94A6E','#FFEBF0'],
-  violet:['#9B7EDE','#7A5CC4','#F1EBFF'], slate:['#6B7A99','#4D5B78','#EEF1F6'],
-};
+const C = { blue:['#5B8DEF','#3D6BD1','#EAF1FF'], teal:['#2DC5A4','#189A7E','#E4FAF4'], amber:['#F7B32B','#D3921A','#FFF6E0'], pink:['#F76D8E','#D94A6E','#FFEBF0'], violet:['#9B7EDE','#7A5CC4','#F1EBFF'], slate:['#6B7A99','#4D5B78','#EEF1F6'] };
 const _b = c => `<rect x="2" y="2" width="44" height="44" rx="14" fill="${c[0]}"/>`;
 const STAMPS = {
 briefcase:{name:'カバン',svg:`<svg viewBox="0 0 48 48">${_b(C.amber)}<rect x="11" y="18" width="26" height="17" rx="4" fill="#fff"/><path d="M19 18v-2.5a3.5 3.5 0 0 1 3.5-3.5h3a3.5 3.5 0 0 1 3.5 3.5V18" fill="none" stroke="#fff" stroke-width="2.5"/><path d="M11 25h26" stroke="${C.amber[1]}" stroke-width="2.5"/><rect x="21" y="22.8" width="6" height="5" rx="1.6" fill="${C.amber[1]}"/></svg>`},
@@ -477,68 +450,98 @@ piggy:{name:'貯金',svg:`<svg viewBox="0 0 48 48">${_b(C.pink)}<ellipse cx="24"
 train:{name:'交通費',svg:`<svg viewBox="0 0 48 48">${_b(C.teal)}<rect x="14" y="10" width="20" height="22" rx="5" fill="#fff"/><rect x="17.5" y="14" width="13" height="8" rx="1.8" fill="${C.teal[2]}"/><circle cx="19.5" cy="26.5" r="2" fill="${C.teal[0]}"/><circle cx="28.5" cy="26.5" r="2" fill="${C.teal[0]}"/><path d="M17 33l-3 5M31 33l3 5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>`},
 payday:{name:'給料日',svg:`<svg viewBox="0 0 48 48">${_b(C.amber)}<rect x="11" y="13" width="26" height="22" rx="3.5" fill="#fff"/><rect x="11" y="13" width="26" height="6.5" rx="3.5" fill="${C.amber[2]}"/><path d="M17 12v3.5M31 12v3.5" stroke="${C.amber[1]}" stroke-width="2.5" stroke-linecap="round"/><text x="24" y="32" text-anchor="middle" font-family="Inter,-apple-system,Arial,sans-serif" font-size="13" font-weight="800" fill="${C.amber[1]}">&#165;</text></svg>`},
 clock:{name:'時間',svg:`<svg viewBox="0 0 48 48">${_b(C.blue)}<circle cx="24" cy="24" r="13.5" fill="#fff"/><path d="M24 16.5V24l5.5 3.5" stroke="${C.blue[0]}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`},
-deadline:{name:'締切（〆）',svg:`<svg viewBox="0 0 48 48">${_b(C.pink)}<circle cx="24" cy="24" r="13.5" fill="#fff"/><text x="24" y="31" text-anchor="middle" font-family="'Noto Sans JP','Hiragino Sans',sans-serif" font-size="17" font-weight="700" fill="${C.pink[1]}">〆</text></svg>`},
+deadline:{name:'締切',svg:`<svg viewBox="0 0 48 48">${_b(C.pink)}<circle cx="24" cy="24" r="13.5" fill="#fff"/><text x="24" y="31" text-anchor="middle" font-family="'Noto Sans JP','Hiragino Sans',sans-serif" font-size="17" font-weight="700" fill="${C.pink[1]}">〆</text></svg>`},
 pin:{name:'重要',svg:`<svg viewBox="0 0 48 48">${_b(C.pink)}<path d="M24 9.5c-5.4 0-9.5 4-9.5 9.4 0 6.8 9.5 19.6 9.5 19.6s9.5-12.8 9.5-19.6c0-5.4-4.1-9.4-9.5-9.4z" fill="#fff"/><circle cx="24" cy="19" r="4" fill="${C.pink[0]}"/></svg>`},
 memo:{name:'メモ',svg:`<svg viewBox="0 0 48 48">${_b(C.amber)}<rect x="13" y="10" width="22" height="28" rx="3.5" fill="#fff"/><g stroke="${C.amber[0]}" stroke-width="2.5" stroke-linecap="round"><path d="M18 18h12M18 24h12M18 30h7"/></g></svg>`},
 cart:{name:'買い物',svg:`<svg viewBox="0 0 48 48">${_b(C.violet)}<path d="M12 13h4l3.2 14.5H33l3-10.5H17.5" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="21" cy="33.5" r="2.4" fill="#fff"/><circle cx="30.5" cy="33.5" r="2.4" fill="#fff"/></svg>`},
 star:{name:'イベント',svg:`<svg viewBox="0 0 48 48">${_b(C.amber)}<path d="M24 10.5l4 8.2 9 1.3-6.5 6.4 1.5 9-8-4.2-8 4.2 1.5-9L11 20l9-1.3 4-8.2z" fill="#fff" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>`},
 };
-const stampSVG = id => (STAMPS[id]||STAMPS.memo).svg;
-
-// band / job colors
+function stampHTML(s) { if (STAMPS[s]) return STAMPS[s].svg; return `<span class="em">${s||'📌'}</span>`; }
+const EMOJIS = ['💼','💻','🏢','💰','🪙','🏦','📄','🧾','💴','💳','✉️','📮','☕','🍽️','🛒','🚃','🚌','🚗','⏰','📅','❗','⭐','🎯','📞','🏥','💊','✂️','🎵','🎬','🎂','🎁','📚','✏️','🧹','🌙','☀️','🎾','⚽','🏃','🐱'];
 const PALETTE = ['#BFE3FF','#C6F3E4','#FFE9B8','#FFD3DE','#E3D9FF','#D9E2F0','#C9F0C4','#FFDDC2'];
 
-// ── state / schema ──
-function defaultState() {
-  return {
-    schemaVersion: SCHEMA_VERSION,
-    jobs: [],       // {id,name,payType,wage,transport,breakMin,salary,payday,stamp,color,active}
-    records: [],    // {id,jobId,date,start,end,breakMin,hours,transport,amount,name,memo}
-    events: [],     // {id,title,startDate,endDate,stamp,color,memo}
-    homeMonth: new Date().getMonth(),
-    homeYear: new Date().getFullYear(),
-  };
+// ── 日本の祝日 2025-2027（振替休日含む）──
+const HOLIDAYS = new Set([
+'2025-01-01','2025-01-13','2025-02-11','2025-02-23','2025-02-24','2025-03-20','2025-04-29','2025-05-03','2025-05-04','2025-05-05','2025-05-06','2025-07-21','2025-08-11','2025-09-15','2025-09-23','2025-10-13','2025-11-03','2025-11-23','2025-11-24',
+'2026-01-01','2026-01-12','2026-02-11','2026-02-23','2026-03-20','2026-04-29','2026-05-03','2026-05-04','2026-05-05','2026-05-06','2026-07-20','2026-08-11','2026-09-21','2026-09-22','2026-09-23','2026-10-12','2026-11-03','2026-11-23',
+'2027-01-01','2027-01-11','2027-02-11','2027-02-23','2027-03-22','2027-04-29','2027-05-03','2027-05-04','2027-05-05','2027-07-19','2027-08-11','2027-09-20','2027-09-23','2027-10-11','2027-11-03','2027-11-23',
+]);
+const pad = n => String(n).padStart(2,'0');
+const dstr = (y,m,d) => `${y}-${pad(m+1)}-${pad(d)}`;
+const daysIn = (y,m) => new Date(y,m+1,0).getDate();
+function isWeekendOrHoliday(ds) {
+  const d = new Date(ds+'T00:00:00');
+  const w = d.getDay();
+  return w===0 || w===6 || HOLIDAYS.has(ds);
+}
+function shiftDate(ds, delta) {
+  const d = new Date(ds+'T00:00:00'); d.setDate(d.getDate()+delta);
+  return dstr(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function adjustPayDate(ds, rule) {
+  if (rule==='before'){ let s=ds, g=0; while(isWeekendOrHoliday(s)&&g++<14) s=shiftDate(s,-1); return s; }
+  if (rule==='after'){ let s=ds, g=0; while(isWeekendOrHoliday(s)&&g++<14) s=shiftDate(s,1); return s; }
+  return ds;
+}
+function computePayDate(job, recDate) {
+  if (!job || !job.closingDay) return null;
+  const y=+recDate.slice(0,4), m=+recDate.slice(5,7)-1, day=+recDate.slice(8,10);
+  const cd = job.closingDay>=31 ? daysIn(y,m) : Math.min(job.closingDay, daysIn(y,m));
+  let cy=y, cm=m;
+  if (day > cd) { cm++; if(cm>11){cm=0;cy++;} }
+  let py=cy, pm=cm + (job.payMonthOffset||0);
+  while(pm>11){pm-=12;py++;}
+  const pdv = job.payDay||25;
+  const pd = pdv>=31 ? daysIn(py,pm) : Math.min(pdv, daysIn(py,pm));
+  return adjustPayDate(dstr(py,pm,pd), job.holidayRule||'none');
 }
 
+// ── state / migrate ──
+function defaultState() {
+  return { schemaVersion: SCHEMA_VERSION, jobs: [], records: [], events: [],
+    settings: { hoursFormat:'decimal', aggregation:'work' },
+    homeMonth: new Date().getMonth(), homeYear: new Date().getFullYear() };
+}
 function migrate(data) {
   if (!data) return defaultState();
   let v = data.schemaVersion || 0;
   if (v < 1) { data.shifts=data.shifts||[]; data.freelance=data.freelance||[]; data.config=data.config||{name:'アルバイト',wage:1100,transport:250}; data.officer=data.officer||{company:'',salary:0,paydate:25,memo:''}; v=1; }
   if (v < 2) {
-    // v1 → v2 : shifts/freelance/officer → jobs + records
-    const out = defaultState();
-    const now = Date.now();
-    // hourly job from config
+    const out = defaultState(); const now = Date.now();
     if ((data.shifts&&data.shifts.length) || (data.config&&data.config.name)) {
-      out.jobs.push({ id:'job_hourly_'+now, name:(data.config&&data.config.name)||'アルバイト', payType:'hourly',
-        wage:(data.config&&data.config.wage)||0, transport:((data.config&&data.config.transport)||0)*2, breakMin:0,
-        salary:0, payday:25, stamp:'briefcase', color:PALETTE[0], active:true });
+      out.jobs.push({ id:'job_hourly_'+now, name:(data.config&&data.config.name)||'アルバイト', payType:'hourly', wage:(data.config&&data.config.wage)||0, transport:((data.config&&data.config.transport)||0)*2, breakMin:0, salary:0, payday:25, stamp:'briefcase', color:PALETTE[0], active:true });
     }
-    // piece job if freelance exists
     if (data.freelance && data.freelance.length) {
-      out.jobs.push({ id:'job_piece_'+now, name:'在宅ワーク', payType:'piece', wage:0, transport:0, breakMin:0,
-        salary:0, payday:25, stamp:'laptop', color:PALETTE[2], active:true });
+      out.jobs.push({ id:'job_piece_'+now, name:'在宅ワーク', payType:'piece', wage:0, transport:0, breakMin:0, salary:0, payday:25, stamp:'laptop', color:PALETTE[2], active:true });
     }
-    // monthly job from officer
     if (data.officer && data.officer.salary > 0) {
-      out.jobs.push({ id:'job_month_'+now, name:data.officer.company||'役員報酬', payType:'monthly', wage:0, transport:0, breakMin:0,
-        salary:data.officer.salary, payday:parseInt(data.officer.paydate)||25, stamp:'building', color:PALETTE[3], active:true });
+      out.jobs.push({ id:'job_month_'+now, name:data.officer.company||'役員報酬', payType:'monthly', wage:0, transport:0, breakMin:0, salary:data.officer.salary, payday:parseInt(data.officer.paydate)||25, stamp:'building', color:PALETTE[3], active:true });
     }
     const hJob = out.jobs.find(j=>j.payType==='hourly');
     const pJob = out.jobs.find(j=>j.payType==='piece');
-    (data.shifts||[]).forEach(s => out.records.push({
-      id:'r'+s.id, jobId:hJob?hJob.id:null, date:s.date, start:s.start, end:s.end, breakMin:0,
-      hours:s.hours, transport:s.transport||0, amount:s.pay, name:s.place||'', memo:s.memo||'' }));
-    (data.freelance||[]).forEach(f => out.records.push({
-      id:'r'+f.id, jobId:pJob?pJob.id:null, date:f.date, start:'', end:'', breakMin:0,
-      hours:0, transport:0, amount:f.amount, name:f.name, memo:f.memo||'' }));
-    return out;
+    (data.shifts||[]).forEach(s => out.records.push({ id:'r'+s.id, jobId:hJob?hJob.id:null, date:s.date, start:s.start, end:s.end, breakMin:0, hours:s.hours, transport:s.transport||0, amount:s.pay, name:s.place||'', memo:s.memo||'' }));
+    (data.freelance||[]).forEach(f => out.records.push({ id:'r'+f.id, jobId:pJob?pJob.id:null, date:f.date, start:'', end:'', breakMin:0, hours:0, transport:0, amount:f.amount, name:f.name, memo:f.memo||'' }));
+    data = out; v = 2;
+  }
+  if (v < 3) {
+    data.settings = data.settings || { hoursFormat:'decimal', aggregation:'work' };
+    (data.jobs||[]).forEach(j => {
+      if (!j.patterns) j.patterns = [];
+      if (j.defStart===undefined) j.defStart = '09:00';
+      if (j.defEnd===undefined) j.defEnd = '17:00';
+      if (j.closingDay===undefined) j.closingDay = null;
+      if (j.payMonthOffset===undefined) j.payMonthOffset = 1;
+      if (j.payDay===undefined) j.payDay = 25;
+      if (j.holidayRule===undefined) j.holidayRule = 'before';
+    });
+    (data.records||[]).forEach(r => { if (r.endDate===undefined) r.endDate=''; });
+    v = 3;
   }
   data.schemaVersion = SCHEMA_VERSION;
   data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[];
+  data.settings = data.settings || { hoursFormat:'decimal', aggregation:'work' };
   return data;
 }
-
 function loadState() {
   let raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('incomeboard');
   let parsed = null;
@@ -548,14 +551,51 @@ function loadState() {
 let state = loadState();
 function save(){ state.schemaVersion=SCHEMA_VERSION; localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 const fmt = n => '¥' + Math.round(n).toLocaleString();
+function fmtH(h) {
+  if (state.settings.hoursFormat==='colon') {
+    let hh = Math.floor(h), mm = Math.round((h-hh)*60);
+    if (mm===60){hh++;mm=0;}
+    return hh + ':' + pad(mm);
+  }
+  const r = Math.round(h*100)/100;
+  return (r%1===0 ? String(r) : r.toFixed(r*10%1===0?1:2)) + 'h';
+}
 const MONTHS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 const WD = ['日','月','火','水','木','金','土'];
-const pad = n => String(n).padStart(2,'0');
-const dstr = (y,m,d) => `${y}-${pad(m+1)}-${pad(d)}`;
 const todayStr = () => { const t=new Date(); return dstr(t.getFullYear(),t.getMonth(),t.getDate()); };
 const jobById = id => state.jobs.find(j=>j.id===id);
 
-// ── nav ──
+// ── 集計 ──
+function recBaseDate(r) {
+  const j = jobById(r.jobId);
+  return (j && j.payType==='piece' && r.endDate) ? r.endDate : r.date;
+}
+function recAggDate(r) {
+  const base = recBaseDate(r);
+  if (state.settings.aggregation==='pay') {
+    const pd = computePayDate(jobById(r.jobId), base);
+    if (pd) return pd;
+  }
+  return base;
+}
+function monthTotal(y,m) {
+  let t = state.records.filter(r=>{ const d=recAggDate(r); return +d.slice(0,4)===y && +d.slice(5,7)-1===m; }).reduce((a,r)=>a+r.amount,0);
+  state.jobs.filter(j=>j.payType==='monthly'&&j.active).forEach(j=>t+=j.salary||0);
+  return t;
+}
+let payMap = {};
+function buildPayMap() {
+  payMap = {};
+  state.records.forEach(r=>{
+    const j = jobById(r.jobId);
+    if (j && j.closingDay) {
+      const pd = computePayDate(j, recBaseDate(r));
+      if (pd) { payMap[pd] = payMap[pd] || {}; payMap[pd][j.id] = (payMap[pd][j.id]||0) + r.amount; }
+    }
+  });
+}
+
+// ── nav / modal / toast ──
 function showPage(id, el) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -570,80 +610,135 @@ document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click
 let toastTimer;
 function showToast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2200); }
 
-// ── month math ──
+// ── calendar state / swipe / ym picker ──
 let calMonth = new Date().getMonth(), calYear = new Date().getFullYear();
 let calView = 'month';
 function changeCalMonth(d){ calMonth+=d; if(calMonth<0){calMonth=11;calYear--;} if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
 function goToday(){ const t=new Date(); calMonth=t.getMonth(); calYear=t.getFullYear(); renderCalendar(); }
-function setCalView(v, el){ calView=v; document.querySelectorAll('.cal-switch-btn').forEach(b=>b.classList.remove('active')); el.classList.add('active');
+function setCalView(v, el){ calView=v;
+  document.querySelectorAll('.cal-switch-btn').forEach(b=>b.classList.remove('active')); el.classList.add('active');
   document.getElementById('cal-month-view').style.display = v==='month'?'':'none';
   document.getElementById('cal-week-view').style.display = v==='week'?'':'none';
   document.getElementById('cal-list-view').style.display = v==='list'?'':'none';
   renderCalendar(); }
+(function(){
+  const area = document.getElementById('cal-swipe-area');
+  let sx=0, sy=0, tracking=false;
+  area.addEventListener('touchstart', e=>{ sx=e.touches[0].clientX; sy=e.touches[0].clientY; tracking=true; }, {passive:true});
+  area.addEventListener('touchend', e=>{
+    if(!tracking) return; tracking=false;
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy)*1.4) changeCalMonth(dx<0?1:-1);
+  }, {passive:true});
+})();
+let ymY = calYear, ymM = calMonth;
+function openYmPicker() {
+  ymY = calYear; ymM = calMonth;
+  const ys = document.getElementById('ym-years'), ms = document.getElementById('ym-months');
+  let yh='';
+  for (let y=2020; y<=2035; y++) yh += `<div class="ym-opt ${y===ymY?'sel':''}" data-y="${y}">${y}年</div>`;
+  ys.innerHTML = yh;
+  ms.innerHTML = MONTHS.map((mn,i)=>`<div class="ym-opt ${i===ymM?'sel':''}" data-m="${i}">${mn}</div>`).join('');
+  ys.querySelectorAll('.ym-opt').forEach(o=>o.onclick=()=>{ ymY=+o.dataset.y; ys.querySelectorAll('.ym-opt').forEach(x=>x.classList.remove('sel')); o.classList.add('sel'); });
+  ms.querySelectorAll('.ym-opt').forEach(o=>o.onclick=()=>{ ymM=+o.dataset.m; ms.querySelectorAll('.ym-opt').forEach(x=>x.classList.remove('sel')); o.classList.add('sel'); });
+  openModal('modal-ym');
+  setTimeout(()=>{
+    const a = ys.querySelector('.sel'); if(a) ys.scrollTop = a.offsetTop - ys.clientHeight/2 + 20;
+    const b = ms.querySelector('.sel'); if(b) ms.scrollTop = b.offsetTop - ms.clientHeight/2 + 20;
+  }, 60);
+}
+function applyYm(){ calYear=ymY; calMonth=ymM; closeModal('modal-ym'); renderCalendar(); }
 
-// ── day items（records + monthly payday + events）──
-function dayItems(dateStr) {
+// ── day items / totals ──
+function dayItems(ds) {
   const items = [];
-  state.records.filter(r=>r.date===dateStr).forEach(r=>{
+  state.records.forEach(r=>{
     const j = jobById(r.jobId);
-    items.push({ kind:'record', stamp:j?j.stamp:'yen', color:j?j.color:PALETTE[0],
-      label: r.name || (j?j.name:'収入'), sub: r.start?`${r.start}〜${r.end}${r.hours?` (実働${r.hours.toFixed(1)}h)`:''}`:(j?j.name:''),
-      amount:r.amount, ref:r });
+    const isSpan = j && j.payType==='piece' && r.endDate && r.endDate>r.date;
+    const hit = isSpan ? (r.date<=ds && ds<=r.endDate) : (r.date===ds);
+    if (hit) items.push({ kind:'record', stamp:j?j.stamp:'yen', color:j?j.color:PALETTE[0],
+      label: r.name || (j?j.name:'収入'),
+      sub: r.start ? (r.start+'〜'+r.end+(r.hours?('（実働'+fmtH(r.hours)+'）'):'')) : (isSpan?(r.date.slice(5).replace('-','/')+'〜'+r.endDate.slice(5).replace('-','/')):(j?j.name:'')),
+      amount:r.amount, ref:r, span:isSpan });
   });
-  const dnum = parseInt(dateStr.slice(8,10));
-  state.jobs.filter(j=>j.payType==='monthly'&&j.active&&j.salary>0&&j.payday===dnum).forEach(j=>{
-    items.push({ kind:'payday', stamp:'payday', color:j.color, label:j.name+'（支払日）', sub:'月額報酬', amount:j.salary, ref:j });
+  state.jobs.filter(j=>j.payType==='monthly'&&j.active&&j.salary>0).forEach(j=>{
+    const y=+ds.slice(0,4), m=+ds.slice(5,7)-1;
+    const rawPd = Math.min(j.payday||25, daysIn(y,m));
+    const adj = adjustPayDate(dstr(y,m,rawPd), j.holidayRule||'none');
+    if (adj===ds) items.push({ kind:'payday', stamp:'payday', color:j.color, label:j.name+'（支払日）', sub:'月額報酬', amount:j.salary, ref:j });
   });
+  if (payMap[ds]) {
+    Object.entries(payMap[ds]).forEach(([jid,amt])=>{
+      const j = jobById(jid);
+      items.push({ kind:'payinfo', stamp:'payday', color:j?j.color:PALETTE[2], label:(j?j.name:'')+'（給料日見込）', sub:'締め日・支払日から自動計算', amount:amt, ref:j });
+    });
+  }
   state.events.forEach(ev=>{
     const end = ev.endDate || ev.startDate;
-    if (ev.startDate<=dateStr && dateStr<=end) {
-      items.push({ kind:'event', stamp:ev.stamp, color:ev.color, label:ev.title, sub:ev.memo||'', amount:0, ref:ev });
-    }
+    if (ev.startDate<=ds && ds<=end) items.push({ kind:'event', stamp:ev.stamp, color:ev.color, label:ev.title, sub:ev.memo||'', amount:0, ref:ev });
   });
   return items;
 }
-function monthTotal(y,m){
-  let t = state.records.filter(r=>{const d=new Date(r.date);return d.getFullYear()===y&&d.getMonth()===m;}).reduce((a,r)=>a+r.amount,0);
-  state.jobs.filter(j=>j.payType==='monthly'&&j.active).forEach(j=>t+=j.salary||0);
+function dayTotal(ds) {
+  let t = 0;
+  if (state.settings.aggregation==='pay') {
+    if (payMap[ds]) Object.values(payMap[ds]).forEach(v=>t+=v);
+    state.records.forEach(r=>{ const j=jobById(r.jobId); if(!(j&&j.closingDay) && recBaseDate(r)===ds) t+=r.amount; });
+  } else {
+    state.records.forEach(r=>{ if(recBaseDate(r)===ds) t+=r.amount; });
+  }
+  const y=+ds.slice(0,4), m=+ds.slice(5,7)-1;
+  state.jobs.filter(j=>j.payType==='monthly'&&j.active&&j.salary>0).forEach(j=>{
+    const rawPd = Math.min(j.payday||25, daysIn(y,m));
+    if (adjustPayDate(dstr(y,m,rawPd), j.holidayRule||'none')===ds) t+=j.salary;
+  });
   return t;
 }
 
-// ── calendar month render (with multi-day bands) ──
+// ── calendar render ──
 function renderCalendar() {
-  document.getElementById('cal-title').textContent = `${calYear}年 ${MONTHS[calMonth]}`;
+  buildPayMap();
+  document.getElementById('cal-title').textContent = calYear+'年 '+MONTHS[calMonth];
   if (calView==='month') renderCalMonth();
   else if (calView==='week') renderCalWeek();
   else renderCalList();
 }
-
+function bandList() {
+  const bands = state.events.map(ev=>({ title:ev.title, color:ev.color, start:ev.startDate, end:ev.endDate||ev.startDate, evId:ev.id, recDate:null }));
+  state.records.forEach(r=>{
+    const j = jobById(r.jobId);
+    if (j && j.payType==='piece' && r.endDate && r.endDate>r.date)
+      bands.push({ title:r.name||j.name, color:j.color, start:r.date, end:r.endDate, evId:null, recDate:r.date });
+  });
+  return bands;
+}
+function bandClick(evId, recDate) {
+  if (evId) { const ev = state.events.find(e=>e.id===evId); if(ev) openEventModal(ev); }
+  else if (recDate) showDayDetail(recDate);
+}
 function renderCalMonth() {
-  document.getElementById('cal-header').innerHTML =
-    WD.map((w,i)=>`<div class="cal-day-name" style="${i===0?'color:#E57373':''}${i===6?'color:#5B9CF6':''}">${w}</div>`).join('');
+  document.getElementById('cal-header').innerHTML = WD.map((w,i)=>`<div class="cal-day-name" style="${i===0?'color:#E57373':''}${i===6?'color:#5B9CF6':''}">${w}</div>`).join('');
   const wrap = document.getElementById('cal-weeks');
   wrap.innerHTML = '';
   const first = new Date(calYear, calMonth, 1).getDay();
-  const days = new Date(calYear, calMonth+1, 0).getDate();
+  const days = daysIn(calYear, calMonth);
   const today = todayStr();
-  // build cells (prev/current/next month)
   const cells = [];
-  const prevDays = new Date(calYear, calMonth, 0).getDate();
+  const prevDays = calMonth===0 ? daysIn(calYear-1,11) : daysIn(calYear, calMonth-1);
   for (let i=0;i<first;i++){ const d=prevDays-first+1+i; const m=calMonth-1<0?11:calMonth-1; const y=calMonth-1<0?calYear-1:calYear; cells.push({d, ds:dstr(y,m,d), other:true}); }
   for (let d=1;d<=days;d++) cells.push({d, ds:dstr(calYear,calMonth,d), other:false});
   while (cells.length%7!==0){ const idx=cells.length-(first+days)+1; const m=calMonth+1>11?0:calMonth+1; const y=calMonth+1>11?calYear+1:calYear; cells.push({d:idx, ds:dstr(y,m,idx), other:true}); }
-
+  const bands = bandList();
   for (let w=0; w<cells.length/7; w++) {
     const week = cells.slice(w*7, w*7+7);
-    const weekEl = document.createElement('div');
-    weekEl.className = 'cal-week';
-    // day cells
-    const daysEl = document.createElement('div');
-    daysEl.className = 'cal-days';
+    const weekEl = document.createElement('div'); weekEl.className='cal-week';
+    const daysEl = document.createElement('div'); daysEl.className='cal-days';
     week.forEach((c,i)=>{
-      const items = dayItems(c.ds).filter(x=>x.kind!=='event'); // events go to bands
-      const total = items.reduce((a,x)=>a+x.amount,0);
+      const items = dayItems(c.ds).filter(x=>x.kind!=='event'&&!x.span);
+      const total = dayTotal(c.ds);
       const cell = document.createElement('div');
-      cell.className = 'cal-day' + (c.other?' other':'') + (i===0?' sun':'') + (i===6?' sat':'') + (c.ds===today?' today':'');
-      const st = items.slice(0,3).map(x=>stampSVG(x.stamp)).join('');
+      cell.className = 'cal-day' + (c.other?' other':'') + (i===0?' sun':'') + (i===6?' sat':'') + (HOLIDAYS.has(c.ds)?' hol':'') + (c.ds===today?' today':'');
+      const st = items.slice(0,3).map(x=>stampHTML(x.stamp)).join('');
       cell.innerHTML = `<div class="day-num">${c.d}</div>
         <div class="cal-stamps">${st}${items.length>3?`<span class="cal-more">+${items.length-3}</span>`:''}</div>
         ${total>0?`<div class="cal-amount">${total>=10000?Math.round(total/1000)+'k':(total/1000).toFixed(1)+'k'}</div>`:''}`;
@@ -651,127 +746,123 @@ function renderCalMonth() {
       daysEl.appendChild(cell);
     });
     weekEl.appendChild(daysEl);
-    // bands (events spanning this week)
     const weekStart = week[0].ds, weekEnd = week[6].ds;
-    const bands = state.events.filter(ev=>{
-      const end = ev.endDate||ev.startDate;
-      return ev.startDate<=weekEnd && end>=weekStart;
-    });
-    if (bands.length) {
-      const bandGrid = document.createElement('div');
-      bandGrid.className = 'cal-bands';
+    const wBands = bands.filter(b=>b.start<=weekEnd && b.end>=weekStart);
+    if (wBands.length) {
+      const bg = document.createElement('div'); bg.className='cal-bands';
       let lane = 0;
-      bands.slice(0,3).forEach(ev=>{
-        const end = ev.endDate||ev.startDate;
-        let sIdx = week.findIndex(c=>c.ds>=ev.startDate); if (ev.startDate<weekStart) sIdx=0; if(sIdx<0) sIdx=0;
-        let eIdx = 6; for(let i=6;i>=0;i--){ if(week[i].ds<=end){ eIdx=i; break; } }
-        const band = document.createElement('div');
-        band.className = 'cal-band' + (ev.startDate<weekStart?' cont-l':'') + (end>weekEnd?' cont-r':'');
-        band.style.gridColumn = `${sIdx+1} / ${eIdx+2}`;
-        band.style.gridRow = String(++lane);
-        band.style.background = ev.color||PALETTE[0];
-        band.textContent = ev.title;
-        band.onclick = (e)=>{ e.stopPropagation(); openEventModal(ev); };
-        bandGrid.appendChild(band);
+      wBands.slice(0,3).forEach(b=>{
+        let sIdx = week.findIndex(c=>c.ds>=b.start); if (b.start<weekStart) sIdx=0; if(sIdx<0) sIdx=0;
+        let eIdx = 6; for(let i=6;i>=0;i--){ if(week[i].ds<=b.end){ eIdx=i; break; } }
+        const el = document.createElement('div');
+        el.className = 'cal-band' + (b.start<weekStart?' cont-l':'') + (b.end>weekEnd?' cont-r':'');
+        el.style.gridColumn = (sIdx+1)+' / '+(eIdx+2);
+        el.style.gridRow = String(++lane);
+        el.style.background = b.color||PALETTE[0];
+        el.textContent = b.title;
+        el.onclick = (e)=>{ e.stopPropagation(); bandClick(b.evId, b.recDate); };
+        bg.appendChild(el);
       });
-      weekEl.appendChild(bandGrid);
+      weekEl.appendChild(bg);
     }
     wrap.appendChild(weekEl);
   }
 }
-
 function renderCalWeek() {
   const el = document.getElementById('cal-week-view');
   el.innerHTML = '';
-  const days = new Date(calYear, calMonth+1, 0).getDate();
+  const days = daysIn(calYear, calMonth);
   const today = todayStr();
   for (let d=1; d<=days; d++) {
     const ds = dstr(calYear, calMonth, d);
     const dow = new Date(calYear, calMonth, d).getDay();
     const items = dayItems(ds);
-    const total = items.reduce((a,x)=>a+x.amount,0);
+    const total = dayTotal(ds);
     const row = document.createElement('div');
     row.className = 'cal-week-row' + (ds===today?' today':'');
-    row.innerHTML = `<div class="cal-week-date ${dow===0?'sun':dow===6?'sat':''}"><div class="wd">${WD[dow]}</div><div class="dn">${d}</div></div>
-      <div class="cal-week-body">${items.length?items.slice(0,5).map(x=>stampSVG(x.stamp)).join(''):'<span class="cal-week-empty">予定なし</span>'}</div>
+    row.innerHTML = `<div class="cal-week-date ${dow===0?'sun':dow===6?'sat':''} ${HOLIDAYS.has(ds)?'hol':''}"><div class="wd">${WD[dow]}</div><div class="dn">${d}</div></div>
+      <div class="cal-week-body">${items.length?items.slice(0,5).map(x=>stampHTML(x.stamp)).join(''):'<span class="cal-week-empty">予定なし</span>'}</div>
       ${total>0?`<div class="cal-week-amount">${fmt(total)}</div>`:''}`;
     row.onclick = ()=>showDayDetail(ds);
     el.appendChild(row);
   }
 }
-
 function renderCalList() {
   const el = document.getElementById('cal-list-view');
-  const days = new Date(calYear, calMonth+1, 0).getDate();
+  const days = daysIn(calYear, calMonth);
   let html = '';
   for (let d=1; d<=days; d++) {
     const ds = dstr(calYear, calMonth, d);
     dayItems(ds).forEach(x=>{
-      html += `<div class="cal-list-item" onclick="showDayDetail('${ds}')">${stampSVG(x.stamp)}
+      if ((x.span || x.kind==='event') && x.ref && x.ref.startDate!==undefined && ds!==x.ref.startDate) return;
+      if (x.span && ds!==x.ref.date) return;
+      html += `<div class="cal-list-item" onclick="showDayDetail('${ds}')">${stampHTML(x.stamp)}
         <div class="cal-list-body"><div class="cal-list-title">${x.label}</div>
-        <div class="cal-list-sub">${parseInt(ds.slice(5,7))}/${parseInt(ds.slice(8,10))}　${x.sub||''}</div></div>
+        <div class="cal-list-sub">${+ds.slice(5,7)}/${+ds.slice(8,10)}　${x.sub||''}</div></div>
         ${x.amount>0?`<div class="cal-list-amount">${fmt(x.amount)}</div>`:''}</div>`;
     });
   }
   el.innerHTML = html || '<div class="empty"><div class="empty-icon">🗓</div><div class="empty-text">今月の予定はありません</div></div>';
 }
-
-// ── day detail ──
 function showDayDetail(ds) {
+  buildPayMap();
   const items = dayItems(ds);
-  document.getElementById('day-detail-title').textContent = `${parseInt(ds.slice(5,7))}月${parseInt(ds.slice(8,10))}日`;
+  document.getElementById('day-detail-title').textContent = (+ds.slice(5,7))+'月'+(+ds.slice(8,10))+'日'+(HOLIDAYS.has(ds)?'（祝）':'');
   const body = document.getElementById('day-detail-body');
   if (!items.length) body.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:14px 0;font-size:13px">この日の予定・記録はありません</div>';
   else {
-    const total = items.reduce((a,x)=>a+x.amount,0);
-    body.innerHTML = items.map((x,i)=>`
+    const total = dayTotal(ds);
+    body.innerHTML = items.map(x=>`
       <div style="display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--border)">
-        <span style="width:26px;height:26px;flex-shrink:0">${stampSVG(x.stamp)}</span>
+        <span style="width:26px;flex-shrink:0;text-align:center">${stampHTML(x.stamp)}</span>
         <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">${x.label}</div>
           <div style="font-size:11px;color:var(--text-secondary)">${x.sub||''}</div></div>
         ${x.amount>0?`<span class="mono" style="font-size:13px">${fmt(x.amount)}</span>`:''}
         ${x.kind==='record'?`<button class="btn btn-danger btn-sm" onclick="deleteRecord('${x.ref.id}');showDayDetail('${ds}')">削除</button>`:''}
-        ${x.kind==='event'?`<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openEventModal(state.events.find(e=>e.id==='${x.ref.id}'))">編集</button>`:''}
+        ${x.kind==='event'?`<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');editEventById('${x.ref.id}')">編集</button>`:''}
       </div>`).join('') +
-      (total>0?`<div style="display:flex;justify-content:space-between;padding-top:10px;font-weight:700"><span>合計</span><span class="mono" style="color:var(--mint-dim)">${fmt(total)}</span></div>`:'');
+      (total>0?`<div style="display:flex;justify-content:space-between;padding-top:10px;font-weight:700"><span>この日の計上額</span><span class="mono" style="color:var(--mint-dim)">${fmt(total)}</span></div>`:'');
   }
   document.getElementById('day-add-btn').onclick = ()=>{ closeModal('modal-day'); openAddMenu(ds); };
   openModal('modal-day');
 }
+function editEventById(id){ const ev=state.events.find(e=>e.id===id); if(ev) openEventModal(ev); }
 
 // ── add menu ──
 function openAddMenu(ds) {
-  document.getElementById('addmenu-title').textContent = `${parseInt(ds.slice(5,7))}/${parseInt(ds.slice(8,10))} に追加`;
+  document.getElementById('addmenu-title').textContent = (+ds.slice(5,7))+'/'+(+ds.slice(8,10))+' に追加';
   const el = document.getElementById('addmenu-items');
   let html = '';
   state.jobs.filter(j=>j.active&&j.payType!=='monthly').forEach(j=>{
     html += `<div class="add-menu-item" onclick="closeModal('modal-addmenu');openRecordModal('${j.id}','${ds}')">
-      ${stampSVG(j.stamp)}<div><div class="add-menu-label">${j.name}の${j.payType==='hourly'?'勤務':'収入'}を記録</div>
-      <div class="add-menu-sub">${j.payType==='hourly'?'時給制 / 時間から自動計算':'金額を入力'}</div></div></div>`;
+      ${stampHTML(j.stamp)}<div><div class="add-menu-label">${j.name}の${j.payType==='hourly'?'勤務':'収入'}を記録</div>
+      <div class="add-menu-sub">${j.payType==='hourly'?'時給制 / パターン選択・自動計算':'金額入力 / 複数日OK'}</div></div></div>`;
   });
   html += `<div class="add-menu-item" onclick="closeModal('modal-addmenu');openEventModal(null,'${ds}')">
-    ${stampSVG('star')}<div><div class="add-menu-label">予定・メモを追加</div>
+    ${stampHTML('star')}<div><div class="add-menu-label">予定・メモを追加</div>
     <div class="add-menu-sub">スタンプ・色・複数日OK</div></div></div>`;
   if (!state.jobs.filter(j=>j.active).length) {
-    html = `<div style="font-size:12.5px;color:var(--text-secondary);padding:6px 4px 12px">まだ仕事が登録されていません。設定タブから仕事を追加すると、ここから勤務・収入を記録できます。</div>` + html;
+    html = '<div style="font-size:12.5px;color:var(--text-secondary);padding:6px 4px 12px">まだ仕事が登録されていません。設定タブから仕事を追加すると、ここから勤務・収入を記録できます。</div>' + html;
   }
   el.innerHTML = html;
   openModal('modal-addmenu');
 }
 
-// ── record modal (work/income by job) ──
-let recJobId = null;
+// ── record modal ──
+let recJobId = null, recPatId = null;
 function openRecordModal(jobId, ds) {
-  recJobId = jobId;
+  recJobId = jobId; recPatId = null;
   const j = jobById(jobId); if (!j) return;
-  document.getElementById('record-title').textContent = `${j.name} — ${j.payType==='hourly'?'勤務を記録':'収入を記録'}`;
+  document.getElementById('record-title').textContent = j.name + ' — ' + (j.payType==='hourly'?'勤務を記録':'収入を記録');
   const f = document.getElementById('record-form');
   if (j.payType==='hourly') {
-    f.innerHTML = `
+    const patChips = (j.patterns&&j.patterns.length) ? `<div class="form-group"><label>シフトパターン</label>
+      <div class="pat-chips" id="rec-pat-chips">${j.patterns.map(p=>`<div class="pat-chip" data-pid="${p.id}">${p.name||'パターン'}</div>`).join('')}</div></div>` : '';
+    f.innerHTML = patChips + `
       <div class="form-group"><label>日付</label><input type="date" id="rec-date" value="${ds}"></div>
       <div class="form-row-3">
-        <div class="form-group"><label>開始</label><input type="time" id="rec-start" value="09:00" oninput="updateRecPreview()"></div>
-        <div class="form-group"><label>終了</label><input type="time" id="rec-end" value="17:00" oninput="updateRecPreview()"></div>
+        <div class="form-group"><label>開始</label><input type="time" id="rec-start" value="${j.defStart||'09:00'}" oninput="updateRecPreview()"></div>
+        <div class="form-group"><label>終了</label><input type="time" id="rec-end" value="${j.defEnd||'17:00'}" oninput="updateRecPreview()"></div>
         <div class="form-group"><label>休憩(分)</label><input type="number" id="rec-break" value="${j.breakMin||0}" oninput="updateRecPreview()"></div>
       </div>
       <div class="form-row">
@@ -779,16 +870,35 @@ function openRecordModal(jobId, ds) {
         <div class="form-group"><label>交通費（円）</label><input type="number" id="rec-transport" value="${j.transport||0}" oninput="updateRecPreview()"></div>
       </div>
       <div class="form-group"><label>メモ</label><input type="text" id="rec-memo"></div>
-      <div class="calc-preview" id="rec-preview">実働 0h ／ 収入 <b>¥0</b></div>`;
+      <div class="calc-preview" id="rec-preview"></div>`;
+    if (j.patterns&&j.patterns.length) {
+      document.querySelectorAll('#rec-pat-chips .pat-chip').forEach(ch=>{
+        ch.onclick = ()=>{
+          document.querySelectorAll('#rec-pat-chips .pat-chip').forEach(x=>x.classList.remove('sel'));
+          ch.classList.add('sel');
+          const p = j.patterns.find(pp=>pp.id===ch.dataset.pid);
+          if (p) { recPatId=p.id;
+            document.getElementById('rec-start').value=p.start||j.defStart||'09:00';
+            document.getElementById('rec-end').value=p.end||j.defEnd||'17:00';
+            document.getElementById('rec-break').value=p.breakMin||0;
+            document.getElementById('rec-wage').value=p.wage||j.wage;
+            document.getElementById('rec-transport').value=(p.transport===''||p.transport===undefined)?(j.transport||0):p.transport;
+            updateRecPreview();
+          }
+        };
+      });
+    }
     updateRecPreview();
   } else {
     f.innerHTML = `
       <div class="form-group"><label>案件名・内容</label><input type="text" id="rec-name" placeholder="例：記事執筆3本"></div>
       <div class="form-row">
-        <div class="form-group"><label>日付（入金日）</label><input type="date" id="rec-date" value="${ds}"></div>
-        <div class="form-group"><label>金額（円）</label><input type="number" id="rec-amount" placeholder="50000"></div>
+        <div class="form-group"><label>開始日</label><input type="date" id="rec-date" value="${ds}"></div>
+        <div class="form-group"><label>終了日（単日なら空欄）</label><input type="date" id="rec-enddate"></div>
       </div>
-      <div class="form-group"><label>メモ</label><input type="text" id="rec-memo"></div>`;
+      <div class="form-group"><label>金額（円）</label><input type="number" id="rec-amount" placeholder="50000"></div>
+      <div class="form-group"><label>メモ</label><input type="text" id="rec-memo"></div>
+      <div class="field-note">期間を設定するとカレンダーに帯で表示されます。収入は終了日（納品日）基準で計上します。</div>`;
   }
   openModal('modal-record');
 }
@@ -796,15 +906,15 @@ function calcHours() {
   const s=document.getElementById('rec-start').value, e=document.getElementById('rec-end').value;
   const br=parseFloat(document.getElementById('rec-break').value)||0;
   if(!s||!e) return 0;
-  const [sh,sm]=s.split(':').map(Number), [eh,em]=e.split(':').map(Number);
-  let min=(eh*60+em)-(sh*60+sm); if(min<0)min+=24*60; // 日跨ぎ勤務対応
+  const sp=s.split(':').map(Number), ep=e.split(':').map(Number);
+  let min=(ep[0]*60+ep[1])-(sp[0]*60+sp[1]); if(min<0)min+=24*60;
   return Math.max(0,(min-br)/60);
 }
 function updateRecPreview() {
   const h=calcHours();
   const w=parseFloat(document.getElementById('rec-wage').value)||0;
   const t=parseFloat(document.getElementById('rec-transport').value)||0;
-  document.getElementById('rec-preview').innerHTML=`実働 ${h.toFixed(2)}h ／ 収入 <b>${fmt(h*w+t)}</b>`;
+  document.getElementById('rec-preview').innerHTML='実働 '+fmtH(h)+' ／ 収入 <b>'+fmt(h*w+t)+'</b>';
 }
 function saveRecord() {
   const j = jobById(recJobId); if(!j) return;
@@ -816,19 +926,59 @@ function saveRecord() {
     const w=parseFloat(document.getElementById('rec-wage').value)||0;
     const t=parseFloat(document.getElementById('rec-transport').value)||0;
     if(h<=0){ showToast('勤務時間を確認してください'); return; }
-    rec={ id:'r'+Date.now(), jobId:j.id, date, start:document.getElementById('rec-start').value,
+    rec={ id:'r'+Date.now(), jobId:j.id, date, endDate:'', start:document.getElementById('rec-start').value,
       end:document.getElementById('rec-end').value, breakMin:parseFloat(document.getElementById('rec-break').value)||0,
-      hours:h, transport:t, amount:h*w+t, name:'', memo:document.getElementById('rec-memo').value };
+      hours:h, transport:t, amount:h*w+t, name:'', memo:document.getElementById('rec-memo').value, patternId:recPatId };
   } else {
     const amount=parseFloat(document.getElementById('rec-amount').value)||0;
     const name=document.getElementById('rec-name').value;
+    const endDate=document.getElementById('rec-enddate').value||'';
     if(!name||!amount){ showToast('内容と金額を入力してください'); return; }
-    rec={ id:'r'+Date.now(), jobId:j.id, date, start:'', end:'', breakMin:0, hours:0, transport:0,
+    if(endDate && endDate<date){ showToast('終了日は開始日以降にしてください'); return; }
+    rec={ id:'r'+Date.now(), jobId:j.id, date, endDate, start:'', end:'', breakMin:0, hours:0, transport:0,
       amount, name, memo:document.getElementById('rec-memo').value };
   }
   state.records.push(rec); save(); closeModal('modal-record'); renderAll(); showToast('記録しました ✓');
 }
 function deleteRecord(id){ state.records=state.records.filter(r=>r.id!==id); save(); renderAll(); showToast('削除しました'); }
+
+// ── stamp / color pickers ──
+function renderStampArea(areaId, current, onPick) {
+  const area = document.getElementById(areaId);
+  const isEmojiMode = !STAMPS[current];
+  area.innerHTML = `
+    <div class="picker-tabs">
+      <div class="picker-tab ${!isEmojiMode?'active':''}" data-t="svg">オリジナル</div>
+      <div class="picker-tab ${isEmojiMode?'active':''}" data-t="emoji">絵文字</div>
+    </div>
+    <div class="picker-body"></div>`;
+  const body = area.querySelector('.picker-body');
+  function drawSvg() {
+    body.innerHTML = '<div class="stamp-picker">'+Object.keys(STAMPS).map(id=>
+      `<div class="stamp-opt ${id===current?'sel':''}" data-id="${id}">${STAMPS[id].svg}</div>`).join('')+'</div>';
+    body.querySelectorAll('.stamp-opt').forEach(o=>o.onclick=()=>onPick(o.dataset.id));
+  }
+  function drawEmoji() {
+    body.innerHTML = '<div class="stamp-picker">'+EMOJIS.map(e=>
+      `<div class="stamp-opt ${e===current?'sel':''}" data-id="${e}"><span class="em">${e}</span></div>`).join('')+'</div>'+
+      `<div class="emoji-free"><input type="text" id="${areaId}-free" maxlength="4" placeholder="🐱" value="${isEmojiMode&&EMOJIS.indexOf(current)<0?current:''}">
+      <span style="font-size:11px;color:var(--text-secondary)">キーボードの好きな絵文字も使えます</span></div>`;
+    body.querySelectorAll('.stamp-opt').forEach(o=>o.onclick=()=>onPick(o.dataset.id));
+    const free = document.getElementById(areaId+'-free');
+    free.addEventListener('change', ()=>{ const v=free.value.trim(); if(v) onPick(v); });
+  }
+  area.querySelectorAll('.picker-tab').forEach(t=>t.onclick=()=>{
+    area.querySelectorAll('.picker-tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    if (t.dataset.t==='svg') drawSvg(); else drawEmoji();
+  });
+  if (isEmojiMode) drawEmoji(); else drawSvg();
+}
+function renderColorPicker(elId, sel, onPick) {
+  const el=document.getElementById(elId);
+  el.innerHTML = PALETTE.map(c=>`<div class="color-opt ${c===sel?'sel':''}" style="background:${c}" data-c="${c}"></div>`).join('');
+  el.querySelectorAll('.color-opt').forEach(o=>o.onclick=()=>onPick(o.dataset.c));
+}
 
 // ── event modal ──
 let evEditing=null, evStamp='star', evColor=PALETTE[0];
@@ -845,7 +995,7 @@ function openEventModal(ev, ds) {
   openModal('modal-event');
 }
 function refreshEvPickers(){
-  renderStampPicker('ev-stamp-picker', evStamp, id=>{evStamp=id;refreshEvPickers();});
+  renderStampArea('ev-stamp-area', evStamp, s=>{evStamp=s;refreshEvPickers();});
   renderColorPicker('ev-color-picker', evColor, c=>{evColor=c;refreshEvPickers();});
 }
 function saveEvent() {
@@ -855,37 +1005,29 @@ function saveEvent() {
   if(!title||!s){ showToast('タイトルと開始日を入力してください'); return; }
   if(e && e<s){ showToast('終了日は開始日以降にしてください'); return; }
   if(!e) e='';
-  if (evEditing) { Object.assign(evEditing,{title,startDate:s,endDate:e,stamp:evStamp,color:evColor,memo:document.getElementById('ev-memo').value}); }
+  if (evEditing) Object.assign(evEditing,{title,startDate:s,endDate:e,stamp:evStamp,color:evColor,memo:document.getElementById('ev-memo').value});
   else state.events.push({ id:'e'+Date.now(), title, startDate:s, endDate:e, stamp:evStamp, color:evColor, memo:document.getElementById('ev-memo').value });
   save(); closeModal('modal-event'); renderAll(); showToast('保存しました ✓');
 }
 function deleteEvent(){ if(evEditing){ state.events=state.events.filter(e=>e.id!==evEditing.id); save(); closeModal('modal-event'); renderAll(); showToast('削除しました'); } }
 
-// ── pickers ──
-function renderStampPicker(elId, sel, onPick) {
-  const el=document.getElementById(elId);
-  el.innerHTML = Object.keys(STAMPS).map(id=>`<div class="stamp-opt ${id===sel?'sel':''}" data-id="${id}">${STAMPS[id].svg}</div>`).join('');
-  el.querySelectorAll('.stamp-opt').forEach(o=>o.onclick=()=>onPick(o.dataset.id));
-}
-function renderColorPicker(elId, sel, onPick) {
-  const el=document.getElementById(elId);
-  el.innerHTML = PALETTE.map(c=>`<div class="color-opt ${c===sel?'sel':''}" style="background:${c}" data-c="${c}"></div>`).join('');
-  el.querySelectorAll('.color-opt').forEach(o=>o.onclick=()=>onPick(o.dataset.c));
-}
-
-// ── jobs (settings) ──
-let jobEditing=null, jobPayType='hourly', jobStamp='briefcase', jobColor=PALETTE[0], jobActive=true;
+// ── job modal ──
+let jobEditing=null, jobPayType='hourly', jobStamp='briefcase', jobColor=PALETTE[0], jobActive=true, jobPatterns=[];
 function payTypeLabel(t){ return t==='hourly'?'時給制':t==='piece'?'案件ごと':'月額固定'; }
 function renderJobList() {
   const el=document.getElementById('job-list');
   if(!state.jobs.length){ el.innerHTML='<div class="empty"><div class="empty-icon">💼</div><div class="empty-text">「＋ 追加」から仕事を登録してください<br>（バイト・業務委託・役員報酬なんでもOK）</div></div>'; return; }
-  el.innerHTML = state.jobs.map(j=>`
-    <div class="job-item ${j.active?'':'inactive'}">
-      ${stampSVG(j.stamp)}
+  el.innerHTML = state.jobs.map(j=>{
+    let sub = payTypeLabel(j.payType);
+    if (j.payType==='hourly') sub += ' / 時給'+fmt(j.wage)+((j.patterns&&j.patterns.length)?(' / パターン'+j.patterns.length+'件'):'');
+    if (j.payType==='monthly') sub += ' / 月額'+fmt(j.salary)+'・毎月'+j.payday+'日';
+    if (j.closingDay) sub += ' / '+(j.closingDay>=31?'末':j.closingDay+'日')+'〆'+['当月','翌月','翌々月'][j.payMonthOffset||0]+((j.payDay||25)>=31?'末':(j.payDay||25))+'日払';
+    return `<div class="job-item ${j.active?'':'inactive'}">
+      ${stampHTML(j.stamp)}
       <div class="job-item-body"><div class="job-item-name">${j.name}${j.active?'':'（無効）'}</div>
-        <div class="job-item-sub">${payTypeLabel(j.payType)}${j.payType==='hourly'?` / 時給${fmt(j.wage)}`:''}${j.payType==='monthly'?` / 月額${fmt(j.salary)}・毎月${j.payday}日`:''}</div></div>
+        <div class="job-item-sub">${sub}</div></div>
       <button class="btn btn-ghost btn-sm" onclick="openJobModal('${j.id}')">編集</button>
-    </div>`).join('');
+    </div>`;}).join('');
 }
 function openJobModal(id) {
   jobEditing = id ? jobById(id) : null;
@@ -893,23 +1035,32 @@ function openJobModal(id) {
   jobStamp = jobEditing?jobEditing.stamp:'briefcase';
   jobColor = jobEditing?jobEditing.color:PALETTE[0];
   jobActive = jobEditing?jobEditing.active:true;
+  jobPatterns = jobEditing?JSON.parse(JSON.stringify(jobEditing.patterns||[])):[];
   document.getElementById('job-modal-title').textContent = jobEditing?'仕事を編集':'仕事を追加';
   document.getElementById('job-name').value = jobEditing?jobEditing.name:'';
   document.getElementById('job-wage').value = jobEditing?(jobEditing.wage||''):'';
   document.getElementById('job-transport').value = jobEditing?(jobEditing.transport||''):'';
   document.getElementById('job-break').value = jobEditing?(jobEditing.breakMin||''):'';
+  document.getElementById('job-defstart').value = jobEditing?(jobEditing.defStart||'09:00'):'09:00';
+  document.getElementById('job-defend').value = jobEditing?(jobEditing.defEnd||'17:00'):'17:00';
   document.getElementById('job-salary').value = jobEditing?(jobEditing.salary||''):'';
   document.getElementById('job-payday').value = jobEditing?(jobEditing.payday||25):25;
+  document.getElementById('job-holrule-m').value = jobEditing?(jobEditing.holidayRule||'none'):'none';
+  document.getElementById('job-closing').value = jobEditing&&jobEditing.closingDay?String(jobEditing.closingDay):'';
+  document.getElementById('job-payoffset').value = jobEditing?String(jobEditing.payMonthOffset===undefined?1:jobEditing.payMonthOffset):'1';
+  document.getElementById('job-paydate').value = jobEditing?String(jobEditing.payDay||25):'25';
+  document.getElementById('job-holrule').value = jobEditing?(jobEditing.holidayRule||'before'):'before';
   document.getElementById('job-delete-btn').style.display = jobEditing?'':'none';
   document.getElementById('job-active-row').style.display = jobEditing?'':'none';
   document.querySelectorAll('#modal-job .seg-btn[data-pt]').forEach(b=>b.classList.toggle('active',b.dataset.pt===jobPayType));
   document.querySelectorAll('#modal-job .seg-btn[data-act]').forEach(b=>b.classList.toggle('active',(b.dataset.act==='1')===jobActive));
   applyPayTypeFields();
+  renderPatternEditor();
   refreshJobPickers();
   openModal('modal-job');
 }
 function refreshJobPickers(){
-  renderStampPicker('job-stamp-picker', jobStamp, id=>{jobStamp=id;refreshJobPickers();});
+  renderStampArea('job-stamp-area', jobStamp, s=>{jobStamp=s;refreshJobPickers();});
   renderColorPicker('job-color-picker', jobColor, c=>{jobColor=c;refreshJobPickers();});
 }
 function setPayType(t, el){ jobPayType=t; document.querySelectorAll('#modal-job .seg-btn[data-pt]').forEach(b=>b.classList.remove('active')); el.classList.add('active'); applyPayTypeFields(); }
@@ -917,16 +1068,57 @@ function setJobActive(a, el){ jobActive=a; document.querySelectorAll('#modal-job
 function applyPayTypeFields(){
   document.getElementById('job-fields-hourly').style.display = jobPayType==='hourly'?'':'none';
   document.getElementById('job-fields-monthly').style.display = jobPayType==='monthly'?'':'none';
+  document.getElementById('job-payment-rules').style.display = jobPayType==='monthly'?'none':'';
+}
+function addPattern(){ jobPatterns.push({id:'p'+Date.now()+Math.floor(Math.random()*999), name:'', wage:'', start:'09:00', end:'17:00', breakMin:'', transport:''}); renderPatternEditor(); }
+function removePattern(pid){ jobPatterns = jobPatterns.filter(p=>p.id!==pid); renderPatternEditor(); }
+function renderPatternEditor() {
+  const el = document.getElementById('pattern-editor');
+  if (!jobPatterns.length) { el.innerHTML='<div class="field-note" style="margin:0 0 6px">パターンなし（基本設定のみで運用）</div>'; return; }
+  el.innerHTML = jobPatterns.map(p=>`
+    <div class="pat-row" data-pid="${p.id}">
+      <div class="pat-row-head">
+        <input type="text" class="p-name" placeholder="パターン名（例：A店 早番）" value="${p.name||''}">
+        <button class="pat-del" onclick="removePattern('${p.id}')">✕</button>
+      </div>
+      <div class="pat-grid">
+        <div><label>時給（円）</label><input type="number" class="p-wage" value="${p.wage||''}" placeholder="1100"></div>
+        <div><label>交通費/日</label><input type="number" class="p-transport" value="${p.transport||''}" placeholder="500"></div>
+        <div><label>休憩（分）</label><input type="number" class="p-break" value="${p.breakMin||''}" placeholder="60"></div>
+      </div>
+      <div class="pat-grid-2">
+        <div><label>定時 開始</label><input type="time" class="p-start" value="${p.start||'09:00'}"></div>
+        <div><label>定時 終了</label><input type="time" class="p-end" value="${p.end||'17:00'}"></div>
+      </div>
+    </div>`).join('');
+  el.querySelectorAll('.pat-row').forEach(row=>{
+    const p = jobPatterns.find(x=>x.id===row.dataset.pid);
+    row.querySelector('.p-name').oninput = e=>p.name=e.target.value;
+    row.querySelector('.p-wage').oninput = e=>p.wage=parseFloat(e.target.value)||'';
+    row.querySelector('.p-transport').oninput = e=>p.transport=parseFloat(e.target.value)||'';
+    row.querySelector('.p-break').oninput = e=>p.breakMin=parseFloat(e.target.value)||'';
+    row.querySelector('.p-start').oninput = e=>p.start=e.target.value;
+    row.querySelector('.p-end').oninput = e=>p.end=e.target.value;
+  });
 }
 function saveJob() {
   const name=document.getElementById('job-name').value;
   if(!name){ showToast('仕事名を入力してください'); return; }
+  const closingVal = document.getElementById('job-closing').value;
+  const holRule = jobPayType==='monthly' ? document.getElementById('job-holrule-m').value : document.getElementById('job-holrule').value;
   const data = { name, payType:jobPayType, stamp:jobStamp, color:jobColor, active:jobActive,
     wage:parseFloat(document.getElementById('job-wage').value)||0,
     transport:parseFloat(document.getElementById('job-transport').value)||0,
     breakMin:parseFloat(document.getElementById('job-break').value)||0,
+    defStart:document.getElementById('job-defstart').value||'09:00',
+    defEnd:document.getElementById('job-defend').value||'17:00',
     salary:parseFloat(document.getElementById('job-salary').value)||0,
-    payday:parseInt(document.getElementById('job-payday').value)||25 };
+    payday:parseInt(document.getElementById('job-payday').value)||25,
+    patterns: jobPatterns.filter(p=>p.name||p.wage),
+    closingDay: (jobPayType!=='monthly'&&closingVal)?parseInt(closingVal):null,
+    payMonthOffset: parseInt(document.getElementById('job-payoffset').value)||0,
+    payDay: parseInt(document.getElementById('job-paydate').value)||25,
+    holidayRule: holRule };
   if (jobEditing) Object.assign(jobEditing, data);
   else state.jobs.push(Object.assign({id:'j'+Date.now()}, data));
   save(); closeModal('modal-job'); renderAll(); showToast('保存しました ✓');
@@ -934,80 +1126,83 @@ function saveJob() {
 function deleteJob() {
   if(!jobEditing) return;
   const cnt = state.records.filter(r=>r.jobId===jobEditing.id).length;
-  if (cnt>0) { showToast(`記録が${cnt}件あるため削除できません（無効化を使ってください）`); return; }
+  if (cnt>0) { showToast('記録が'+cnt+'件あるため削除できません（無効化を使ってください）'); return; }
   state.jobs = state.jobs.filter(j=>j.id!==jobEditing.id);
   save(); closeModal('modal-job'); renderAll(); showToast('削除しました');
 }
 
-// ── income input tab ──
+// ── input tab ──
 function renderInputTab() {
   const el = document.getElementById('input-form-area');
   const jobs = state.jobs.filter(j=>j.active&&j.payType!=='monthly');
   if (!jobs.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">💼</div><div class="empty-text">記録できる仕事がありません。<br>設定タブから仕事を登録してください。<br><span style="font-size:11px">（月額固定の仕事は自動計上のため入力不要です）</span></div></div>
-      <button class="btn btn-primary btn-block" onclick="showPage('settings',document.querySelectorAll('.tab')[3])">設定へ</button>`;
+    el.innerHTML = '<div class="empty"><div class="empty-icon">💼</div><div class="empty-text">記録できる仕事がありません。<br>設定タブから仕事を登録してください。<br><span style="font-size:11px">（月額固定の仕事は自動計上のため入力不要です）</span></div></div>'+
+      '<button class="btn btn-primary btn-block" onclick="showPage(\'settings\',document.querySelectorAll(\'.tab\')[3])">設定へ</button>';
     return;
   }
-  el.innerHTML = `<div class="form-group"><label>どの仕事の記録？</label>
-    <div id="input-job-list">${jobs.map(j=>`
+  el.innerHTML = '<div class="form-group"><label>どの仕事の記録？</label><div>'+jobs.map(j=>`
       <div class="add-menu-item" onclick="openRecordModal('${j.id}','${todayStr()}')">
-        ${stampSVG(j.stamp)}<div><div class="add-menu-label">${j.name}</div>
-        <div class="add-menu-sub">${payTypeLabel(j.payType)}${j.payType==='hourly'?` / 時給${fmt(j.wage)}`:''}</div></div></div>`).join('')}
-    </div></div>
-    <div class="field-note">月額固定（役員報酬など）は支払日に自動でカレンダー・集計に反映されます。</div>`;
+        ${stampHTML(j.stamp)}<div><div class="add-menu-label">${j.name}</div>
+        <div class="add-menu-sub">${payTypeLabel(j.payType)}${j.payType==='hourly'?(' / 時給'+fmt(j.wage)+((j.patterns&&j.patterns.length)?(' / パターン'+j.patterns.length+'件'):'')):''}</div></div></div>`).join('')+
+    '</div></div><div class="field-note">月額固定（役員報酬など）は支払日に自動でカレンダー・集計に反映されます。</div>';
 }
 
 // ── home ──
 function changeHomeMonth(d){ state.homeMonth+=d; if(state.homeMonth<0){state.homeMonth=11;state.homeYear--;} if(state.homeMonth>11){state.homeMonth=0;state.homeYear++;} save(); renderHome(); }
+function jobMonthAmount(j, y, m) {
+  if (j.payType==='monthly') return j.active?(j.salary||0):0;
+  return state.records.filter(r=>r.jobId===j.id).filter(r=>{ const d=recAggDate(r); return +d.slice(0,4)===y && +d.slice(5,7)-1===m; }).reduce((a,r)=>a+r.amount,0);
+}
 function renderHome() {
   const y=state.homeYear, m=state.homeMonth;
-  document.getElementById('home-month-label').textContent = `${y}年 ${MONTHS[m]}`;
+  document.getElementById('home-month-label').textContent = y+'年 '+MONTHS[m];
+  document.getElementById('agg-note').textContent = state.settings.aggregation==='pay' ? '集計基準：支払日（入金月に計上）' : '集計基準：勤務日（働いた月に計上）';
   document.getElementById('home-total').textContent = fmt(monthTotal(y,m));
-  // per-job
   const el = document.getElementById('home-jobs');
-  if (!state.jobs.length) { el.innerHTML='<div class="empty"><div class="empty-text">設定から仕事を登録すると内訳が表示されます</div></div>'; }
-  else {
-    el.innerHTML = state.jobs.map(j=>{
-      let amt=0, sub='';
-      if (j.payType==='monthly') { amt=j.active?(j.salary||0):0; sub=`毎月${j.payday}日`; }
-      else {
-        const recs = state.records.filter(r=>r.jobId===j.id).filter(r=>{const d=new Date(r.date);return d.getFullYear()===y&&d.getMonth()===m;});
-        amt = recs.reduce((a,r)=>a+r.amount,0);
-        sub = j.payType==='hourly' ? `${recs.length}回 / 実働${recs.reduce((a,r)=>a+r.hours,0).toFixed(1)}h` : `${recs.length}件`;
-      }
-      return `<div class="job-sum-row">${stampSVG(j.stamp)}
-        <div class="job-sum-name">${j.name}<div class="job-sum-sub">${sub}</div></div>
-        <div class="job-sum-amount">${fmt(amt)}</div></div>`;
-    }).join('');
-  }
-  // bar chart (stacked by job color)
+  if (!state.jobs.length) el.innerHTML='<div class="empty"><div class="empty-text">設定から仕事を登録すると内訳が表示されます</div></div>';
+  else el.innerHTML = state.jobs.map(j=>{
+    const amt = jobMonthAmount(j, y, m);
+    let sub='';
+    if (j.payType==='monthly') sub='毎月'+j.payday+'日';
+    else {
+      const recs = state.records.filter(r=>r.jobId===j.id).filter(r=>{ const d=recAggDate(r); return +d.slice(0,4)===y && +d.slice(5,7)-1===m; });
+      sub = j.payType==='hourly' ? (recs.length+'回 / 実働'+fmtH(recs.reduce((a,r)=>a+r.hours,0))) : (recs.length+'件');
+    }
+    return `<div class="job-sum-row">${stampHTML(j.stamp)}
+      <div class="job-sum-name">${j.name}<div class="job-sum-sub">${sub}</div></div>
+      <div class="job-sum-amount">${fmt(amt)}</div></div>`;
+  }).join('');
   const bar=document.getElementById('bar-chart'), labels=document.getElementById('bar-labels');
   bar.innerHTML=''; labels.innerHTML='';
   const monthsArr=[...Array(6)].map((_,i)=>{ let mm=m-5+i,yy=y; while(mm<0){mm+=12;yy--;} while(mm>11){mm-=12;yy++;} return {yy,mm}; });
-  const totals = monthsArr.map(({yy,mm})=>monthTotal(yy,mm));
-  const maxV = Math.max(1,...totals);
-  monthsArr.forEach(({yy,mm},idx)=>{
+  const maxV = Math.max(1,...monthsArr.map(o=>monthTotal(o.yy,o.mm)));
+  monthsArr.forEach(o=>{
     const grp=document.createElement('div'); grp.className='bar-group';
     const stack=document.createElement('div'); stack.className='bar-stack';
     state.jobs.forEach(j=>{
-      let v=0;
-      if (j.payType==='monthly') v=j.active?(j.salary||0):0;
-      else v=state.records.filter(r=>r.jobId===j.id).filter(r=>{const d=new Date(r.date);return d.getFullYear()===yy&&d.getMonth()===mm;}).reduce((a,r)=>a+r.amount,0);
+      const v = jobMonthAmount(j, o.yy, o.mm);
       if(v>0){ const seg=document.createElement('div'); seg.className='bar-seg'; seg.style.height=Math.round(v/maxV*80)+'px'; seg.style.background=j.color; stack.appendChild(seg); }
     });
     grp.appendChild(stack); bar.appendChild(grp);
-    const lb=document.createElement('div'); lb.textContent=(mm+1)+'月'; labels.appendChild(lb);
+    const lb=document.createElement('div'); lb.textContent=(o.mm+1)+'月'; labels.appendChild(lb);
   });
-  // records table
-  const recs = state.records.filter(r=>{const d=new Date(r.date);return d.getFullYear()===y&&d.getMonth()===m;}).sort((a,b)=>b.date.localeCompare(a.date));
+  const recs = state.records.filter(r=>{ const d=recAggDate(r); return +d.slice(0,4)===y && +d.slice(5,7)-1===m; }).sort((a,b)=>recAggDate(b).localeCompare(recAggDate(a)));
   const rw = document.getElementById('home-records');
-  if(!recs.length){ rw.innerHTML='<div class="empty"><div class="empty-text">この月の記録はありません</div></div>'; }
-  else rw.innerHTML = `<table><tbody>${recs.map(r=>{
+  if(!recs.length) rw.innerHTML='<div class="empty"><div class="empty-text">この月の記録はありません</div></div>';
+  else rw.innerHTML = '<table><tbody>'+recs.map(r=>{
     const j=jobById(r.jobId);
-    return `<tr><td style="white-space:nowrap;color:var(--text-secondary)">${r.date.slice(5)}</td>
-      <td>${r.name||(j?j.name:'')}${r.start?`<br><span style="font-size:10.5px;color:var(--text-secondary)">${r.start}〜${r.end} 実働${r.hours.toFixed(1)}h</span>`:''}</td>
+    return `<tr><td style="white-space:nowrap;color:var(--text-secondary)">${r.date.slice(5)}${r.endDate?('<br>〜'+r.endDate.slice(5)):''}</td>
+      <td>${r.name||(j?j.name:'')}${r.start?('<br><span style="font-size:10.5px;color:var(--text-secondary)">'+r.start+'〜'+r.end+' 実働'+fmtH(r.hours)+'</span>'):''}</td>
       <td class="mono" style="text-align:right">${fmt(r.amount)}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}')">削除</button></td></tr>`;}).join('')}</tbody></table>`;
+      <td><button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}')">削除</button></td></tr>`;}).join('')+'</tbody></table>';
+}
+
+// ── settings ──
+function setHoursFormat(v, el){ state.settings.hoursFormat=v; save(); syncSettingsUI(); renderAll(); }
+function setAggregation(v, el){ state.settings.aggregation=v; save(); syncSettingsUI(); renderAll(); }
+function syncSettingsUI(){
+  document.querySelectorAll('.seg-btn[data-hf]').forEach(b=>b.classList.toggle('active', b.dataset.hf===state.settings.hoursFormat));
+  document.querySelectorAll('.seg-btn[data-ag]').forEach(b=>b.classList.toggle('active', b.dataset.ag===state.settings.aggregation));
 }
 
 // ── export / import ──
@@ -1015,7 +1210,7 @@ function exportData() {
   const blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `finance-backup-${todayStr()}.json`;
+  a.download = 'finance-backup-'+todayStr()+'.json';
   a.click();
   showToast('バックアップを保存しました ✓');
 }
@@ -1023,19 +1218,17 @@ function importData(ev) {
   const file = ev.target.files[0]; if(!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    try {
-      const data = JSON.parse(e.target.result);
-      state = migrate(data);
-      save(); renderAll(); showToast('データを復元しました ✓');
-    } catch(err) { showToast('読み込みに失敗しました'); }
+    try { state = migrate(JSON.parse(e.target.result)); save(); syncSettingsUI(); renderAll(); showToast('データを復元しました ✓'); }
+    catch(err) { showToast('読み込みに失敗しました'); }
   };
   reader.readAsText(file);
   ev.target.value = '';
 }
 
-// ── render all ──
+// ── render all / init ──
 function renderAll() {
   const now = new Date();
+  buildPayMap();
   document.getElementById('topbar-total').textContent = fmt(monthTotal(now.getFullYear(), now.getMonth()));
   document.getElementById('version-badge').textContent = 'v'+APP_VERSION;
   document.getElementById('ver-footer').textContent = 'v'+APP_VERSION;
@@ -1046,6 +1239,7 @@ function renderAll() {
   renderJobList();
 }
 save();
+syncSettingsUI();
 renderAll();
 </script>
 </body>
