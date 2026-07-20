@@ -143,8 +143,12 @@
   .pat-row-head input { flex: 1; }
   .pat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
   .pat-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
-  .pat-row input { padding: 8px 9px; font-size: 15px; border: 1.5px solid var(--border); border-radius: 8px; width: 100%; background:#fff; outline:none; }
+  .pat-grid > div, .pat-grid-2 > div { min-width: 0; }
+  .pat-row input { padding: 8px 6px; font-size: 14px; border: 1.5px solid var(--border); border-radius: 8px; width: 100%; background:#fff; outline:none; -webkit-appearance:none; min-width:0; }
+  .pat-row input[type=time] { padding: 8px 4px; }
   .pat-row label { font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 3px; }
+  .inp-s { min-width: 0; }
+  .pat-grid-2 .inp-s[type=time] { padding: 8px 4px; }
   .pat-del { background: #FFF0F3; color: #E53E3E; border: 1px solid #FFC5C5; border-radius: 8px; padding: 8px 10px; font-size: 12px; cursor: pointer; }
   .pat-chips { display: flex; gap: 6px; flex-wrap: wrap; }
   .pat-chip { padding: 7px 12px; border-radius: 20px; border: 1.5px solid var(--border); background: #fff; font-size: 12px; cursor: pointer; }
@@ -190,9 +194,9 @@
   .add-menu-item .em { font-size: 26px; width: 30px; text-align: center; flex-shrink: 0; }
   .add-menu-label { font-size: 14px; font-weight: 600; }
   .add-menu-sub { font-size: 11px; color: var(--text-secondary); }
-  .ym-cols { display: flex; gap: 10px; height: 190px; margin-bottom: 14px; }
-  .ym-col { flex: 1; overflow-y: auto; scroll-snap-type: y mandatory; border: 1.5px solid var(--border); border-radius: 12px; -webkit-overflow-scrolling: touch; }
-  .ym-opt { scroll-snap-align: center; padding: 11px 0; text-align: center; font-size: 15px; cursor: pointer; color: var(--text-secondary); }
+  .ym-cols { display: flex; gap: 10px; height: 210px; margin-bottom: 14px; }
+  .ym-col { flex: 1; overflow-y: auto; scroll-snap-type: y mandatory; border: 1.5px solid var(--border); border-radius: 12px; -webkit-overflow-scrolling: touch; padding: 8px 0; }
+  .ym-opt { scroll-snap-align: center; padding: 11px 0; text-align: center; font-size: 15px; cursor: pointer; color: var(--text-secondary); border-radius: 8px; margin: 0 6px; }
   .ym-opt.sel { color: var(--text-primary); font-weight: 700; background: #E9FBF4; }
   .toast { position: fixed; bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 14px); left: 50%; transform: translateX(-50%) translateY(10px); background: var(--navy); color: #fff; padding: 11px 20px; border-radius: 10px; font-size: 13px; z-index: 999; opacity: 0; transition: all 0.3s; border-left: 4px solid var(--mint); pointer-events: none; white-space: nowrap; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -203,7 +207,7 @@
   <header class="topbar">
     <div style="display:flex;align-items:center;">
       <span class="topbar-logo">Finance<span>Mgr</span></span>
-      <span class="version-badge" id="version-badge">v4</span>
+      <span class="version-badge" id="version-badge">v5</span>
     </div>
     <div class="topbar-total">
       <div class="topbar-total-label">今月合計</div>
@@ -235,6 +239,17 @@
         <div id="cal-list-view" style="display:none"></div>
       </div>
       <button class="btn btn-primary btn-block" onclick="openAddMenu(todayStr())">＋ 予定・収入を追加</button>
+
+      <div class="card" style="margin-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div class="card-title" style="margin-bottom:0">✓ チェックリスト</div>
+          <button class="btn btn-primary btn-sm" onclick="openCheckModal(null)">＋ 追加</button>
+        </div>
+        <div id="check-month-label" style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;"></div>
+        <div id="check-month-list"></div>
+        <div style="font-size:11px;color:var(--text-secondary);margin:14px 0 6px;border-top:1px solid var(--border);padding-top:12px;">常設（いつでも）</div>
+        <div id="check-always-list"></div>
+      </div>
     </div>
 
     <div class="page" id="page-home">
@@ -278,6 +293,16 @@
             <div class="seg-btn" data-ag="pay" onclick="setAggregation('pay',this)">支払日</div>
           </div></div>
         <div class="field-note" style="padding:0 4px 6px">支払日ベースは、各仕事の「締め日・支払日」設定を使って入金月に計上します（未設定の仕事は勤務日ベース）。</div>
+        <div class="settings-row"><span>カレンダーの金額表示</span>
+          <div class="seg seg-sm">
+            <div class="seg-btn" data-am="on" onclick="setAmountShow('on',this)">表示</div>
+            <div class="seg-btn" data-am="off" onclick="setAmountShow('off',this)">非表示</div>
+          </div></div>
+        <div class="settings-row"><span>金額の表記</span>
+          <div class="seg seg-sm">
+            <div class="seg-btn" data-af="k" onclick="setAmountFormat('k',this)">18k</div>
+            <div class="seg-btn" data-af="full" onclick="setAmountFormat('full',this)">18,000</div>
+          </div></div>
       </div>
       <div class="card">
         <div class="card-title">データ</div>
@@ -286,7 +311,7 @@
           <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)"></div>
       </div>
       <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-        FinanceManager <span id="ver-footer">v4</span> / schema <span id="schema-footer">3</span> / 祝日データ 2025–2027
+        FinanceManager <span id="ver-footer">v5</span> / schema <span id="schema-footer">4</span> / 祝日データ 2025–2027
       </div>
     </div>
   </div>
@@ -360,8 +385,8 @@
         <div><label class="lbl-s">休憩（分）</label><input type="number" class="inp-s" id="job-break" placeholder="60"></div>
       </div>
       <div class="pat-grid-2">
-        <div><label class="lbl-s">デフォルト開始</label><input type="time" class="inp-s" id="job-defstart" value="09:00"></div>
-        <div><label class="lbl-s">デフォルト終了</label><input type="time" class="inp-s" id="job-defend" value="17:00"></div>
+        <div><label class="lbl-s">定時 開始</label><input type="time" class="inp-s" id="job-defstart" value="09:00"></div>
+        <div><label class="lbl-s">定時 終了</label><input type="time" class="inp-s" id="job-defend" value="17:00"></div>
       </div>
       <div class="subsection">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -384,7 +409,7 @@
       <div class="subsection-title">締め日・支払日（任意）</div>
       <div class="form-row">
         <div class="form-group"><label>締め日</label>
-          <select id="job-closing"><option value="">設定しない</option><option value="31">末日</option>
+          <select id="job-closing" onchange="applyPayTypeFields()"><option value="">設定しない</option><option value="31">末日</option>
           <option value="5">5日</option><option value="10">10日</option><option value="15">15日</option><option value="20">20日</option><option value="25">25日</option></select></div>
         <div class="form-group"><label>支払月</label>
           <select id="job-payoffset"><option value="0">当月</option><option value="1" selected>翌月</option><option value="2">翌々月</option></select></div>
@@ -397,7 +422,8 @@
       </div>
       <div class="field-note">設定すると、給料日がカレンダーに見込み額つきで表示され、「支払日ベース集計」で使われます。</div>
     </div>
-    <div class="form-group"><label>スタンプ</label><div id="job-stamp-area"></div></div>
+    <div class="form-group" id="job-payday-stamp-row"><label>給料日に表示するスタンプ</label><div id="job-payday-stamp-area"></div></div>
+    <div class="form-group"><label>スタンプ（勤務・収入日）</label><div id="job-stamp-area"></div></div>
     <div class="form-group"><label>カレンダー色</label><div class="color-picker" id="job-color-picker"></div></div>
     <div class="form-group" id="job-active-row" style="display:none"><label>状態</label>
       <div class="seg">
@@ -425,13 +451,41 @@
   </div>
 </div></div>
 
+<div class="modal-overlay" id="modal-check"><div class="modal">
+  <div class="modal-handle"></div><div class="modal-title" id="check-modal-title">チェック項目を追加</div>
+  <div class="form-grid">
+    <div class="form-group"><label>内容</label><input type="text" id="chk-text" placeholder="例：確定申告書類を準備"></div>
+    <div class="form-group"><label>種類</label>
+      <div class="seg">
+        <div class="seg-btn active" data-ck="month" onclick="setCheckKind('month',this)">今月分</div>
+        <div class="seg-btn" data-ck="always" onclick="setCheckKind('always',this)">常設</div>
+      </div></div>
+    <div class="form-group"><label>日付（任意・入れるとカレンダー表示）</label><input type="date" id="chk-date"></div>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-danger" id="chk-delete-btn" style="margin-right:auto;display:none" onclick="deleteCheck()">削除</button>
+    <button class="btn btn-ghost" onclick="closeModal('modal-check')">キャンセル</button>
+    <button class="btn btn-primary" onclick="saveCheck()">保存</button>
+  </div>
+</div></div>
+
+<div class="modal-overlay" id="modal-confirm"><div class="modal" style="max-width:360px">
+  <div class="modal-handle"></div>
+  <div class="modal-title" id="confirm-title">確認</div>
+  <div id="confirm-body" style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6"></div>
+  <div class="form-actions">
+    <button class="btn btn-ghost" onclick="closeModal('modal-confirm')">キャンセル</button>
+    <button class="btn btn-danger" id="confirm-ok-btn">削除する</button>
+  </div>
+</div></div>
+
 <div class="toast" id="toast"></div>
 <script>
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '4';
-const SCHEMA_VERSION = 3;
+const APP_VERSION = '5';
+const SCHEMA_VERSION = 4;
 const STORAGE_KEY = 'financeManager';
 
 const C = { blue:['#5B8DEF','#3D6BD1','#EAF1FF'], teal:['#2DC5A4','#189A7E','#E4FAF4'], amber:['#F7B32B','#D3921A','#FFF6E0'], pink:['#F76D8E','#D94A6E','#FFEBF0'], violet:['#9B7EDE','#7A5CC4','#F1EBFF'], slate:['#6B7A99','#4D5B78','#EEF1F6'] };
@@ -498,8 +552,8 @@ function computePayDate(job, recDate) {
 
 // ── state / migrate ──
 function defaultState() {
-  return { schemaVersion: SCHEMA_VERSION, jobs: [], records: [], events: [],
-    settings: { hoursFormat:'decimal', aggregation:'work' },
+  return { schemaVersion: SCHEMA_VERSION, jobs: [], records: [], events: [], checks: [],
+    settings: { hoursFormat:'decimal', aggregation:'work', amountShow:'on', amountFormat:'k' },
     homeMonth: new Date().getMonth(), homeYear: new Date().getFullYear() };
 }
 function migrate(data) {
@@ -537,9 +591,17 @@ function migrate(data) {
     (data.records||[]).forEach(r => { if (r.endDate===undefined) r.endDate=''; });
     v = 3;
   }
+  if (v < 4) {
+    data.checks = data.checks || [];
+    data.settings = data.settings || {};
+    if (data.settings.amountShow===undefined) data.settings.amountShow = 'on';
+    if (data.settings.amountFormat===undefined) data.settings.amountFormat = 'k';
+    (data.jobs||[]).forEach(j => { if (j.paydayStamp===undefined) j.paydayStamp = 'payday'; });
+    v = 4;
+  }
   data.schemaVersion = SCHEMA_VERSION;
-  data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[];
-  data.settings = data.settings || { hoursFormat:'decimal', aggregation:'work' };
+  data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[]; data.checks=data.checks||[];
+  data.settings = Object.assign({ hoursFormat:'decimal', aggregation:'work', amountShow:'on', amountFormat:'k' }, data.settings||{});
   return data;
 }
 function loadState() {
@@ -559,6 +621,12 @@ function fmtH(h) {
   }
   const r = Math.round(h*100)/100;
   return (r%1===0 ? String(r) : r.toFixed(r*10%1===0?1:2)) + 'h';
+}
+// カレンダーの日別金額表示（設定に応じてk表記/フル/非表示）
+function fmtCalAmount(n) {
+  if (state.settings.amountShow==='off' || n<=0) return '';
+  if (state.settings.amountFormat==='full') return '¥'+Math.round(n).toLocaleString();
+  return n>=10000 ? Math.round(n/1000)+'k' : (n/1000).toFixed(1)+'k';
 }
 const MONTHS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 const WD = ['日','月','火','水','木','金','土'];
@@ -609,6 +677,14 @@ function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); }));
 let toastTimer;
 function showToast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2200); }
+// 削除確認ダイアログ
+function confirmDelete(title, body, onOk) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-body').textContent = body;
+  const btn = document.getElementById('confirm-ok-btn');
+  btn.onclick = ()=>{ closeModal('modal-confirm'); onOk(); };
+  openModal('modal-confirm');
+}
 
 // ── calendar state / swipe / ym picker ──
 let calMonth = new Date().getMonth(), calYear = new Date().getFullYear();
@@ -665,17 +741,20 @@ function dayItems(ds) {
     const y=+ds.slice(0,4), m=+ds.slice(5,7)-1;
     const rawPd = Math.min(j.payday||25, daysIn(y,m));
     const adj = adjustPayDate(dstr(y,m,rawPd), j.holidayRule||'none');
-    if (adj===ds) items.push({ kind:'payday', stamp:'payday', color:j.color, label:j.name+'（支払日）', sub:'月額報酬', amount:j.salary, ref:j });
+    if (adj===ds) items.push({ kind:'payday', stamp:j.paydayStamp||'payday', color:j.color, label:j.name+'（支払日）', sub:'月額報酬', amount:j.salary, ref:j });
   });
   if (payMap[ds]) {
     Object.entries(payMap[ds]).forEach(([jid,amt])=>{
       const j = jobById(jid);
-      items.push({ kind:'payinfo', stamp:'payday', color:j?j.color:PALETTE[2], label:(j?j.name:'')+'（給料日見込）', sub:'締め日・支払日から自動計算', amount:amt, ref:j });
+      items.push({ kind:'payinfo', stamp:(j&&j.paydayStamp)||'payday', color:j?j.color:PALETTE[2], label:(j?j.name:'')+'（給料日見込）', sub:'締め日・支払日から自動計算', amount:amt, ref:j });
     });
   }
   state.events.forEach(ev=>{
     const end = ev.endDate || ev.startDate;
     if (ev.startDate<=ds && ds<=end) items.push({ kind:'event', stamp:ev.stamp, color:ev.color, label:ev.title, sub:ev.memo||'', amount:0, ref:ev });
+  });
+  state.checks.forEach(c=>{
+    if (c.date===ds) items.push({ kind:'check', stamp:c.done?'✅':'☑️', color:PALETTE[5], label:(c.done?'✓ ':'')+c.text, sub:'チェックリスト', amount:0, ref:c });
   });
   return items;
 }
@@ -739,9 +818,10 @@ function renderCalMonth() {
       const cell = document.createElement('div');
       cell.className = 'cal-day' + (c.other?' other':'') + (i===0?' sun':'') + (i===6?' sat':'') + (HOLIDAYS.has(c.ds)?' hol':'') + (c.ds===today?' today':'');
       const st = items.slice(0,3).map(x=>stampHTML(x.stamp)).join('');
+      const amtStr = fmtCalAmount(total);
       cell.innerHTML = `<div class="day-num">${c.d}</div>
         <div class="cal-stamps">${st}${items.length>3?`<span class="cal-more">+${items.length-3}</span>`:''}</div>
-        ${total>0?`<div class="cal-amount">${total>=10000?Math.round(total/1000)+'k':(total/1000).toFixed(1)+'k'}</div>`:''}`;
+        ${amtStr?`<div class="cal-amount">${amtStr}</div>`:''}`;
       cell.onclick = ()=>showDayDetail(c.ds);
       daysEl.appendChild(cell);
     });
@@ -782,7 +862,7 @@ function renderCalWeek() {
     row.className = 'cal-week-row' + (ds===today?' today':'');
     row.innerHTML = `<div class="cal-week-date ${dow===0?'sun':dow===6?'sat':''} ${HOLIDAYS.has(ds)?'hol':''}"><div class="wd">${WD[dow]}</div><div class="dn">${d}</div></div>
       <div class="cal-week-body">${items.length?items.slice(0,5).map(x=>stampHTML(x.stamp)).join(''):'<span class="cal-week-empty">予定なし</span>'}</div>
-      ${total>0?`<div class="cal-week-amount">${fmt(total)}</div>`:''}`;
+      ${(total>0&&state.settings.amountShow!=='off')?`<div class="cal-week-amount">${fmt(total)}</div>`:''}`;
     row.onclick = ()=>showDayDetail(ds);
     el.appendChild(row);
   }
@@ -818,8 +898,9 @@ function showDayDetail(ds) {
         <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">${x.label}</div>
           <div style="font-size:11px;color:var(--text-secondary)">${x.sub||''}</div></div>
         ${x.amount>0?`<span class="mono" style="font-size:13px">${fmt(x.amount)}</span>`:''}
-        ${x.kind==='record'?`<button class="btn btn-danger btn-sm" onclick="deleteRecord('${x.ref.id}');showDayDetail('${ds}')">削除</button>`:''}
+        ${x.kind==='record'?`<button class="btn btn-danger btn-sm" onclick="deleteRecord('${x.ref.id}')">削除</button>`:''}
         ${x.kind==='event'?`<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');editEventById('${x.ref.id}')">編集</button>`:''}
+        ${x.kind==='check'?`<button class="btn btn-ghost btn-sm" onclick="toggleCheck('${x.ref.id}');showDayDetail('${ds}')">${x.ref.done?'未完了に':'完了'}</button>`:''}
       </div>`).join('') +
       (total>0?`<div style="display:flex;justify-content:space-between;padding-top:10px;font-weight:700"><span>この日の計上額</span><span class="mono" style="color:var(--mint-dim)">${fmt(total)}</span></div>`:'');
   }
@@ -940,7 +1021,14 @@ function saveRecord() {
   }
   state.records.push(rec); save(); closeModal('modal-record'); renderAll(); showToast('記録しました ✓');
 }
-function deleteRecord(id){ state.records=state.records.filter(r=>r.id!==id); save(); renderAll(); showToast('削除しました'); }
+function deleteRecord(id){
+  const r = state.records.find(x=>x.id===id); if(!r) return;
+  const j = jobById(r.jobId);
+  confirmDelete('記録を削除', `「${r.name||(j?j.name:'収入')}」${fmt(r.amount)} を削除します。よろしいですか？`, ()=>{
+    state.records=state.records.filter(x=>x.id!==id); save(); renderAll(); showToast('削除しました');
+    if (document.getElementById('modal-day').classList.contains('open')) closeModal('modal-day');
+  });
+}
 
 // ── stamp / color pickers ──
 function renderStampArea(areaId, current, onPick) {
@@ -1009,10 +1097,16 @@ function saveEvent() {
   else state.events.push({ id:'e'+Date.now(), title, startDate:s, endDate:e, stamp:evStamp, color:evColor, memo:document.getElementById('ev-memo').value });
   save(); closeModal('modal-event'); renderAll(); showToast('保存しました ✓');
 }
-function deleteEvent(){ if(evEditing){ state.events=state.events.filter(e=>e.id!==evEditing.id); save(); closeModal('modal-event'); renderAll(); showToast('削除しました'); } }
+function deleteEvent(){
+  if(!evEditing) return;
+  const target = evEditing;
+  confirmDelete('予定を削除', `「${target.title}」を削除します。よろしいですか？`, ()=>{
+    state.events=state.events.filter(e=>e.id!==target.id); save(); closeModal('modal-event'); renderAll(); showToast('削除しました');
+  });
+}
 
 // ── job modal ──
-let jobEditing=null, jobPayType='hourly', jobStamp='briefcase', jobColor=PALETTE[0], jobActive=true, jobPatterns=[];
+let jobEditing=null, jobPayType='hourly', jobStamp='briefcase', jobColor=PALETTE[0], jobActive=true, jobPatterns=[], jobPaydayStamp='payday';
 function payTypeLabel(t){ return t==='hourly'?'時給制':t==='piece'?'案件ごと':'月額固定'; }
 function renderJobList() {
   const el=document.getElementById('job-list');
@@ -1033,6 +1127,7 @@ function openJobModal(id) {
   jobEditing = id ? jobById(id) : null;
   jobPayType = jobEditing?jobEditing.payType:'hourly';
   jobStamp = jobEditing?jobEditing.stamp:'briefcase';
+  jobPaydayStamp = jobEditing?(jobEditing.paydayStamp||'payday'):'payday';
   jobColor = jobEditing?jobEditing.color:PALETTE[0];
   jobActive = jobEditing?jobEditing.active:true;
   jobPatterns = jobEditing?JSON.parse(JSON.stringify(jobEditing.patterns||[])):[];
@@ -1061,6 +1156,7 @@ function openJobModal(id) {
 }
 function refreshJobPickers(){
   renderStampArea('job-stamp-area', jobStamp, s=>{jobStamp=s;refreshJobPickers();});
+  renderStampArea('job-payday-stamp-area', jobPaydayStamp, s=>{jobPaydayStamp=s;refreshJobPickers();});
   renderColorPicker('job-color-picker', jobColor, c=>{jobColor=c;refreshJobPickers();});
 }
 function setPayType(t, el){ jobPayType=t; document.querySelectorAll('#modal-job .seg-btn[data-pt]').forEach(b=>b.classList.remove('active')); el.classList.add('active'); applyPayTypeFields(); }
@@ -1069,6 +1165,9 @@ function applyPayTypeFields(){
   document.getElementById('job-fields-hourly').style.display = jobPayType==='hourly'?'':'none';
   document.getElementById('job-fields-monthly').style.display = jobPayType==='monthly'?'':'none';
   document.getElementById('job-payment-rules').style.display = jobPayType==='monthly'?'none':'';
+  // 給料日スタンプは「月額固定」か「締め日設定あり」のとき表示
+  const showPaydayStamp = jobPayType==='monthly' || (document.getElementById('job-closing').value!=='');
+  document.getElementById('job-payday-stamp-row').style.display = showPaydayStamp?'':'none';
 }
 function addPattern(){ jobPatterns.push({id:'p'+Date.now()+Math.floor(Math.random()*999), name:'', wage:'', start:'09:00', end:'17:00', breakMin:'', transport:''}); renderPatternEditor(); }
 function removePattern(pid){ jobPatterns = jobPatterns.filter(p=>p.id!==pid); renderPatternEditor(); }
@@ -1106,7 +1205,7 @@ function saveJob() {
   if(!name){ showToast('仕事名を入力してください'); return; }
   const closingVal = document.getElementById('job-closing').value;
   const holRule = jobPayType==='monthly' ? document.getElementById('job-holrule-m').value : document.getElementById('job-holrule').value;
-  const data = { name, payType:jobPayType, stamp:jobStamp, color:jobColor, active:jobActive,
+  const data = { name, payType:jobPayType, stamp:jobStamp, paydayStamp:jobPaydayStamp, color:jobColor, active:jobActive,
     wage:parseFloat(document.getElementById('job-wage').value)||0,
     transport:parseFloat(document.getElementById('job-transport').value)||0,
     breakMin:parseFloat(document.getElementById('job-break').value)||0,
@@ -1127,8 +1226,11 @@ function deleteJob() {
   if(!jobEditing) return;
   const cnt = state.records.filter(r=>r.jobId===jobEditing.id).length;
   if (cnt>0) { showToast('記録が'+cnt+'件あるため削除できません（無効化を使ってください）'); return; }
-  state.jobs = state.jobs.filter(j=>j.id!==jobEditing.id);
-  save(); closeModal('modal-job'); renderAll(); showToast('削除しました');
+  const target = jobEditing;
+  confirmDelete('仕事を削除', `「${target.name}」を削除します。よろしいですか？`, ()=>{
+    state.jobs = state.jobs.filter(j=>j.id!==target.id);
+    save(); closeModal('modal-job'); renderAll(); showToast('削除しました');
+  });
 }
 
 // ── input tab ──
@@ -1200,9 +1302,13 @@ function renderHome() {
 // ── settings ──
 function setHoursFormat(v, el){ state.settings.hoursFormat=v; save(); syncSettingsUI(); renderAll(); }
 function setAggregation(v, el){ state.settings.aggregation=v; save(); syncSettingsUI(); renderAll(); }
+function setAmountShow(v, el){ state.settings.amountShow=v; save(); syncSettingsUI(); renderAll(); }
+function setAmountFormat(v, el){ state.settings.amountFormat=v; save(); syncSettingsUI(); renderAll(); }
 function syncSettingsUI(){
   document.querySelectorAll('.seg-btn[data-hf]').forEach(b=>b.classList.toggle('active', b.dataset.hf===state.settings.hoursFormat));
   document.querySelectorAll('.seg-btn[data-ag]').forEach(b=>b.classList.toggle('active', b.dataset.ag===state.settings.aggregation));
+  document.querySelectorAll('.seg-btn[data-am]').forEach(b=>b.classList.toggle('active', b.dataset.am===state.settings.amountShow));
+  document.querySelectorAll('.seg-btn[data-af]').forEach(b=>b.classList.toggle('active', b.dataset.af===state.settings.amountFormat));
 }
 
 // ── export / import ──
@@ -1225,6 +1331,64 @@ function importData(ev) {
   ev.target.value = '';
 }
 
+// ── checklist ──
+// check: {id, text, kind:'month'|'always', ym:'YYYY-MM'(monthのみ), date:''|'YYYY-MM-DD', done:bool}
+let checkEditing = null, checkKind = 'month';
+function curYm(){ return calYear + '-' + pad(calMonth+1); }
+function setCheckKind(k, el){ checkKind=k; document.querySelectorAll('#modal-check .seg-btn[data-ck]').forEach(b=>b.classList.remove('active')); el.classList.add('active'); }
+function openCheckModal(id) {
+  checkEditing = id ? state.checks.find(c=>c.id===id) : null;
+  checkKind = checkEditing ? checkEditing.kind : 'month';
+  document.getElementById('check-modal-title').textContent = checkEditing?'チェック項目を編集':'チェック項目を追加';
+  document.getElementById('chk-text').value = checkEditing?checkEditing.text:'';
+  document.getElementById('chk-date').value = checkEditing?(checkEditing.date||''):'';
+  document.getElementById('chk-delete-btn').style.display = checkEditing?'':'none';
+  document.querySelectorAll('#modal-check .seg-btn[data-ck]').forEach(b=>b.classList.toggle('active', b.dataset.ck===checkKind));
+  openModal('modal-check');
+}
+function saveCheck() {
+  const text = document.getElementById('chk-text').value.trim();
+  if(!text){ showToast('内容を入力してください'); return; }
+  const date = document.getElementById('chk-date').value||'';
+  if (checkEditing) {
+    checkEditing.text=text; checkEditing.kind=checkKind; checkEditing.date=date;
+    if (checkKind==='month' && !checkEditing.ym) checkEditing.ym = date?date.slice(0,7):curYm();
+  } else {
+    state.checks.push({ id:'c'+Date.now(), text, kind:checkKind, ym: checkKind==='month'?(date?date.slice(0,7):curYm()):'', date, done:false });
+  }
+  save(); closeModal('modal-check'); renderAll(); showToast('保存しました ✓');
+}
+function toggleCheck(id) {
+  const c = state.checks.find(x=>x.id===id); if(!c) return;
+  c.done = !c.done; save(); renderAll();
+}
+function deleteCheck() {
+  if(!checkEditing) return;
+  const target = checkEditing;
+  confirmDelete('項目を削除', `「${target.text}」を削除します。よろしいですか？`, ()=>{
+    state.checks = state.checks.filter(c=>c.id!==target.id); save(); closeModal('modal-check'); renderAll(); showToast('削除しました');
+  });
+}
+function checkRowHTML(c) {
+  return `<div style="display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--border)">
+    <div onclick="toggleCheck('${c.id}')" style="width:22px;height:22px;border-radius:6px;border:2px solid ${c.done?'var(--mint)':'var(--border)'};background:${c.done?'var(--mint)':'#fff'};flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer">
+      ${c.done?'<span style="color:#fff;font-size:13px">✓</span>':''}</div>
+    <div style="flex:1;min-width:0;cursor:pointer" onclick="openCheckModal('${c.id}')">
+      <div style="font-size:13px;${c.done?'text-decoration:line-through;color:var(--text-secondary)':''}">${c.text}</div>
+      ${c.date?`<div style="font-size:10.5px;color:var(--text-secondary)">📅 ${(+c.date.slice(5,7))}/${(+c.date.slice(8,10))}</div>`:''}
+    </div></div>`;
+}
+function renderChecklist() {
+  const ym = curYm();
+  document.getElementById('check-month-label').textContent = `${calYear}年${calMonth+1}月`;
+  const monthList = state.checks.filter(c=>c.kind==='month'&&c.ym===ym);
+  const alwaysList = state.checks.filter(c=>c.kind==='always');
+  const ml = document.getElementById('check-month-list');
+  ml.innerHTML = monthList.length ? monthList.map(checkRowHTML).join('') : '<div style="font-size:11.5px;color:var(--text-secondary);padding:6px 2px">今月の項目はありません</div>';
+  const al = document.getElementById('check-always-list');
+  al.innerHTML = alwaysList.length ? alwaysList.map(checkRowHTML).join('') : '<div style="font-size:11.5px;color:var(--text-secondary);padding:6px 2px">常設の項目はありません</div>';
+}
+
 // ── render all / init ──
 function renderAll() {
   const now = new Date();
@@ -1234,6 +1398,7 @@ function renderAll() {
   document.getElementById('ver-footer').textContent = 'v'+APP_VERSION;
   document.getElementById('schema-footer').textContent = SCHEMA_VERSION;
   renderCalendar();
+  renderChecklist();
   renderHome();
   renderInputTab();
   renderJobList();
