@@ -83,6 +83,14 @@
   .cal-week-body .em { font-size: 16px; }
   .cal-week-empty { color: #C8D0E0; font-size: 11.5px; }
   .cal-week-amount { font-family: 'DM Mono'; font-size: 12.5px; flex-shrink: 0; }
+  /* 週表示：複数日の帯 */
+  .wk-bands { display: flex; flex-direction: column; gap: 3px; width: 100%; margin-top: 4px; }
+  .wk-band { display: flex; align-items: center; gap: 5px; font-size: 10.5px; padding: 3px 8px; border-radius: 5px; color: rgba(0,0,0,0.7); font-weight: 600; }
+  .wk-band .edge { font-size: 9px; opacity: 0.6; }
+  .wk-band.mid { border-radius: 0; }
+  .wk-band.start { border-radius: 5px 5px 0 0; }
+  .wk-band.end { border-radius: 0 0 5px 5px; }
+  .wk-row-wrap { display: flex; flex-direction: column; }
   .cal-list-item { display: flex; align-items: center; gap: 10px; padding: 11px 6px; border-bottom: 1px solid var(--border); cursor: pointer; }
   .cal-list-item svg { width: 24px; height: 24px; flex-shrink: 0; }
   .cal-list-item .em { font-size: 21px; width: 26px; text-align: center; flex-shrink: 0; }
@@ -207,7 +215,7 @@
   <header class="topbar">
     <div style="display:flex;align-items:center;">
       <span class="topbar-logo">Finance<span>Mgr</span></span>
-      <span class="version-badge" id="version-badge">v5</span>
+      <span class="version-badge" id="version-badge">v6</span>
     </div>
     <div class="topbar-total">
       <div class="topbar-total-label">今月合計</div>
@@ -247,8 +255,10 @@
         </div>
         <div id="check-month-label" style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;"></div>
         <div id="check-month-list"></div>
-        <div style="font-size:11px;color:var(--text-secondary);margin:14px 0 6px;border-top:1px solid var(--border);padding-top:12px;">常設（いつでも）</div>
-        <div id="check-always-list"></div>
+        <div id="check-always-section" style="display:none">
+          <div style="font-size:11px;color:var(--text-secondary);margin:14px 0 6px;border-top:1px solid var(--border);padding-top:12px;">常設（いつでも）</div>
+          <div id="check-always-list"></div>
+        </div>
       </div>
     </div>
 
@@ -311,7 +321,7 @@
           <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)"></div>
       </div>
       <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-        FinanceManager <span id="ver-footer">v5</span> / schema <span id="schema-footer">4</span> / 祝日データ 2025–2027
+        FinanceManager <span id="ver-footer">v6</span> / schema <span id="schema-footer">5</span> / 祝日データ 2025–2027
       </div>
     </div>
   </div>
@@ -343,6 +353,7 @@
   <div class="modal-handle"></div><div class="modal-title" id="record-title">記録を追加</div>
   <div class="form-grid" id="record-form"></div>
   <div class="form-actions">
+    <button class="btn btn-danger" id="rec-delete-btn" style="margin-right:auto;display:none" onclick="deleteRecordFromModal()">削除</button>
     <button class="btn btn-ghost" onclick="closeModal('modal-record')">キャンセル</button>
     <button class="btn btn-primary" onclick="saveRecord()">保存</button>
   </div>
@@ -455,11 +466,24 @@
   <div class="modal-handle"></div><div class="modal-title" id="check-modal-title">チェック項目を追加</div>
   <div class="form-grid">
     <div class="form-group"><label>内容</label><input type="text" id="chk-text" placeholder="例：確定申告書類を準備"></div>
-    <div class="form-group"><label>種類</label>
-      <div class="seg">
-        <div class="seg-btn active" data-ck="month" onclick="setCheckKind('month',this)">今月分</div>
-        <div class="seg-btn" data-ck="always" onclick="setCheckKind('always',this)">常設</div>
-      </div></div>
+    <div class="form-group"><label>タイプ</label>
+      <select id="chk-kind" onchange="onCheckKindChange()">
+        <option value="month">今月限定（この月だけ）</option>
+        <option value="monthly">毎月リセット（毎月くり返す）</option>
+        <option value="carry">完了するまで繰り越し</option>
+        <option value="weekly">毎週リセット（毎週くり返す）</option>
+        <option value="yearly">年1回（特定の月）</option>
+        <option value="always">常設（いつでも表示）</option>
+      </select>
+      <div class="field-note" id="chk-kind-note"></div>
+    </div>
+    <div class="form-group" id="chk-yearmonth-row" style="display:none"><label>実施する月</label>
+      <select id="chk-yearmonth">
+        <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+        <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+        <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+        <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+      </select></div>
     <div class="form-group"><label>日付（任意・入れるとカレンダー表示）</label><input type="date" id="chk-date"></div>
   </div>
   <div class="form-actions">
@@ -484,8 +508,8 @@
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '5';
-const SCHEMA_VERSION = 4;
+const APP_VERSION = '6';
+const SCHEMA_VERSION = 5;
 const STORAGE_KEY = 'financeManager';
 
 const C = { blue:['#5B8DEF','#3D6BD1','#EAF1FF'], teal:['#2DC5A4','#189A7E','#E4FAF4'], amber:['#F7B32B','#D3921A','#FFF6E0'], pink:['#F76D8E','#D94A6E','#FFEBF0'], violet:['#9B7EDE','#7A5CC4','#F1EBFF'], slate:['#6B7A99','#4D5B78','#EEF1F6'] };
@@ -598,6 +622,17 @@ function migrate(data) {
     if (data.settings.amountFormat===undefined) data.settings.amountFormat = 'k';
     (data.jobs||[]).forEach(j => { if (j.paydayStamp===undefined) j.paydayStamp = 'payday'; });
     v = 4;
+  }
+  if (v < 5) {
+    // v4 → v5 : チェック項目に order/doneKey/month を追加、記録に wageUsed
+    (data.checks||[]).forEach((c,i) => {
+      if (c.order===undefined) c.order = i+1;
+      if (c.doneKey===undefined) c.doneKey = '';
+      if (c.month===undefined) c.month = c.date ? (+c.date.slice(5,7)) : 1;
+      if (c.kind==='always') c.ym = '';
+    });
+    (data.records||[]).forEach(r => { if (r.wageUsed===undefined && r.hours>0) r.wageUsed = r.hours ? Math.round((r.amount-(r.transport||0))/r.hours) : 0; });
+    v = 5;
   }
   data.schemaVersion = SCHEMA_VERSION;
   data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[]; data.checks=data.checks||[];
@@ -754,7 +789,10 @@ function dayItems(ds) {
     if (ev.startDate<=ds && ds<=end) items.push({ kind:'event', stamp:ev.stamp, color:ev.color, label:ev.title, sub:ev.memo||'', amount:0, ref:ev });
   });
   state.checks.forEach(c=>{
-    if (c.date===ds) items.push({ kind:'check', stamp:c.done?'✅':'☑️', color:PALETTE[5], label:(c.done?'✓ ':'')+c.text, sub:'チェックリスト', amount:0, ref:c });
+    if (c.date===ds) {
+      const done = isCheckDone(c);
+      items.push({ kind:'check', stamp:done?'✅':'☑️', color:PALETTE[5], label:(done?'✓ ':'')+c.text, sub:'チェックリスト', amount:0, ref:c });
+    }
   });
   return items;
 }
@@ -853,15 +891,35 @@ function renderCalWeek() {
   el.innerHTML = '';
   const days = daysIn(calYear, calMonth);
   const today = todayStr();
+  const bands = bandList();
   for (let d=1; d<=days; d++) {
     const ds = dstr(calYear, calMonth, d);
     const dow = new Date(calYear, calMonth, d).getDay();
     const items = dayItems(ds);
     const total = dayTotal(ds);
+    // この日にかかる複数日バンド
+    const dayBands = bands.filter(b=>b.start<=ds && ds<=b.end && b.start!==b.end);
+    // 単日アイテム（バンドで表示されるものは除く）
+    const singles = items.filter(x=>!(x.span) && x.kind!=='event');
+    const singleEvents = items.filter(x=>x.kind==='event' && (x.ref.endDate||x.ref.startDate)===x.ref.startDate);
     const row = document.createElement('div');
     row.className = 'cal-week-row' + (ds===today?' today':'');
+    const bandHTML = dayBands.map(b=>{
+      const isStart = b.start===ds, isEnd = b.end===ds;
+      const cls = isStart?'start':(isEnd?'end':'mid');
+      const edge = isStart?'┌':(isEnd?'└':'│');
+      return `<div class="wk-band ${cls}" style="background:${b.color||PALETTE[0]}">
+        <span class="edge">${edge}</span><span>${b.title}</span>
+        ${isStart?'<span class="edge">開始</span>':''}${isEnd?'<span class="edge">終了</span>':''}</div>`;
+    }).join('');
+    const stampHTMLs = singles.concat(singleEvents).slice(0,5).map(x=>stampHTML(x.stamp)).join('');
     row.innerHTML = `<div class="cal-week-date ${dow===0?'sun':dow===6?'sat':''} ${HOLIDAYS.has(ds)?'hol':''}"><div class="wd">${WD[dow]}</div><div class="dn">${d}</div></div>
-      <div class="cal-week-body">${items.length?items.slice(0,5).map(x=>stampHTML(x.stamp)).join(''):'<span class="cal-week-empty">予定なし</span>'}</div>
+      <div class="cal-week-body" style="flex-direction:column;align-items:stretch;gap:2px">
+        <div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap">
+          ${stampHTMLs || (dayBands.length?'':'<span class="cal-week-empty">予定なし</span>')}
+        </div>
+        ${dayBands.length?`<div class="wk-bands">${bandHTML}</div>`:''}
+      </div>
       ${(total>0&&state.settings.amountShow!=='off')?`<div class="cal-week-amount">${fmt(total)}</div>`:''}`;
     row.onclick = ()=>showDayDetail(ds);
     el.appendChild(row);
@@ -898,9 +956,9 @@ function showDayDetail(ds) {
         <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">${x.label}</div>
           <div style="font-size:11px;color:var(--text-secondary)">${x.sub||''}</div></div>
         ${x.amount>0?`<span class="mono" style="font-size:13px">${fmt(x.amount)}</span>`:''}
-        ${x.kind==='record'?`<button class="btn btn-danger btn-sm" onclick="deleteRecord('${x.ref.id}')">削除</button>`:''}
+        ${x.kind==='record'?`<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openRecordModal(null,null,'${x.ref.id}')">編集</button>`:''}
         ${x.kind==='event'?`<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');editEventById('${x.ref.id}')">編集</button>`:''}
-        ${x.kind==='check'?`<button class="btn btn-ghost btn-sm" onclick="toggleCheck('${x.ref.id}');showDayDetail('${ds}')">${x.ref.done?'未完了に':'完了'}</button>`:''}
+        ${x.kind==='check'?`<button class="btn btn-ghost btn-sm" onclick="toggleCheck('${x.ref.id}');showDayDetail('${ds}')">${isCheckDone(x.ref)?'未完了に':'完了'}</button>`:''}
       </div>`).join('') +
       (total>0?`<div style="display:flex;justify-content:space-between;padding-top:10px;font-weight:700"><span>この日の計上額</span><span class="mono" style="color:var(--mint-dim)">${fmt(total)}</span></div>`:'');
   }
@@ -930,27 +988,31 @@ function openAddMenu(ds) {
 }
 
 // ── record modal ──
-let recJobId = null, recPatId = null;
-function openRecordModal(jobId, ds) {
-  recJobId = jobId; recPatId = null;
+let recJobId = null, recPatId = null, recEditing = null;
+// recId を渡すと編集モード
+function openRecordModal(jobId, ds, recId) {
+  recEditing = recId ? state.records.find(r=>r.id===recId) : null;
+  if (recEditing) { jobId = recEditing.jobId; ds = recEditing.date; }
+  recJobId = jobId; recPatId = recEditing?(recEditing.patternId||null):null;
   const j = jobById(jobId); if (!j) return;
-  document.getElementById('record-title').textContent = j.name + ' — ' + (j.payType==='hourly'?'勤務を記録':'収入を記録');
+  document.getElementById('record-title').textContent = j.name + ' — ' + (recEditing?'記録を編集':(j.payType==='hourly'?'勤務を記録':'収入を記録'));
+  document.getElementById('rec-delete-btn').style.display = recEditing?'':'none';
   const f = document.getElementById('record-form');
   if (j.payType==='hourly') {
     const patChips = (j.patterns&&j.patterns.length) ? `<div class="form-group"><label>シフトパターン</label>
-      <div class="pat-chips" id="rec-pat-chips">${j.patterns.map(p=>`<div class="pat-chip" data-pid="${p.id}">${p.name||'パターン'}</div>`).join('')}</div></div>` : '';
+      <div class="pat-chips" id="rec-pat-chips">${j.patterns.map(p=>`<div class="pat-chip${p.id===recPatId?' sel':''}" data-pid="${p.id}">${p.name||'パターン'}</div>`).join('')}</div></div>` : '';
     f.innerHTML = patChips + `
       <div class="form-group"><label>日付</label><input type="date" id="rec-date" value="${ds}"></div>
       <div class="form-row-3">
-        <div class="form-group"><label>開始</label><input type="time" id="rec-start" value="${j.defStart||'09:00'}" oninput="updateRecPreview()"></div>
-        <div class="form-group"><label>終了</label><input type="time" id="rec-end" value="${j.defEnd||'17:00'}" oninput="updateRecPreview()"></div>
-        <div class="form-group"><label>休憩(分)</label><input type="number" id="rec-break" value="${j.breakMin||0}" oninput="updateRecPreview()"></div>
+        <div class="form-group"><label>開始</label><input type="time" id="rec-start" value="${recEditing?recEditing.start:(j.defStart||'09:00')}" oninput="updateRecPreview()"></div>
+        <div class="form-group"><label>終了</label><input type="time" id="rec-end" value="${recEditing?recEditing.end:(j.defEnd||'17:00')}" oninput="updateRecPreview()"></div>
+        <div class="form-group"><label>休憩(分)</label><input type="number" id="rec-break" value="${recEditing?(recEditing.breakMin||0):(j.breakMin||0)}" oninput="updateRecPreview()"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>時給（円）</label><input type="number" id="rec-wage" value="${j.wage}" oninput="updateRecPreview()"></div>
-        <div class="form-group"><label>交通費（円）</label><input type="number" id="rec-transport" value="${j.transport||0}" oninput="updateRecPreview()"></div>
+        <div class="form-group"><label>時給（円）</label><input type="number" id="rec-wage" value="${recEditing?recEditing.wageUsed||j.wage:j.wage}" oninput="updateRecPreview()"></div>
+        <div class="form-group"><label>交通費（円）</label><input type="number" id="rec-transport" value="${recEditing?(recEditing.transport||0):(j.transport||0)}" oninput="updateRecPreview()"></div>
       </div>
-      <div class="form-group"><label>メモ</label><input type="text" id="rec-memo"></div>
+      <div class="form-group"><label>メモ</label><input type="text" id="rec-memo" value="${recEditing?(recEditing.memo||''):''}"></div>
       <div class="calc-preview" id="rec-preview"></div>`;
     if (j.patterns&&j.patterns.length) {
       document.querySelectorAll('#rec-pat-chips .pat-chip').forEach(ch=>{
@@ -972,16 +1034,25 @@ function openRecordModal(jobId, ds) {
     updateRecPreview();
   } else {
     f.innerHTML = `
-      <div class="form-group"><label>案件名・内容</label><input type="text" id="rec-name" placeholder="例：記事執筆3本"></div>
+      <div class="form-group"><label>案件名・内容</label><input type="text" id="rec-name" value="${recEditing?(recEditing.name||''):''}" placeholder="例：記事執筆3本"></div>
       <div class="form-row">
         <div class="form-group"><label>開始日</label><input type="date" id="rec-date" value="${ds}"></div>
-        <div class="form-group"><label>終了日（単日なら空欄）</label><input type="date" id="rec-enddate"></div>
+        <div class="form-group"><label>終了日（単日なら空欄）</label><input type="date" id="rec-enddate" value="${recEditing?(recEditing.endDate||''):''}"></div>
       </div>
-      <div class="form-group"><label>金額（円）</label><input type="number" id="rec-amount" placeholder="50000"></div>
-      <div class="form-group"><label>メモ</label><input type="text" id="rec-memo"></div>
+      <div class="form-group"><label>金額（円）</label><input type="number" id="rec-amount" value="${recEditing?recEditing.amount:''}" placeholder="50000"></div>
+      <div class="form-group"><label>メモ</label><input type="text" id="rec-memo" value="${recEditing?(recEditing.memo||''):''}"></div>
       <div class="field-note">期間を設定するとカレンダーに帯で表示されます。収入は終了日（納品日）基準で計上します。</div>`;
   }
   openModal('modal-record');
+}
+function deleteRecordFromModal(){
+  if(!recEditing) return;
+  const target = recEditing;
+  const j = jobById(target.jobId);
+  confirmDelete('記録を削除', `「${target.name||(j?j.name:'収入')}」${fmt(target.amount)} を削除します。よろしいですか？`, ()=>{
+    state.records = state.records.filter(r=>r.id!==target.id);
+    save(); closeModal('modal-record'); renderAll(); showToast('削除しました');
+  });
 }
 function calcHours() {
   const s=document.getElementById('rec-start').value, e=document.getElementById('rec-end').value;
@@ -1001,25 +1072,27 @@ function saveRecord() {
   const j = jobById(recJobId); if(!j) return;
   const date = document.getElementById('rec-date').value;
   if(!date){ showToast('日付を入力してください'); return; }
-  let rec;
+  let data;
   if (j.payType==='hourly') {
     const h=calcHours();
     const w=parseFloat(document.getElementById('rec-wage').value)||0;
     const t=parseFloat(document.getElementById('rec-transport').value)||0;
     if(h<=0){ showToast('勤務時間を確認してください'); return; }
-    rec={ id:'r'+Date.now(), jobId:j.id, date, endDate:'', start:document.getElementById('rec-start').value,
+    data={ jobId:j.id, date, endDate:'', start:document.getElementById('rec-start').value,
       end:document.getElementById('rec-end').value, breakMin:parseFloat(document.getElementById('rec-break').value)||0,
-      hours:h, transport:t, amount:h*w+t, name:'', memo:document.getElementById('rec-memo').value, patternId:recPatId };
+      hours:h, transport:t, wageUsed:w, amount:h*w+t, name:'', memo:document.getElementById('rec-memo').value, patternId:recPatId };
   } else {
     const amount=parseFloat(document.getElementById('rec-amount').value)||0;
     const name=document.getElementById('rec-name').value;
     const endDate=document.getElementById('rec-enddate').value||'';
     if(!name||!amount){ showToast('内容と金額を入力してください'); return; }
     if(endDate && endDate<date){ showToast('終了日は開始日以降にしてください'); return; }
-    rec={ id:'r'+Date.now(), jobId:j.id, date, endDate, start:'', end:'', breakMin:0, hours:0, transport:0,
+    data={ jobId:j.id, date, endDate, start:'', end:'', breakMin:0, hours:0, transport:0,
       amount, name, memo:document.getElementById('rec-memo').value };
   }
-  state.records.push(rec); save(); closeModal('modal-record'); renderAll(); showToast('記録しました ✓');
+  if (recEditing) { Object.assign(recEditing, data); showToast('更新しました ✓'); }
+  else { state.records.push(Object.assign({id:'r'+Date.now()}, data)); showToast('記録しました ✓'); }
+  save(); closeModal('modal-record'); renderAll();
 }
 function deleteRecord(id){
   const r = state.records.find(x=>x.id===id); if(!r) return;
@@ -1296,7 +1369,7 @@ function renderHome() {
     return `<tr><td style="white-space:nowrap;color:var(--text-secondary)">${r.date.slice(5)}${r.endDate?('<br>〜'+r.endDate.slice(5)):''}</td>
       <td>${r.name||(j?j.name:'')}${r.start?('<br><span style="font-size:10.5px;color:var(--text-secondary)">'+r.start+'〜'+r.end+' 実働'+fmtH(r.hours)+'</span>'):''}</td>
       <td class="mono" style="text-align:right">${fmt(r.amount)}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}')">削除</button></td></tr>`;}).join('')+'</tbody></table>';
+      <td><button class="btn btn-ghost btn-sm" onclick="openRecordModal(null,null,'${r.id}')">編集</button></td></tr>`;}).join('')+'</tbody></table>';
 }
 
 // ── settings ──
@@ -1332,35 +1405,90 @@ function importData(ev) {
 }
 
 // ── checklist ──
-// check: {id, text, kind:'month'|'always', ym:'YYYY-MM'(monthのみ), date:''|'YYYY-MM-DD', done:bool}
-let checkEditing = null, checkKind = 'month';
+// check: {id, text, kind, ym, month, date, done, doneKey, order}
+//  kind: 'month'(今月限定) 'monthly'(毎月リセット) 'carry'(完了まで繰越)
+//        'weekly'(毎週リセット) 'yearly'(年1回) 'always'(常設)
+//  doneKey: 完了した期間キー（monthly:'2026-07' weekly:'2026-W30' yearly:'2026'）
+let checkEditing = null;
 function curYm(){ return calYear + '-' + pad(calMonth+1); }
-function setCheckKind(k, el){ checkKind=k; document.querySelectorAll('#modal-check .seg-btn[data-ck]').forEach(b=>b.classList.remove('active')); el.classList.add('active'); }
+// ISO週キー（その月の表示基準日＝月初で判定）
+function weekKeyOf(ds) {
+  const d = new Date(ds+'T00:00:00');
+  const t = new Date(d.valueOf());
+  t.setDate(t.getDate() + 3 - ((d.getDay()+6)%7));
+  const week1 = new Date(t.getFullYear(),0,4);
+  const wn = 1 + Math.round(((t - week1)/86400000 - 3 + ((week1.getDay()+6)%7))/7);
+  return t.getFullYear()+'-W'+pad(wn);
+}
+function curWeekKey(){ return weekKeyOf(todayStr()); }
+const KIND_NOTES = {
+  month:'この月にだけ表示されます。翌月には出ません。',
+  monthly:'毎月くり返し表示。月が変わるとチェックがリセットされます。',
+  carry:'チェックを入れるまで毎月表示され続けます。',
+  weekly:'毎週くり返し表示。週が変わるとチェックがリセットされます。',
+  yearly:'指定した月にだけ毎年表示されます。',
+  always:'月に関係なく常に表示されます。'
+};
+function onCheckKindChange(){
+  const k = document.getElementById('chk-kind').value;
+  document.getElementById('chk-kind-note').textContent = KIND_NOTES[k]||'';
+  document.getElementById('chk-yearmonth-row').style.display = k==='yearly'?'':'none';
+}
+// 項目が現在表示中の月に出るか
+function isCheckVisible(c) {
+  const ym = curYm();
+  switch(c.kind) {
+    case 'month':   return c.ym===ym;
+    case 'monthly': return true;
+    case 'weekly':  return true;
+    case 'carry':   return !c.done || c.ym===ym;
+    case 'yearly':  return c.month===(calMonth+1);
+    case 'always':  return true;
+    default: return c.ym===ym;
+  }
+}
+// 期間リセット型の完了状態を判定
+function isCheckDone(c) {
+  if (c.kind==='monthly') return c.doneKey===curYm();
+  if (c.kind==='weekly')  return c.doneKey===curWeekKey();
+  if (c.kind==='yearly')  return c.doneKey===String(calYear);
+  return !!c.done;
+}
 function openCheckModal(id) {
   checkEditing = id ? state.checks.find(c=>c.id===id) : null;
-  checkKind = checkEditing ? checkEditing.kind : 'month';
   document.getElementById('check-modal-title').textContent = checkEditing?'チェック項目を編集':'チェック項目を追加';
   document.getElementById('chk-text').value = checkEditing?checkEditing.text:'';
   document.getElementById('chk-date').value = checkEditing?(checkEditing.date||''):'';
+  document.getElementById('chk-kind').value = checkEditing?checkEditing.kind:'month';
+  document.getElementById('chk-yearmonth').value = String(checkEditing&&checkEditing.month?checkEditing.month:(calMonth+1));
   document.getElementById('chk-delete-btn').style.display = checkEditing?'':'none';
-  document.querySelectorAll('#modal-check .seg-btn[data-ck]').forEach(b=>b.classList.toggle('active', b.dataset.ck===checkKind));
+  onCheckKindChange();
   openModal('modal-check');
 }
 function saveCheck() {
   const text = document.getElementById('chk-text').value.trim();
   if(!text){ showToast('内容を入力してください'); return; }
+  const kind = document.getElementById('chk-kind').value;
   const date = document.getElementById('chk-date').value||'';
+  const month = parseInt(document.getElementById('chk-yearmonth').value)||(calMonth+1);
   if (checkEditing) {
-    checkEditing.text=text; checkEditing.kind=checkKind; checkEditing.date=date;
-    if (checkKind==='month' && !checkEditing.ym) checkEditing.ym = date?date.slice(0,7):curYm();
+    Object.assign(checkEditing, { text, kind, date, month,
+      ym: (kind==='month'||kind==='carry') ? (checkEditing.ym||(date?date.slice(0,7):curYm())) : '' });
   } else {
-    state.checks.push({ id:'c'+Date.now(), text, kind:checkKind, ym: checkKind==='month'?(date?date.slice(0,7):curYm()):'', date, done:false });
+    const maxOrder = state.checks.length ? Math.max(...state.checks.map(c=>c.order||0)) : 0;
+    state.checks.push({ id:'c'+Date.now(), text, kind, date, month,
+      ym: (kind==='month'||kind==='carry') ? (date?date.slice(0,7):curYm()) : '',
+      done:false, doneKey:'', order:maxOrder+1 });
   }
   save(); closeModal('modal-check'); renderAll(); showToast('保存しました ✓');
 }
 function toggleCheck(id) {
   const c = state.checks.find(x=>x.id===id); if(!c) return;
-  c.done = !c.done; save(); renderAll();
+  if (c.kind==='monthly') { c.doneKey = (c.doneKey===curYm()) ? '' : curYm(); }
+  else if (c.kind==='weekly') { c.doneKey = (c.doneKey===curWeekKey()) ? '' : curWeekKey(); }
+  else if (c.kind==='yearly') { c.doneKey = (c.doneKey===String(calYear)) ? '' : String(calYear); }
+  else { c.done = !c.done; if (c.kind==='carry' && c.done) c.ym = curYm(); }
+  save(); renderAll();
 }
 function deleteCheck() {
   if(!checkEditing) return;
@@ -1369,24 +1497,50 @@ function deleteCheck() {
     state.checks = state.checks.filter(c=>c.id!==target.id); save(); closeModal('modal-check'); renderAll(); showToast('削除しました');
   });
 }
-function checkRowHTML(c) {
-  return `<div style="display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--border)">
-    <div onclick="toggleCheck('${c.id}')" style="width:22px;height:22px;border-radius:6px;border:2px solid ${c.done?'var(--mint)':'var(--border)'};background:${c.done?'var(--mint)':'#fff'};flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer">
-      ${c.done?'<span style="color:#fff;font-size:13px">✓</span>':''}</div>
+// 並べ替え（表示中リスト内で上下移動）
+function moveCheck(id, dir) {
+  const visible = sortedChecks().filter(isCheckVisible);
+  const idx = visible.findIndex(c=>c.id===id);
+  const swapIdx = idx + dir;
+  if (idx<0 || swapIdx<0 || swapIdx>=visible.length) return;
+  const a = visible[idx], b = visible[swapIdx];
+  const ao = a.order||0, bo = b.order||0;
+  a.order = bo; b.order = ao;
+  if (ao===bo) { // 同値なら振り直し
+    sortedChecks().forEach((c,i)=>c.order=i+1);
+    const va = state.checks.find(c=>c.id===a.id), vb = state.checks.find(c=>c.id===b.id);
+    const t = va.order; va.order = vb.order; vb.order = t;
+  }
+  save(); renderAll();
+}
+function sortedChecks(){ return [...state.checks].sort((x,y)=>(x.order||0)-(y.order||0)); }
+const KIND_BADGE = { month:'今月', monthly:'毎月', carry:'繰越', weekly:'毎週', yearly:'年1', always:'常設' };
+function checkRowHTML(c, idx, total) {
+  const done = isCheckDone(c);
+  return `<div style="display:flex;align-items:center;gap:8px;padding:9px 2px;border-bottom:1px solid var(--border)">
+    <div onclick="toggleCheck('${c.id}')" style="width:22px;height:22px;border-radius:6px;border:2px solid ${done?'var(--mint)':'var(--border)'};background:${done?'var(--mint)':'#fff'};flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer">
+      ${done?'<span style="color:#fff;font-size:13px">✓</span>':''}</div>
     <div style="flex:1;min-width:0;cursor:pointer" onclick="openCheckModal('${c.id}')">
-      <div style="font-size:13px;${c.done?'text-decoration:line-through;color:var(--text-secondary)':''}">${c.text}</div>
-      ${c.date?`<div style="font-size:10.5px;color:var(--text-secondary)">📅 ${(+c.date.slice(5,7))}/${(+c.date.slice(8,10))}</div>`:''}
+      <div style="font-size:13px;${done?'text-decoration:line-through;color:var(--text-secondary)':''}">${c.text}</div>
+      <div style="font-size:10px;color:var(--text-secondary);display:flex;gap:6px;align-items:center;margin-top:1px">
+        <span style="background:var(--bg);padding:1px 6px;border-radius:8px">${KIND_BADGE[c.kind]||''}</span>
+        ${c.date?`<span>📅 ${(+c.date.slice(5,7))}/${(+c.date.slice(8,10))}</span>`:''}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+      <button onclick="moveCheck('${c.id}',-1)" ${idx===0?'disabled':''} style="border:1px solid var(--border);background:#fff;border-radius:5px;width:26px;height:20px;font-size:10px;cursor:pointer;opacity:${idx===0?0.3:1}">▲</button>
+      <button onclick="moveCheck('${c.id}',1)" ${idx===total-1?'disabled':''} style="border:1px solid var(--border);background:#fff;border-radius:5px;width:26px;height:20px;font-size:10px;cursor:pointer;opacity:${idx===total-1?0.3:1}">▼</button>
     </div></div>`;
 }
 function renderChecklist() {
-  const ym = curYm();
-  document.getElementById('check-month-label').textContent = `${calYear}年${calMonth+1}月`;
-  const monthList = state.checks.filter(c=>c.kind==='month'&&c.ym===ym);
-  const alwaysList = state.checks.filter(c=>c.kind==='always');
+  document.getElementById('check-month-label').textContent = `${calYear}年${calMonth+1}月に表示される項目`;
+  const list = sortedChecks().filter(isCheckVisible);
   const ml = document.getElementById('check-month-list');
-  ml.innerHTML = monthList.length ? monthList.map(checkRowHTML).join('') : '<div style="font-size:11.5px;color:var(--text-secondary);padding:6px 2px">今月の項目はありません</div>';
-  const al = document.getElementById('check-always-list');
-  al.innerHTML = alwaysList.length ? alwaysList.map(checkRowHTML).join('') : '<div style="font-size:11.5px;color:var(--text-secondary);padding:6px 2px">常設の項目はありません</div>';
+  ml.innerHTML = list.length ? list.map((c,i)=>checkRowHTML(c,i,list.length)).join('')
+    : '<div style="font-size:11.5px;color:var(--text-secondary);padding:6px 2px">この月に表示される項目はありません</div>';
+  // 常設セクションは統合したので非表示に
+  const alwaysSection = document.getElementById('check-always-section');
+  if (alwaysSection) alwaysSection.style.display = 'none';
 }
 
 // ── render all / init ──
