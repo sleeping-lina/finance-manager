@@ -215,7 +215,7 @@
   <header class="topbar">
     <div style="display:flex;align-items:center;">
       <span class="topbar-logo">Finance<span>Mgr</span></span>
-      <span class="version-badge" id="version-badge">v6</span>
+      <span class="version-badge" id="version-badge">v7</span>
     </div>
     <div class="topbar-total">
       <div class="topbar-total-label">今月合計</div>
@@ -270,7 +270,9 @@
       </div>
       <div class="agg-note" id="agg-note"></div>
       <div class="total-banner"><span class="lbl">月合計収入</span><span class="amt" id="home-total">¥0</span></div>
+      <div id="home-money-summary"></div>
       <div class="card"><div class="card-title">仕事別の内訳</div><div id="home-jobs"></div></div>
+      <div class="card"><div class="card-title">お金・ポイントの記録</div><div id="home-money-list"></div></div>
       <div class="card"><div class="card-title">月別収入推移（6ヶ月）</div>
         <div class="bar-section" id="bar-chart"></div><div class="bar-labels" id="bar-labels"></div></div>
       <div class="card"><div class="card-title">この月の記録</div><div class="table-scroll" id="home-records"></div></div>
@@ -289,6 +291,21 @@
           <button class="btn btn-primary btn-sm" onclick="openJobModal()">＋ 追加</button>
         </div>
         <div id="job-list"></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div class="card-title" style="margin-bottom:0">お金・ポイントのカテゴリ</div>
+          <button class="btn btn-primary btn-sm" onclick="openMoneyCatModal()">＋ 追加</button>
+        </div>
+        <div id="moneycat-list"></div>
+        <div class="field-note">保険料・銀行引落・ポイント還元などを登録すると、カレンダーから記録できます。</div>
+      </div>
+      <div class="card">
+        <div class="card-title">種別ごとの色</div>
+        <div class="settings-row"><span>収入</span><div class="color-picker" id="color-income-picker"></div></div>
+        <div class="settings-row"><span>支出</span><div class="color-picker" id="color-expense-picker"></div></div>
+        <div class="settings-row"><span>ポイント</span><div class="color-picker" id="color-point-picker"></div></div>
+        <div class="field-note">カレンダーや詳細で金額を表示するときの文字色です。</div>
       </div>
       <div class="card">
         <div class="card-title">表示・集計</div>
@@ -321,7 +338,7 @@
           <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)"></div>
       </div>
       <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-        FinanceManager <span id="ver-footer">v6</span> / schema <span id="schema-footer">5</span> / 祝日データ 2025–2027
+        FinanceManager <span id="ver-footer">v7</span> / schema <span id="schema-footer">6</span> / 祝日データ 2025–2027
       </div>
     </div>
   </div>
@@ -493,6 +510,55 @@
   </div>
 </div></div>
 
+<div class="modal-overlay" id="modal-money"><div class="modal">
+  <div class="modal-handle"></div><div class="modal-title" id="money-modal-title">お金の記録</div>
+  <div class="form-grid">
+    <div class="form-group"><label>カテゴリ</label>
+      <select id="mny-cat" onchange="onMoneyCatChange()"></select>
+      <div class="field-note" id="mny-cat-note"></div></div>
+    <div class="form-group"><label>内容</label><input type="text" id="mny-name" placeholder="例：国民健康保険 7月分"></div>
+    <div class="form-group"><label id="mny-amount-label">金額（円）</label><input type="number" id="mny-amount" placeholder="15000"></div>
+    <div class="form-group"><label>くり返し</label>
+      <div class="seg">
+        <div class="seg-btn active" data-mrep="once" onclick="setMoneyRepeat('once',this)">単発</div>
+        <div class="seg-btn" data-mrep="monthly" onclick="setMoneyRepeat('monthly',this)">毎月</div>
+      </div></div>
+    <div class="form-group" id="mny-date-row"><label>日付</label><input type="date" id="mny-date"></div>
+    <div id="mny-monthly-rows" style="display:none">
+      <div class="form-group"><label>毎月の日にち</label><input type="number" id="mny-day" min="1" max="31" placeholder="27"></div>
+      <div class="form-row">
+        <div class="form-group"><label>開始（任意）</label><input type="date" id="mny-start"></div>
+        <div class="form-group"><label>終了（任意）</label><input type="date" id="mny-end"></div>
+      </div>
+    </div>
+    <div class="form-group"><label>メモ</label><input type="text" id="mny-memo" placeholder="口座・支払方法など"></div>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-danger" id="mny-delete-btn" style="margin-right:auto;display:none" onclick="deleteMoneyRec()">削除</button>
+    <button class="btn btn-ghost" onclick="closeModal('modal-money')">キャンセル</button>
+    <button class="btn btn-primary" onclick="saveMoneyRec()">保存</button>
+  </div>
+</div></div>
+
+<div class="modal-overlay" id="modal-moneycat"><div class="modal">
+  <div class="modal-handle"></div><div class="modal-title" id="moneycat-modal-title">カテゴリを追加</div>
+  <div class="form-grid">
+    <div class="form-group"><label>カテゴリ名</label><input type="text" id="mc-name" placeholder="例：家賃 / クレカ引落"></div>
+    <div class="form-group"><label>種類</label>
+      <div class="seg">
+        <div class="seg-btn active" data-mct="expense" onclick="setMoneyCatType('expense',this)">支出（円）</div>
+        <div class="seg-btn" data-mct="point" onclick="setMoneyCatType('point',this)">ポイント（pt）</div>
+      </div></div>
+    <div class="form-group"><label>スタンプ</label><div id="mc-stamp-area"></div></div>
+    <div class="form-group"><label>カレンダー色</label><div class="color-picker" id="mc-color-picker"></div></div>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-danger" id="mc-delete-btn" style="margin-right:auto;display:none" onclick="deleteMoneyCat()">削除</button>
+    <button class="btn btn-ghost" onclick="closeModal('modal-moneycat')">キャンセル</button>
+    <button class="btn btn-primary" onclick="saveMoneyCat()">保存</button>
+  </div>
+</div></div>
+
 <div class="modal-overlay" id="modal-confirm"><div class="modal" style="max-width:360px">
   <div class="modal-handle"></div>
   <div class="modal-title" id="confirm-title">確認</div>
@@ -508,8 +574,8 @@
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '6';
-const SCHEMA_VERSION = 5;
+const APP_VERSION = '7';
+const SCHEMA_VERSION = 6;
 const STORAGE_KEY = 'financeManager';
 
 const C = { blue:['#5B8DEF','#3D6BD1','#EAF1FF'], teal:['#2DC5A4','#189A7E','#E4FAF4'], amber:['#F7B32B','#D3921A','#FFF6E0'], pink:['#F76D8E','#D94A6E','#FFEBF0'], violet:['#9B7EDE','#7A5CC4','#F1EBFF'], slate:['#6B7A99','#4D5B78','#EEF1F6'] };
@@ -577,8 +643,20 @@ function computePayDate(job, recDate) {
 // ── state / migrate ──
 function defaultState() {
   return { schemaVersion: SCHEMA_VERSION, jobs: [], records: [], events: [], checks: [],
-    settings: { hoursFormat:'decimal', aggregation:'work', amountShow:'on', amountFormat:'k' },
+    moneyCats: defaultMoneyCats(), moneyRecs: [],
+    settings: { hoursFormat:'decimal', aggregation:'work', amountShow:'on', amountFormat:'k',
+      colorIncome:'#1DB882', colorExpense:'#E5544B', colorPoint:'#9B7EDE' },
     homeMonth: new Date().getMonth(), homeYear: new Date().getFullYear() };
+}
+// お金・ポイントのカテゴリ初期値
+function defaultMoneyCats() {
+  return [
+    { id:'mc_ins',   name:'保険料',     type:'expense', stamp:'📋', color:'#FFD3DE', active:true },
+    { id:'mc_bank',  name:'銀行引落',   type:'expense', stamp:'bank', color:'#BFE3FF', active:true },
+    { id:'mc_util',  name:'光熱費',     type:'expense', stamp:'💡', color:'#FFE9B8', active:true },
+    { id:'mc_tax',   name:'税金',       type:'expense', stamp:'🏛', color:'#D9E2F0', active:true },
+    { id:'mc_pt',    name:'ポイント還元', type:'point',  stamp:'coin', color:'#E3D9FF', active:true },
+  ];
 }
 function migrate(data) {
   if (!data) return defaultState();
@@ -634,9 +712,22 @@ function migrate(data) {
     (data.records||[]).forEach(r => { if (r.wageUsed===undefined && r.hours>0) r.wageUsed = r.hours ? Math.round((r.amount-(r.transport||0))/r.hours) : 0; });
     v = 5;
   }
+  if (v < 6) {
+    // v5 → v6 : お金・ポイント記録を追加
+    if (!data.moneyCats || !data.moneyCats.length) data.moneyCats = defaultMoneyCats();
+    data.moneyRecs = data.moneyRecs || [];
+    data.settings = data.settings || {};
+    if (data.settings.colorIncome===undefined)  data.settings.colorIncome  = '#1DB882';
+    if (data.settings.colorExpense===undefined) data.settings.colorExpense = '#E5544B';
+    if (data.settings.colorPoint===undefined)   data.settings.colorPoint   = '#9B7EDE';
+    v = 6;
+  }
   data.schemaVersion = SCHEMA_VERSION;
   data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[]; data.checks=data.checks||[];
-  data.settings = Object.assign({ hoursFormat:'decimal', aggregation:'work', amountShow:'on', amountFormat:'k' }, data.settings||{});
+  data.moneyCats = (data.moneyCats&&data.moneyCats.length)?data.moneyCats:defaultMoneyCats();
+  data.moneyRecs = data.moneyRecs||[];
+  data.settings = Object.assign({ hoursFormat:'decimal', aggregation:'work', amountShow:'on', amountFormat:'k',
+    colorIncome:'#1DB882', colorExpense:'#E5544B', colorPoint:'#9B7EDE' }, data.settings||{});
   return data;
 }
 function loadState() {
@@ -662,6 +753,16 @@ function fmtCalAmount(n) {
   if (state.settings.amountShow==='off' || n<=0) return '';
   if (state.settings.amountFormat==='full') return '¥'+Math.round(n).toLocaleString();
   return n>=10000 ? Math.round(n/1000)+'k' : (n/1000).toFixed(1)+'k';
+}
+// 記号なしの金額（支出のマイナス表示用）
+function fmtCalAmountRaw(n) {
+  if (state.settings.amountFormat==='full') return '¥'+Math.round(n).toLocaleString();
+  return n>=10000 ? Math.round(n/1000)+'k' : (n/1000).toFixed(1)+'k';
+}
+// ポイント表示
+function fmtPt(n) {
+  if (state.settings.amountFormat==='full') return Math.round(n).toLocaleString()+'pt';
+  return (n>=10000 ? Math.round(n/1000)+'k' : Math.round(n).toLocaleString())+'pt';
 }
 const MONTHS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 const WD = ['日','月','火','水','木','金','土'];
@@ -724,8 +825,8 @@ function confirmDelete(title, body, onOk) {
 // ── calendar state / swipe / ym picker ──
 let calMonth = new Date().getMonth(), calYear = new Date().getFullYear();
 let calView = 'month';
-function changeCalMonth(d){ calMonth+=d; if(calMonth<0){calMonth=11;calYear--;} if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
-function goToday(){ const t=new Date(); calMonth=t.getMonth(); calYear=t.getFullYear(); renderCalendar(); }
+function changeCalMonth(d){ calMonth+=d; if(calMonth<0){calMonth=11;calYear--;} if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); renderChecklist(); }
+function goToday(){ const t=new Date(); calMonth=t.getMonth(); calYear=t.getFullYear(); renderCalendar(); renderChecklist(); }
 function setCalView(v, el){ calView=v;
   document.querySelectorAll('.cal-switch-btn').forEach(b=>b.classList.remove('active')); el.classList.add('active');
   document.getElementById('cal-month-view').style.display = v==='month'?'':'none';
@@ -758,7 +859,7 @@ function openYmPicker() {
     const b = ms.querySelector('.sel'); if(b) ms.scrollTop = b.offsetTop - ms.clientHeight/2 + 20;
   }, 60);
 }
-function applyYm(){ calYear=ymY; calMonth=ymM; closeModal('modal-ym'); renderCalendar(); }
+function applyYm(){ calYear=ymY; calMonth=ymM; closeModal('modal-ym'); renderCalendar(); renderChecklist(); }
 
 // ── day items / totals ──
 function dayItems(ds) {
@@ -770,7 +871,7 @@ function dayItems(ds) {
     if (hit) items.push({ kind:'record', stamp:j?j.stamp:'yen', color:j?j.color:PALETTE[0],
       label: r.name || (j?j.name:'収入'),
       sub: r.start ? (r.start+'〜'+r.end+(r.hours?('（実働'+fmtH(r.hours)+'）'):'')) : (isSpan?(r.date.slice(5).replace('-','/')+'〜'+r.endDate.slice(5).replace('-','/')):(j?j.name:'')),
-      amount:r.amount, ref:r, span:isSpan });
+      amount:r.amount, memo:r.memo||'', ref:r, span:isSpan });
   });
   state.jobs.filter(j=>j.payType==='monthly'&&j.active&&j.salary>0).forEach(j=>{
     const y=+ds.slice(0,4), m=+ds.slice(5,7)-1;
@@ -786,15 +887,63 @@ function dayItems(ds) {
   }
   state.events.forEach(ev=>{
     const end = ev.endDate || ev.startDate;
-    if (ev.startDate<=ds && ds<=end) items.push({ kind:'event', stamp:ev.stamp, color:ev.color, label:ev.title, sub:ev.memo||'', amount:0, ref:ev });
+    if (ev.startDate<=ds && ds<=end) items.push({ kind:'event', stamp:ev.stamp, color:ev.color, label:ev.title, sub:'', memo:ev.memo||'', amount:0, ref:ev });
   });
   state.checks.forEach(c=>{
     if (c.date===ds) {
       const done = isCheckDone(c);
-      items.push({ kind:'check', stamp:done?'✅':'☑️', color:PALETTE[5], label:(done?'✓ ':'')+c.text, sub:'チェックリスト', amount:0, ref:c });
+      items.push({ kind:'check', stamp:done?'✅':'☑️', color:PALETTE[5], label:(done?'✓ ':'')+c.text, sub:'チェックリスト', amount:0, memo:'', ref:c });
     }
   });
+  // お金・ポイント記録（単発 + 毎月くり返し）
+  state.moneyRecs.forEach(mr=>{
+    if (!moneyHitsDate(mr, ds)) return;
+    const cat = moneyCatById(mr.catId);
+    items.push({ kind:'money', mtype:(cat?cat.type:'expense'),
+      stamp:(cat?cat.stamp:'💰'), color:(cat?cat.color:PALETTE[3]),
+      label: mr.name || (cat?cat.name:'支出'),
+      sub: (cat?cat.name:'') + (mr.repeat==='monthly'?'（毎月）':''),
+      amount:0, moneyAmount:mr.amount, memo:mr.memo||'', ref:mr });
+  });
   return items;
+}
+const moneyCatById = id => state.moneyCats.find(c=>c.id===id);
+// お金記録がその日に該当するか（単発 or 毎月くり返し）
+function moneyHitsDate(mr, ds) {
+  if (mr.repeat==='monthly') {
+    const y=+ds.slice(0,4), m=+ds.slice(5,7)-1;
+    const day = Math.min(mr.day||1, daysIn(y,m));
+    if (mr.startDate && ds < mr.startDate) return false;
+    if (mr.endDate && ds > mr.endDate) return false;
+    return (+ds.slice(8,10))===day;
+  }
+  return mr.date===ds;
+}
+// 月内のお金記録を列挙（毎月くり返しを展開）
+function moneyRecsInMonth(y, m) {
+  const out = [];
+  const dim = daysIn(y,m);
+  state.moneyRecs.forEach(mr=>{
+    if (mr.repeat==='monthly') {
+      const day = Math.min(mr.day||1, dim);
+      const ds = dstr(y,m,day);
+      if (mr.startDate && ds < mr.startDate) return;
+      if (mr.endDate && ds > mr.endDate) return;
+      out.push(Object.assign({}, mr, { _date: ds }));
+    } else {
+      if (mr.date && +mr.date.slice(0,4)===y && +mr.date.slice(5,7)-1===m) out.push(Object.assign({}, mr, { _date: mr.date }));
+    }
+  });
+  return out.sort((a,b)=>a._date.localeCompare(b._date));
+}
+// 月のお金集計（支出合計・ポイント合計）
+function moneyMonthTotals(y, m) {
+  let expense = 0, point = 0;
+  moneyRecsInMonth(y,m).forEach(mr=>{
+    const cat = moneyCatById(mr.catId);
+    if (cat && cat.type==='point') point += mr.amount; else expense += mr.amount;
+  });
+  return { expense, point };
 }
 function dayTotal(ds) {
   let t = 0;
@@ -853,13 +1002,21 @@ function renderCalMonth() {
     week.forEach((c,i)=>{
       const items = dayItems(c.ds).filter(x=>x.kind!=='event'&&!x.span);
       const total = dayTotal(c.ds);
+      let expSum=0, ptSum=0;
+      items.forEach(x=>{ if(x.kind==='money'){ if(x.mtype==='point') ptSum+=x.moneyAmount; else expSum+=x.moneyAmount; } });
       const cell = document.createElement('div');
       cell.className = 'cal-day' + (c.other?' other':'') + (i===0?' sun':'') + (i===6?' sat':'') + (HOLIDAYS.has(c.ds)?' hol':'') + (c.ds===today?' today':'');
       const st = items.slice(0,3).map(x=>stampHTML(x.stamp)).join('');
-      const amtStr = fmtCalAmount(total);
+      let amtLines = '';
+      if (state.settings.amountShow!=='off') {
+        const inc = fmtCalAmount(total);
+        if (inc) amtLines += `<div class="cal-amount" style="color:${state.settings.colorIncome}">${inc}</div>`;
+        if (expSum>0) amtLines += `<div class="cal-amount" style="color:${state.settings.colorExpense}">-${fmtCalAmountRaw(expSum)}</div>`;
+        if (ptSum>0) amtLines += `<div class="cal-amount" style="color:${state.settings.colorPoint}">+${fmtPt(ptSum)}</div>`;
+      }
       cell.innerHTML = `<div class="day-num">${c.d}</div>
         <div class="cal-stamps">${st}${items.length>3?`<span class="cal-more">+${items.length-3}</span>`:''}</div>
-        ${amtStr?`<div class="cal-amount">${amtStr}</div>`:''}`;
+        ${amtLines?`<div style="margin-top:auto;line-height:1.15">${amtLines}</div>`:''}`;
       cell.onclick = ()=>showDayDetail(c.ds);
       daysEl.appendChild(cell);
     });
@@ -950,20 +1107,46 @@ function showDayDetail(ds) {
   if (!items.length) body.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:14px 0;font-size:13px">この日の予定・記録はありません</div>';
   else {
     const total = dayTotal(ds);
-    body.innerHTML = items.map(x=>`
-      <div style="display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--border)">
-        <span style="width:26px;flex-shrink:0;text-align:center">${stampHTML(x.stamp)}</span>
-        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">${x.label}</div>
-          <div style="font-size:11px;color:var(--text-secondary)">${x.sub||''}</div></div>
-        ${x.amount>0?`<span class="mono" style="font-size:13px">${fmt(x.amount)}</span>`:''}
-        ${x.kind==='record'?`<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openRecordModal(null,null,'${x.ref.id}')">編集</button>`:''}
-        ${x.kind==='event'?`<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');editEventById('${x.ref.id}')">編集</button>`:''}
-        ${x.kind==='check'?`<button class="btn btn-ghost btn-sm" onclick="toggleCheck('${x.ref.id}');showDayDetail('${ds}')">${isCheckDone(x.ref)?'未完了に':'完了'}</button>`:''}
-      </div>`).join('') +
-      (total>0?`<div style="display:flex;justify-content:space-between;padding-top:10px;font-weight:700"><span>この日の計上額</span><span class="mono" style="color:var(--mint-dim)">${fmt(total)}</span></div>`:'');
+    let expenseSum = 0, pointSum = 0;
+    items.forEach(x=>{ if(x.kind==='money'){ if(x.mtype==='point') pointSum+=x.moneyAmount; else expenseSum+=x.moneyAmount; } });
+    body.innerHTML = items.map(x=>{
+      // 右側に出す金額（収入=緑 / 支出=赤 / ポイント=紫）
+      let amtHTML = '';
+      if (x.kind==='money') {
+        const col = x.mtype==='point' ? state.settings.colorPoint : state.settings.colorExpense;
+        const txt = x.mtype==='point' ? ('+'+Math.round(x.moneyAmount).toLocaleString()+'pt') : ('-'+fmt(x.moneyAmount).slice(1));
+        amtHTML = `<span class="mono" style="font-size:13px;color:${col};font-weight:600">${txt}</span>`;
+      } else if (x.amount>0) {
+        amtHTML = `<span class="mono" style="font-size:13px;color:${state.settings.colorIncome};font-weight:600">${fmt(x.amount)}</span>`;
+      }
+      let btn = '';
+      if (x.kind==='record') btn = `<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openRecordModal(null,null,'${x.ref.id}')">編集</button>`;
+      else if (x.kind==='event') btn = `<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');editEventById('${x.ref.id}')">編集</button>`;
+      else if (x.kind==='money') btn = `<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openMoneyModal(null,null,'${x.ref.id}')">編集</button>`;
+      else if (x.kind==='check') btn = `<button class="btn btn-ghost btn-sm" onclick="toggleCheck('${x.ref.id}');showDayDetail('${ds}')">${isCheckDone(x.ref)?'未完了に':'完了'}</button>`;
+      return `<div style="display:flex;align-items:flex-start;gap:11px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <span style="width:26px;flex-shrink:0;text-align:center;padding-top:1px">${stampHTML(x.stamp)}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:500">${x.label}</div>
+          ${x.sub?`<div style="font-size:11px;color:var(--text-secondary)">${x.sub}</div>`:''}
+          ${x.memo?`<div style="font-size:11.5px;color:var(--text-primary);background:var(--bg);border-radius:7px;padding:6px 9px;margin-top:5px;line-height:1.5;white-space:pre-wrap">${escapeHTML(x.memo)}</div>`:''}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
+          ${amtHTML}${btn}
+        </div>
+      </div>`;}).join('') +
+      buildDayTotalsHTML(total, expenseSum, pointSum);
   }
   document.getElementById('day-add-btn').onclick = ()=>{ closeModal('modal-day'); openAddMenu(ds); };
   openModal('modal-day');
+}
+function escapeHTML(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function buildDayTotalsHTML(income, expense, point) {
+  const rows = [];
+  if (income>0)  rows.push(`<div style="display:flex;justify-content:space-between;font-weight:700"><span>収入</span><span class="mono" style="color:${state.settings.colorIncome}">${fmt(income)}</span></div>`);
+  if (expense>0) rows.push(`<div style="display:flex;justify-content:space-between;font-weight:700"><span>支出</span><span class="mono" style="color:${state.settings.colorExpense}">-${fmt(expense).slice(1)}</span></div>`);
+  if (point>0)   rows.push(`<div style="display:flex;justify-content:space-between;font-weight:700"><span>ポイント</span><span class="mono" style="color:${state.settings.colorPoint}">+${Math.round(point).toLocaleString()}pt</span></div>`);
+  return rows.length ? `<div style="padding-top:10px;display:flex;flex-direction:column;gap:4px">${rows.join('')}</div>` : '';
 }
 function editEventById(id){ const ev=state.events.find(e=>e.id===id); if(ev) openEventModal(ev); }
 
@@ -977,6 +1160,9 @@ function openAddMenu(ds) {
       ${stampHTML(j.stamp)}<div><div class="add-menu-label">${j.name}の${j.payType==='hourly'?'勤務':'収入'}を記録</div>
       <div class="add-menu-sub">${j.payType==='hourly'?'時給制 / パターン選択・自動計算':'金額入力 / 複数日OK'}</div></div></div>`;
   });
+  html += `<div class="add-menu-item" onclick="closeModal('modal-addmenu');openMoneyModal(null,'${ds}')">
+    ${stampHTML('wallet')}<div><div class="add-menu-label">お金・ポイントを記録</div>
+    <div class="add-menu-sub">保険料・引落・ポイント還元など</div></div></div>`;
   html += `<div class="add-menu-item" onclick="closeModal('modal-addmenu');openEventModal(null,'${ds}')">
     ${stampHTML('star')}<div><div class="add-menu-label">予定・メモを追加</div>
     <div class="add-menu-sub">スタンプ・色・複数日OK</div></div></div>`;
@@ -1404,6 +1590,169 @@ function importData(ev) {
   ev.target.value = '';
 }
 
+// ── お金・ポイント記録 ──
+let moneyEditing = null, moneyRepeat = 'once';
+function setMoneyRepeat(v, el) {
+  moneyRepeat = v;
+  document.querySelectorAll('#modal-money .seg-btn[data-mrep]').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('mny-date-row').style.display = v==='once'?'':'none';
+  document.getElementById('mny-monthly-rows').style.display = v==='monthly'?'':'none';
+}
+function onMoneyCatChange() {
+  const cat = moneyCatById(document.getElementById('mny-cat').value);
+  const isPt = cat && cat.type==='point';
+  document.getElementById('mny-amount-label').textContent = isPt ? 'ポイント数（pt）' : '金額（円）';
+  document.getElementById('mny-cat-note').textContent = isPt ? 'ポイントとして記録されます（円の集計には含まれません）' : '支出として記録されます';
+}
+function openMoneyModal(catId, ds, recId) {
+  if (!state.moneyCats.filter(c=>c.active).length) { showToast('先に設定でカテゴリを追加してください'); return; }
+  moneyEditing = recId ? state.moneyRecs.find(r=>r.id===recId) : null;
+  const sel = document.getElementById('mny-cat');
+  sel.innerHTML = state.moneyCats.filter(c=>c.active).map(c=>`<option value="${c.id}">${c.name}（${c.type==='point'?'pt':'円'}）</option>`).join('');
+  document.getElementById('money-modal-title').textContent = moneyEditing?'記録を編集':'お金・ポイントを記録';
+  document.getElementById('mny-delete-btn').style.display = moneyEditing?'':'none';
+  const m = moneyEditing;
+  sel.value = m ? m.catId : (catId || state.moneyCats.filter(c=>c.active)[0].id);
+  document.getElementById('mny-name').value = m?(m.name||''):'';
+  document.getElementById('mny-amount').value = m?m.amount:'';
+  document.getElementById('mny-date').value = m?(m.date||todayStr()):(ds||todayStr());
+  document.getElementById('mny-day').value = m?(m.day||''):'';
+  document.getElementById('mny-start').value = m?(m.startDate||''):'';
+  document.getElementById('mny-end').value = m?(m.endDate||''):'';
+  document.getElementById('mny-memo').value = m?(m.memo||''):'';
+  const rep = m?(m.repeat||'once'):'once';
+  const btn = document.querySelector(`#modal-money .seg-btn[data-mrep="${rep}"]`);
+  if (btn) setMoneyRepeat(rep, btn);
+  onMoneyCatChange();
+  openModal('modal-money');
+}
+function saveMoneyRec() {
+  const catId = document.getElementById('mny-cat').value;
+  const name = document.getElementById('mny-name').value.trim();
+  const amount = parseFloat(document.getElementById('mny-amount').value)||0;
+  if (!amount) { showToast('金額を入力してください'); return; }
+  const memo = document.getElementById('mny-memo').value;
+  let data = { catId, name, amount, memo, repeat:moneyRepeat };
+  if (moneyRepeat==='monthly') {
+    const day = parseInt(document.getElementById('mny-day').value)||0;
+    if (!day || day<1 || day>31) { showToast('毎月の日にちを1〜31で入力してください'); return; }
+    const st = document.getElementById('mny-start').value||'';
+    const en = document.getElementById('mny-end').value||'';
+    if (st && en && en<st) { showToast('終了日は開始日以降にしてください'); return; }
+    Object.assign(data, { day, startDate:st, endDate:en, date:'' });
+  } else {
+    const date = document.getElementById('mny-date').value;
+    if (!date) { showToast('日付を入力してください'); return; }
+    Object.assign(data, { date, day:0, startDate:'', endDate:'' });
+  }
+  if (moneyEditing) { Object.assign(moneyEditing, data); showToast('更新しました ✓'); }
+  else { state.moneyRecs.push(Object.assign({id:'m'+Date.now()}, data)); showToast('記録しました ✓'); }
+  save(); closeModal('modal-money'); renderAll();
+}
+function deleteMoneyRec() {
+  if (!moneyEditing) return;
+  const t = moneyEditing;
+  const cat = moneyCatById(t.catId);
+  confirmDelete('記録を削除', `「${t.name||(cat?cat.name:'記録')}」を削除します。よろしいですか？`, ()=>{
+    state.moneyRecs = state.moneyRecs.filter(r=>r.id!==t.id);
+    save(); closeModal('modal-money'); renderAll(); showToast('削除しました');
+  });
+}
+
+// ── お金カテゴリ ──
+let mcEditing = null, mcType = 'expense', mcStamp = '📋', mcColor = PALETTE[3];
+function setMoneyCatType(v, el) {
+  mcType = v;
+  document.querySelectorAll('#modal-moneycat .seg-btn[data-mct]').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+function openMoneyCatModal(id) {
+  mcEditing = id ? moneyCatById(id) : null;
+  mcType = mcEditing?mcEditing.type:'expense';
+  mcStamp = mcEditing?mcEditing.stamp:'📋';
+  mcColor = mcEditing?mcEditing.color:PALETTE[3];
+  document.getElementById('moneycat-modal-title').textContent = mcEditing?'カテゴリを編集':'カテゴリを追加';
+  document.getElementById('mc-name').value = mcEditing?mcEditing.name:'';
+  document.getElementById('mc-delete-btn').style.display = mcEditing?'':'none';
+  document.querySelectorAll('#modal-moneycat .seg-btn[data-mct]').forEach(b=>b.classList.toggle('active', b.dataset.mct===mcType));
+  refreshMcPickers();
+  openModal('modal-moneycat');
+}
+function refreshMcPickers() {
+  renderStampArea('mc-stamp-area', mcStamp, s=>{mcStamp=s;refreshMcPickers();});
+  renderColorPicker('mc-color-picker', mcColor, c=>{mcColor=c;refreshMcPickers();});
+}
+function saveMoneyCat() {
+  const name = document.getElementById('mc-name').value.trim();
+  if (!name) { showToast('カテゴリ名を入力してください'); return; }
+  const data = { name, type:mcType, stamp:mcStamp, color:mcColor, active:true };
+  if (mcEditing) Object.assign(mcEditing, data);
+  else state.moneyCats.push(Object.assign({id:'mc'+Date.now()}, data));
+  save(); closeModal('modal-moneycat'); renderAll(); showToast('保存しました ✓');
+}
+function deleteMoneyCat() {
+  if (!mcEditing) return;
+  const t = mcEditing;
+  const cnt = state.moneyRecs.filter(r=>r.catId===t.id).length;
+  if (cnt>0) { showToast(`記録が${cnt}件あるため削除できません`); return; }
+  confirmDelete('カテゴリを削除', `「${t.name}」を削除します。よろしいですか？`, ()=>{
+    state.moneyCats = state.moneyCats.filter(c=>c.id!==t.id);
+    save(); closeModal('modal-moneycat'); renderAll(); showToast('削除しました');
+  });
+}
+function renderMoneyCatList() {
+  const el = document.getElementById('moneycat-list');
+  if (!state.moneyCats.length) { el.innerHTML = '<div class="empty"><div class="empty-text">「＋ 追加」からカテゴリを登録してください</div></div>'; return; }
+  el.innerHTML = state.moneyCats.map(c=>`
+    <div class="job-item">
+      ${stampHTML(c.stamp)}
+      <div class="job-item-body"><div class="job-item-name">${c.name}</div>
+        <div class="job-item-sub">${c.type==='point'?'ポイント（pt）':'支出（円）'}</div></div>
+      <button class="btn btn-ghost btn-sm" onclick="openMoneyCatModal('${c.id}')">編集</button>
+    </div>`).join('');
+}
+// 色設定
+function renderColorSettings() {
+  const opts = ['#1DB882','#2DC5A4','#5B8DEF','#E5544B','#F76D8E','#F7B32B','#9B7EDE','#6B7A99'];
+  [['color-income-picker','colorIncome'],['color-expense-picker','colorExpense'],['color-point-picker','colorPoint']].forEach(([elId,key])=>{
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.innerHTML = opts.map(c=>`<div class="color-opt ${c===state.settings[key]?'sel':''}" style="background:${c};width:24px;height:24px" data-c="${c}"></div>`).join('');
+    el.querySelectorAll('.color-opt').forEach(o=>o.onclick=()=>{ state.settings[key]=o.dataset.c; save(); renderAll(); });
+  });
+}
+// ホームのお金サマリー・一覧
+function renderHomeMoney() {
+  const y=state.homeYear, m=state.homeMonth;
+  const t = moneyMonthTotals(y,m);
+  const sum = document.getElementById('home-money-summary');
+  const parts = [];
+  if (t.expense>0) parts.push(`<div class="card" style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <span style="font-size:12px;color:var(--text-secondary)">支出合計</span>
+    <span class="mono" style="font-size:19px;color:${state.settings.colorExpense};font-weight:600">-${fmt(t.expense).slice(1)}</span></div>`);
+  if (t.point>0) parts.push(`<div class="card" style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <span style="font-size:12px;color:var(--text-secondary)">ポイント獲得</span>
+    <span class="mono" style="font-size:19px;color:${state.settings.colorPoint};font-weight:600">+${Math.round(t.point).toLocaleString()}pt</span></div>`);
+  sum.innerHTML = parts.join('');
+  const list = moneyRecsInMonth(y,m);
+  const el = document.getElementById('home-money-list');
+  if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-text">この月の記録はありません</div></div>'; return; }
+  el.innerHTML = list.map(mr=>{
+    const cat = moneyCatById(mr.catId);
+    const isPt = cat && cat.type==='point';
+    const col = isPt ? state.settings.colorPoint : state.settings.colorExpense;
+    const txt = isPt ? ('+'+Math.round(mr.amount).toLocaleString()+'pt') : ('-'+fmt(mr.amount).slice(1));
+    return `<div class="job-sum-row">${stampHTML(cat?cat.stamp:'💰')}
+      <div class="job-sum-name">${mr.name||(cat?cat.name:'')}
+        <div class="job-sum-sub">${mr._date.slice(5).replace('-','/')}　${cat?cat.name:''}${mr.repeat==='monthly'?'・毎月':''}</div></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="mono" style="font-size:13px;color:${col};font-weight:600">${txt}</span>
+        <button class="btn btn-ghost btn-sm" onclick="openMoneyModal(null,null,'${mr.id}')">編集</button>
+      </div></div>`;
+  }).join('');
+}
+
 // ── checklist ──
 // check: {id, text, kind, ym, month, date, done, doneKey, order}
 //  kind: 'month'(今月限定) 'monthly'(毎月リセット) 'carry'(完了まで繰越)
@@ -1554,8 +1903,11 @@ function renderAll() {
   renderCalendar();
   renderChecklist();
   renderHome();
+  renderHomeMoney();
   renderInputTab();
   renderJobList();
+  renderMoneyCatList();
+  renderColorSettings();
 }
 save();
 syncSettingsUI();
