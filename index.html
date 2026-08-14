@@ -68,10 +68,10 @@
   .cal-stamps .em { font-size: 12.5px; line-height: 1; }
   .cal-more { font-size: 8px; color: var(--text-secondary); line-height: 1; }
   /* 月セル：内容の文字表示 */
-  .cal-texts { width: 100%; display: flex; flex-direction: column; gap: 1px; margin-top: 1px; padding: 0 1px; }
-  .cal-text { font-size: 8.5px; line-height: 1.25; padding: 1px 3px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: rgba(0,0,0,0.72); font-weight: 600; }
+  .cal-texts { width: 100%; display: flex; flex-direction: column; gap: 1px; margin-top: 1px; padding: 0; }
+  .cal-text { font-size: 8.5px; line-height: 1.25; padding: 1px 1px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: clip; color: rgba(0,0,0,0.75); font-weight: 600; letter-spacing: -0.3px; }
   .cal-text-row { display: flex; align-items: center; gap: 2px; }
-  .cal-text-row svg { width: 9px; height: 9px; flex-shrink: 0; }
+  .cal-text-row svg { width: 8px; height: 8px; flex-shrink: 0; }
   .cal-text-row .em { font-size: 8px; }
   /* 週表示：内容テキスト */
   .wk-item { display: flex; align-items: center; gap: 5px; font-size: 11.5px; padding: 2px 0; }
@@ -215,7 +215,9 @@
   .modal-overlay.open { display: flex; }
   .modal { background: #fff; border-radius: 20px 20px 0 0; padding: 20px 16px calc(20px + var(--safe-bottom)); width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto; animation: slideup 0.22s; }
   @keyframes slideup { from { transform: translateY(100%); } to { transform: none; } }
-  .modal-handle { width: 38px; height: 4px; background: var(--border); border-radius: 3px; margin: 0 auto 14px; }
+  .modal-handle { width: 44px; height: 5px; background: #C8D0E0; border-radius: 3px; margin: 0 auto 14px; cursor: grab; touch-action: none; }
+  .modal-handle-zone { padding: 4px 0 6px; margin: -8px -16px 0; touch-action: none; }
+  .modal.dragging { transition: none; }
   .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
   .add-menu-item { display: flex; align-items: center; gap: 12px; padding: 13px 8px; border-radius: 12px; cursor: pointer; }
   .add-menu-item:active { background: var(--bg); }
@@ -236,7 +238,7 @@
   <header class="topbar">
     <div style="display:flex;align-items:center;">
       <span class="topbar-logo">Finance<span>Mgr</span></span>
-      <span class="version-badge" id="version-badge">v9</span>
+      <span class="version-badge" id="version-badge">v10</span>
     </div>
     <div class="topbar-total">
       <div class="topbar-total-label">今月合計</div>
@@ -387,7 +389,7 @@
           <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)"></div>
       </div>
       <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-        FinanceManager <span id="ver-footer">v9</span> / schema <span id="schema-footer">8</span> / 祝日データ 2025–2027
+        FinanceManager <span id="ver-footer">v10</span> / schema <span id="schema-footer">9</span> / 祝日データ 2025–2027
       </div>
     </div>
   </div>
@@ -401,13 +403,13 @@
 </div>
 
 <div class="modal-overlay" id="modal-addmenu"><div class="modal">
-  <div class="modal-handle"></div><div class="modal-title" id="addmenu-title">追加する</div>
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div><div class="modal-title" id="addmenu-title">追加する</div>
   <div id="addmenu-items"></div>
   <div class="form-actions"><button class="btn btn-ghost" onclick="closeModal('modal-addmenu')">閉じる</button></div>
 </div></div>
 
 <div class="modal-overlay" id="modal-day"><div class="modal">
-  <div class="modal-handle"></div><div class="modal-title" id="day-detail-title">—</div>
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div><div class="modal-title" id="day-detail-title">—</div>
   <div id="day-detail-body"></div>
   <div class="form-actions" style="margin-top:14px">
     <button class="btn btn-ghost" onclick="closeModal('modal-day')">閉じる</button>
@@ -416,7 +418,7 @@
 </div></div>
 
 <div class="modal-overlay" id="modal-record"><div class="modal">
-  <div class="modal-handle"></div><div class="modal-title" id="record-title">記録を追加</div>
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div><div class="modal-title" id="record-title">記録を追加</div>
   <div class="form-grid" id="record-form"></div>
   <div class="form-actions">
     <button class="btn btn-danger" id="rec-delete-btn" style="margin-right:auto;display:none" onclick="deleteRecordFromModal()">削除</button>
@@ -426,7 +428,7 @@
 </div></div>
 
 <div class="modal-overlay" id="modal-event"><div class="modal">
-  <div class="modal-handle"></div><div class="modal-title" id="event-title">予定を追加</div>
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div><div class="modal-title" id="event-title">予定を追加</div>
   <div class="form-grid">
     <div class="form-group"><label>タイトル</label><input type="text" id="ev-title" placeholder="例：請求書提出"></div>
     <div class="form-row">
@@ -445,7 +447,7 @@
 </div></div>
 
 <div class="modal-overlay" id="modal-job"><div class="modal">
-  <div class="modal-handle"></div><div class="modal-title" id="job-modal-title">仕事を追加</div>
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div><div class="modal-title" id="job-modal-title">仕事を追加</div>
   <div class="form-grid">
     <div class="form-group"><label>仕事名</label><input type="text" id="job-name" placeholder="例：カフェABC / 〇〇社役員"></div>
     <div class="form-group"><label>報酬タイプ</label>
@@ -517,7 +519,7 @@
 </div></div>
 
 <div class="modal-overlay" id="modal-ym"><div class="modal">
-  <div class="modal-handle"></div><div class="modal-title">年月を選択</div>
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div><div class="modal-title">年月を選択</div>
   <div class="ym-cols">
     <div class="ym-col" id="ym-years"></div>
     <div class="ym-col" id="ym-months"></div>
@@ -529,7 +531,7 @@
 </div></div>
 
 <div class="modal-overlay" id="modal-check"><div class="modal">
-  <div class="modal-handle"></div><div class="modal-title" id="check-modal-title">チェック項目を追加</div>
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div><div class="modal-title" id="check-modal-title">チェック項目を追加</div>
   <div class="form-grid">
     <div class="form-group"><label>内容</label><input type="text" id="chk-text" placeholder="例：確定申告書類を準備"></div>
     <div class="form-group"><label>タイプ</label>
@@ -543,6 +545,18 @@
       </select>
       <div class="field-note" id="chk-kind-note"></div>
     </div>
+    <div class="form-group" id="chk-monthday-row" style="display:none"><label>毎月の日にち</label>
+      <select id="chk-monthday">
+        <option value="">指定しない</option>
+      </select>
+      <div class="field-note">指定するとその日にカレンダー表示され、期限として扱われます。</div></div>
+    <div class="form-group" id="chk-weekday-row" style="display:none"><label>毎週の曜日</label>
+      <select id="chk-weekday">
+        <option value="">指定しない</option>
+        <option value="0">日曜</option><option value="1">月曜</option><option value="2">火曜</option>
+        <option value="3">水曜</option><option value="4">木曜</option><option value="5">金曜</option>
+        <option value="6">土曜</option>
+      </select></div>
     <div class="form-group" id="chk-yearmonth-row" style="display:none"><label>実施する月</label>
       <select id="chk-yearmonth">
         <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
@@ -562,7 +576,7 @@
 </div></div>
 
 <div class="modal-overlay" id="modal-money"><div class="modal">
-  <div class="modal-handle"></div><div class="modal-title" id="money-modal-title">お金の記録</div>
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div><div class="modal-title" id="money-modal-title">お金の記録</div>
   <div class="form-grid">
     <div class="form-group"><label>カテゴリ</label>
       <select id="mny-cat" onchange="onMoneyCatChange()"></select>
@@ -582,6 +596,8 @@
         <div class="form-group"><label>終了（任意）</label><input type="date" id="mny-end"></div>
       </div>
     </div>
+    <div class="form-group" id="mny-pt-row" style="display:none"><label>ポイントの種類</label>
+      <select id="mny-pointtype"></select></div>
     <div class="form-group" id="mny-due-row"><label>支払期限・引落日（任意）</label><input type="date" id="mny-due">
       <div class="field-note">期限を設定すると、カレンダーに期限マークが表示されます。</div></div>
     <div class="form-group"><label>引落先（金融機関・カード）</label>
@@ -614,14 +630,17 @@
 </div></div>
 
 <div class="modal-overlay" id="modal-moneycat"><div class="modal">
-  <div class="modal-handle"></div><div class="modal-title" id="moneycat-modal-title">カテゴリを追加</div>
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div><div class="modal-title" id="moneycat-modal-title">カテゴリを追加</div>
   <div class="form-grid">
     <div class="form-group"><label>カテゴリ名</label><input type="text" id="mc-name" placeholder="例：家賃 / クレカ引落"></div>
     <div class="form-group"><label>種類</label>
-      <div class="seg">
-        <div class="seg-btn active" data-mct="expense" onclick="setMoneyCatType('expense',this)">支出（円）</div>
-        <div class="seg-btn" data-mct="point" onclick="setMoneyCatType('point',this)">ポイント（pt）</div>
-      </div></div>
+      <select id="mc-type" onchange="onMcTypeChange()">
+        <option value="expense">支出（円が減る）</option>
+        <option value="income">入金・受取（円が増える）</option>
+        <option value="point">ポイント獲得（ptが増える）</option>
+        <option value="pointuse">ポイント利用（ptが減る）</option>
+      </select>
+      <div class="field-note" id="mc-type-note"></div></div>
     <div class="form-group"><label>スタンプ</label><div id="mc-stamp-area"></div></div>
     <div class="form-group"><label>カレンダー色</label><div class="color-picker" id="mc-color-picker"></div></div>
   </div>
@@ -633,7 +652,7 @@
 </div></div>
 
 <div class="modal-overlay" id="modal-charge"><div class="modal">
-  <div class="modal-handle"></div><div class="modal-title" id="charge-modal-title">チャージルートを記録</div>
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div><div class="modal-title" id="charge-modal-title">チャージルートを記録</div>
   <div class="form-grid">
     <div class="form-group" id="charge-tpl-row"><label>テンプレートから作成</label>
       <div class="pat-chips" id="charge-tpl-chips"></div></div>
@@ -656,16 +675,21 @@
       </div>
       <div class="field-note">オンにすると毎月チェックリストに表示されます。</div></div>
   </div>
-  <div class="form-actions">
+  <div class="form-actions" id="chg-normal-mode">
     <button class="btn btn-danger" id="chg-delete-btn" style="margin-right:auto;display:none" onclick="deleteCharge()">削除</button>
     <button class="btn btn-ghost" onclick="saveChargeAsTemplate()">テンプレ保存</button>
     <button class="btn btn-ghost" onclick="closeModal('modal-charge')">キャンセル</button>
     <button class="btn btn-primary" onclick="saveCharge()">保存</button>
   </div>
+  <div class="form-actions" id="chg-tpl-mode" style="display:none">
+    <button class="btn btn-danger" style="margin-right:auto" onclick="deleteChargeTemplate(editingTemplateId)">削除</button>
+    <button class="btn btn-ghost" onclick="closeModal('modal-charge')">キャンセル</button>
+    <button class="btn btn-primary" onclick="saveTemplateEdit()">テンプレを更新</button>
+  </div>
 </div></div>
 
 <div class="modal-overlay" id="modal-wallet"><div class="modal">
-  <div class="modal-handle"></div><div class="modal-title" id="wallet-modal-title">資金置き場を追加</div>
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div><div class="modal-title" id="wallet-modal-title">資金置き場を追加</div>
   <div class="form-grid">
     <div class="form-group"><label>名称</label><input type="text" id="wal-name" placeholder="例：auじぶん銀行 / PayPay"></div>
     <div class="form-group"><label>種別</label>
@@ -687,7 +711,7 @@
 </div></div>
 
 <div class="modal-overlay" id="modal-scope"><div class="modal" style="max-width:380px">
-  <div class="modal-handle"></div>
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div>
   <div class="modal-title">くり返しの編集</div>
   <div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;line-height:1.6" id="scope-body">
     この項目はくり返し設定です。どの範囲に変更を適用しますか？
@@ -703,7 +727,7 @@
 </div></div>
 
 <div class="modal-overlay" id="modal-confirm"><div class="modal" style="max-width:360px">
-  <div class="modal-handle"></div>
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div>
   <div class="modal-title" id="confirm-title">確認</div>
   <div id="confirm-body" style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6"></div>
   <div class="form-actions">
@@ -717,8 +741,8 @@
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '9';
-const SCHEMA_VERSION = 8;
+const APP_VERSION = '10';
+const SCHEMA_VERSION = 9;
 const STORAGE_KEY = 'financeManager';
 
 const C = { blue:['#5B8DEF','#3D6BD1','#EAF1FF'], teal:['#2DC5A4','#189A7E','#E4FAF4'], amber:['#F7B32B','#D3921A','#FFF6E0'], pink:['#F76D8E','#D94A6E','#FFEBF0'], violet:['#9B7EDE','#7A5CC4','#F1EBFF'], slate:['#6B7A99','#4D5B78','#EEF1F6'] };
@@ -744,7 +768,7 @@ cart:{name:'買い物',svg:`<svg viewBox="0 0 48 48">${_b(C.violet)}<path d="M12
 star:{name:'イベント',svg:`<svg viewBox="0 0 48 48">${_b(C.amber)}<path d="M24 10.5l4 8.2 9 1.3-6.5 6.4 1.5 9-8-4.2-8 4.2 1.5-9L11 20l9-1.3 4-8.2z" fill="#fff" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>`},
 };
 function stampHTML(s) { if (STAMPS[s]) return STAMPS[s].svg; return `<span class="em">${s||'📌'}</span>`; }
-const EMOJIS = ['💼','💻','🏢','💰','🪙','🏦','📄','🧾','💴','💳','✉️','📮','☕','🍽️','🛒','🚃','🚌','🚗','⏰','📅','❗','⭐','🎯','📞','🏥','💊','✂️','🎵','🎬','🎂','🎁','📚','✏️','🧹','🌙','☀️','🎾','⚽','🏃','🐱'];
+const EMOJIS = ['📱','💼','💻','🏢','💰','🪙','🏦','📄','🧾','💴','💳','🎫','🎟️','✉️','📮','☕','🍽️','🛒','🚃','🚌','🚗','⛽','⏰','📅','❗','⭐','🎯','📞','🏥','💊','💡','🏠','✂️','🎵','🎬','🎂','🎁','📚','✏️','🧹','🌙','☀️','🎾','⚽','🏃','🐱','✈️','🎓'];
 const PALETTE = ['#BFE3FF','#C6F3E4','#FFE9B8','#FFD3DE','#E3D9FF','#D9E2F0','#C9F0C4','#FFDDC2'];
 
 // ── 日本の祝日 2025-2027（振替休日含む）──
@@ -787,12 +811,32 @@ function computePayDate(job, recDate) {
 function defaultState() {
   return { schemaVersion: SCHEMA_VERSION, jobs: [], records: [], events: [], checks: [],
     moneyCats: defaultMoneyCats(), moneyRecs: [],
-    wallets: defaultWallets(), charges: [], chargeTemplates: [],
+    wallets: defaultWallets(), charges: [], chargeTemplates: [], pointTypes: defaultPointTypes(),
     settings: { hoursFormat:'decimal', aggregation:'work', amountShow:'on', amountFormat:'k',
       colorIncome:'#1DB882', colorPayday:'#5B8DEF', colorExpense:'#E5544B', colorPoint:'#9B7EDE',
-      colorCharge:'#F7B32B', calDisplay:'stamp', weekShowText:'on' },
+      colorCharge:'#F7B32B', calDisplay:'stamp', weekShowText:'on',
+      colorIncomeEtc:'#2DC5A4', colorPointUse:'#7A5CC4' },
     homeMonth: new Date().getMonth(), homeYear: new Date().getFullYear() };
 }
+// ポイント・マイルの種類
+function defaultPointTypes() {
+  return [
+    { id:'pt_rakuten', name:'楽天ポイント', unit:'pt', color:'#F76D8E', order:1 },
+    { id:'pt_paypay',  name:'PayPayポイント', unit:'pt', color:'#E5544B', order:2 },
+    { id:'pt_ponta',   name:'Pontaポイント', unit:'pt', color:'#F7B32B', order:3 },
+    { id:'pt_v',       name:'Vポイント',     unit:'pt', color:'#5B8DEF', order:4 },
+    { id:'pt_d',       name:'dポイント',     unit:'pt', color:'#E5544B', order:5 },
+    { id:'ml_ana',     name:'ANAマイル',     unit:'マイル', color:'#5B8DEF', order:6 },
+    { id:'ml_jal',     name:'JALマイル',     unit:'マイル', color:'#E5544B', order:7 },
+  ];
+}
+// お金・ポイントの種別
+const MONEY_TYPES = {
+  expense:   { label:'支出',        sign:-1, unit:'yen', colorKey:'colorExpense' },
+  income:    { label:'入金・受取',  sign:+1, unit:'yen', colorKey:'colorIncomeEtc' },
+  point:     { label:'ポイント獲得', sign:+1, unit:'pt',  colorKey:'colorPoint' },
+  pointuse:  { label:'ポイント利用', sign:-1, unit:'pt',  colorKey:'colorPointUse' },
+};
 // 資金置き場（ウォレット）初期値
 function defaultWallets() {
   return [
@@ -810,6 +854,8 @@ function defaultMoneyCats() {
     { id:'mc_util',  name:'光熱費',     type:'expense', stamp:'💡', color:'#FFE9B8', active:true },
     { id:'mc_tax',   name:'税金',       type:'expense', stamp:'🏛', color:'#D9E2F0', active:true },
     { id:'mc_pt',    name:'ポイント還元', type:'point',  stamp:'coin', color:'#E3D9FF', active:true },
+    { id:'mc_inc',   name:'入金・受取',  type:'income', stamp:'🏦', color:'#C6F3E4', active:true },
+    { id:'mc_ptuse', name:'ポイント利用', type:'pointuse', stamp:'🎫', color:'#F1EBFF', active:true },
   ];
 }
 function migrate(data) {
@@ -914,15 +960,46 @@ function migrate(data) {
     if (data.settings.weekShowText===undefined) data.settings.weekShowText='on';
     v = 8;
   }
+  if (v < 9) {
+    // v8 → v9 : 4分類・ポイント種類・還元率
+    if (!data.pointTypes || !data.pointTypes.length) data.pointTypes = defaultPointTypes();
+    const hasInc = (data.moneyCats||[]).some(c=>c.type==='income');
+    const hasUse = (data.moneyCats||[]).some(c=>c.type==='pointuse');
+    if (!hasInc) data.moneyCats.push({ id:'mc_inc', name:'入金・受取', type:'income', stamp:'🏦', color:'#C6F3E4', active:true, order:(data.moneyCats.length+1) });
+    if (!hasUse) data.moneyCats.push({ id:'mc_ptuse', name:'ポイント利用', type:'pointuse', stamp:'🎫', color:'#F1EBFF', active:true, order:(data.moneyCats.length+2) });
+    (data.moneyRecs||[]).forEach(r=>{ if(r.pointTypeId===undefined) r.pointTypeId=''; });
+    (data.checks||[]).forEach(c=>{
+      if(c.monthDay===undefined) c.monthDay=0;
+      if(c.weekday===undefined) c.weekday='';
+    });
+    (data.charges||[]).forEach(c=>{
+      (c.steps||[]).forEach(st=>{
+        if (st.rate===undefined) st.rate='';
+        if (st.pointTypeId===undefined) st.pointTypeId='';
+      });
+    });
+    (data.chargeTemplates||[]).forEach(t=>{
+      (t.steps||[]).forEach(st=>{
+        if (st.rate===undefined) st.rate='';
+        if (st.pointTypeId===undefined) st.pointTypeId='';
+      });
+    });
+    data.settings = data.settings || {};
+    if (data.settings.colorIncomeEtc===undefined) data.settings.colorIncomeEtc='#2DC5A4';
+    if (data.settings.colorPointUse===undefined) data.settings.colorPointUse='#7A5CC4';
+    v = 9;
+  }
   data.schemaVersion = SCHEMA_VERSION;
   data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[]; data.checks=data.checks||[];
   data.moneyCats = (data.moneyCats&&data.moneyCats.length)?data.moneyCats:defaultMoneyCats();
   data.moneyRecs = data.moneyRecs||[];
   data.wallets = (data.wallets&&data.wallets.length)?data.wallets:defaultWallets();
+  data.pointTypes = (data.pointTypes&&data.pointTypes.length)?data.pointTypes:defaultPointTypes();
   data.charges = data.charges||[]; data.chargeTemplates = data.chargeTemplates||[];
   data.settings = Object.assign({ hoursFormat:'decimal', aggregation:'work', amountShow:'on', amountFormat:'k',
     colorIncome:'#1DB882', colorPayday:'#5B8DEF', colorExpense:'#E5544B', colorPoint:'#9B7EDE',
-    colorCharge:'#F7B32B', calDisplay:'stamp', weekShowText:'on' }, data.settings||{});
+    colorCharge:'#F7B32B', calDisplay:'stamp', weekShowText:'on',
+    colorIncomeEtc:'#2DC5A4', colorPointUse:'#7A5CC4' }, data.settings||{});
   return data;
 }
 function loadState() {
@@ -1006,6 +1083,41 @@ function showPage(id, el) {
 function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); }));
+// モーダルを下スワイプで閉じる
+(function(){
+  document.querySelectorAll('.modal-overlay').forEach(overlay=>{
+    const modal = overlay.querySelector('.modal');
+    const zone = overlay.querySelector('.modal-handle-zone');
+    if (!modal || !zone) return;
+    let startY=0, curY=0, dragging=false;
+    const onStart = e=>{
+      startY = (e.touches?e.touches[0].clientY:e.clientY);
+      curY = startY; dragging = true;
+      modal.classList.add('dragging');
+    };
+    const onMove = e=>{
+      if(!dragging) return;
+      curY = (e.touches?e.touches[0].clientY:e.clientY);
+      const dy = Math.max(0, curY-startY);
+      modal.style.transform = `translateY(${dy}px)`;
+      if (e.cancelable) e.preventDefault();
+    };
+    const onEnd = ()=>{
+      if(!dragging) return;
+      dragging = false;
+      modal.classList.remove('dragging');
+      const dy = curY - startY;
+      modal.style.transform = '';
+      if (dy > 80) overlay.classList.remove('open');
+    };
+    zone.addEventListener('touchstart', onStart, {passive:true});
+    zone.addEventListener('touchmove', onMove, {passive:false});
+    zone.addEventListener('touchend', onEnd);
+    zone.addEventListener('mousedown', onStart);
+    document.addEventListener('mousemove', e=>{ if(dragging) onMove(e); });
+    document.addEventListener('mouseup', onEnd);
+  });
+})();
 let toastTimer;
 function showToast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2200); }
 // 削除確認ダイアログ
@@ -1085,7 +1197,9 @@ function dayItems(ds) {
     if (ev.startDate<=ds && ds<=end) items.push({ kind:'event', stamp:ev.stamp, color:ev.color, label:ev.title, sub:'', memo:ev.memo||'', amount:0, ref:ev });
   });
   state.checks.forEach(c=>{
-    if (c.date===ds) {
+    let hit = (c.date===ds);
+    if (!hit && isCheckVisibleOn(c, ds)) hit = true;
+    if (hit) {
       const done = isCheckDone(c);
       items.push({ kind:'check', stamp:done?'✅':'☑️', color:PALETTE[5], label:(done?'✓ ':'')+c.text, sub:'チェックリスト', amount:0, memo:'', ref:c });
     }
@@ -1096,9 +1210,10 @@ function dayItems(ds) {
     const cat = moneyCatById(mr.catId);
     items.push({ kind:'money', mtype:(cat?cat.type:'expense'),
       stamp:(cat?cat.stamp:'💰'), color:(cat?cat.color:PALETTE[3]),
-      label: mr.name || (cat?cat.name:'支出'),
+      label: mr.name || (cat?cat.name:'記録'),
       sub: (cat?cat.name:'') + (mr.repeat==='monthly'?'（毎月）':'') + (mr.paid?'・支払済':''),
-      amount:0, moneyAmount:mr.amount, memo:mr.memo||'', ref:mr });
+      amount:0, moneyAmount:mr.amount, moneyCat:cat, ptTypeId:mr.pointTypeId||'',
+      memo:mr.memo||'', ref:mr });
   });
   // チャージ記録
   state.charges.forEach(c=>{
@@ -1124,6 +1239,23 @@ function dayItems(ds) {
   return items;
 }
 const moneyCatById = id => state.moneyCats.find(c=>c.id===id);
+// くり返し指定日（毎月◯日／毎週◯曜日）がこの日に当たるか
+function isCheckVisibleOn(c, ds) {
+  const y=+ds.slice(0,4), m=+ds.slice(5,7)-1, d=+ds.slice(8,10);
+  if (c.startYm && ds.slice(0,7) < c.startYm) return false;
+  if (c.endYm && ds.slice(0,7) > c.endYm) return false;
+  if (c.skipYms && c.skipYms.includes(ds.slice(0,7))) return false;
+  if ((c.kind==='monthly'||c.kind==='yearly') && c.monthDay) {
+    if (c.kind==='yearly' && c.month!==(m+1)) return false;
+    const dim = daysIn(y,m);
+    const target = c.monthDay>=99 ? dim : Math.min(c.monthDay, dim);
+    return d===target;
+  }
+  if (c.kind==='weekly' && c.weekday!=='' && c.weekday!==undefined && c.weekday!==null) {
+    return new Date(y,m,d).getDay()===+c.weekday;
+  }
+  return false;
+}
 // お金記録がその日に該当するか（単発 or 毎月くり返し）
 function moneyHitsDate(mr, ds) {
   if (mr.repeat==='monthly') {
@@ -1156,12 +1288,16 @@ function moneyRecsInMonth(y, m) {
 }
 // 月のお金集計（支出合計・ポイント合計）
 function moneyMonthTotals(y, m) {
-  let expense = 0, point = 0;
+  let expense = 0, income = 0, point = 0, pointuse = 0;
   moneyRecsInMonth(y,m).forEach(mr=>{
     const cat = moneyCatById(mr.catId);
-    if (cat && cat.type==='point') point += mr.amount; else expense += mr.amount;
+    const t = cat ? cat.type : 'expense';
+    if (t==='point') point += mr.amount;
+    else if (t==='pointuse') pointuse += mr.amount;
+    else if (t==='income') income += mr.amount;
+    else expense += mr.amount;
   });
-  return { expense, point };
+  return { expense, income, point, pointuse };
 }
 function dayTotal(ds) {
   let t = 0;
@@ -1220,9 +1356,14 @@ function renderCalMonth() {
     week.forEach((c,i)=>{
       const items = dayItems(c.ds).filter(x=>x.kind!=='event'&&!x.span);
       const total = dayTotal(c.ds);
-      let expSum=0, ptSum=0, paySum=0, earnSum=0;
+      let expSum=0, ptSum=0, paySum=0, earnSum=0, incSum=0, ptUseSum=0;
       items.forEach(x=>{
-        if(x.kind==='money'){ if(x.mtype==='point') ptSum+=x.moneyAmount; else expSum+=x.moneyAmount; }
+        if(x.kind==='money'){
+          if(x.mtype==='point') ptSum+=x.moneyAmount;
+          else if(x.mtype==='pointuse') ptUseSum+=x.moneyAmount;
+          else if(x.mtype==='income') incSum+=x.moneyAmount;
+          else expSum+=x.moneyAmount;
+        }
         else if(x.kind==='payday'||x.kind==='payinfo') paySum+=x.amount;
         else if(x.kind==='record') earnSum+=x.amount;
       });
@@ -1253,8 +1394,10 @@ function renderCalMonth() {
           if (earnSum>0) amtLines += `<div class="cal-amount" style="color:${state.settings.colorIncome}">${fmtCalAmountRaw(earnSum)}</div>`;
           if (paySum>0) amtLines += `<div class="cal-amount" style="color:${state.settings.colorPayday}">${fmtCalAmountRaw(paySum)}</div>`;
         }
+        if (incSum>0) amtLines += `<div class="cal-amount" style="color:${state.settings.colorIncomeEtc}">+${fmtCalAmountRaw(incSum)}</div>`;
         if (expSum>0) amtLines += `<div class="cal-amount" style="color:${state.settings.colorExpense}">-${fmtCalAmountRaw(expSum)}</div>`;
         if (ptSum>0) amtLines += `<div class="cal-amount" style="color:${state.settings.colorPoint}">+${fmtPt(ptSum)}</div>`;
+        if (ptUseSum>0) amtLines += `<div class="cal-amount" style="color:${state.settings.colorPointUse}">-${fmtPt(ptUseSum)}</div>`;
       }
       cell.innerHTML = `<div class="day-num">${c.d}</div>
         ${contentHTML}
@@ -1288,9 +1431,15 @@ function renderCalMonth() {
 // 週表示の金額欄（収入/入金/支出/ポイントを色分けして縦に）
 function buildWeekAmountHTML(items, total, ds) {
   if (state.settings.amountShow==='off') return '';
-  let earn=0, pay=0, exp=0, pt=0;
+  let earn=0, pay=0, exp=0, pt=0, inc=0, ptu=0, chg=0;
   items.forEach(x=>{
-    if (x.kind==='money'){ if(x.mtype==='point') pt+=x.moneyAmount; else exp+=x.moneyAmount; }
+    if (x.kind==='money'){
+      if(x.mtype==='point') pt+=x.moneyAmount;
+      else if(x.mtype==='pointuse') ptu+=x.moneyAmount;
+      else if(x.mtype==='income') inc+=x.moneyAmount;
+      else exp+=x.moneyAmount;
+    }
+    else if (x.kind==='charge') { chg+=x.chargeAmt; pt+=x.chargePt; }
     else if (x.kind==='payday'||x.kind==='payinfo') pay+=x.amount;
     else if (x.kind==='record') {
       // 複数日の案件は最終日にだけ金額を出す
@@ -1301,8 +1450,11 @@ function buildWeekAmountHTML(items, total, ds) {
   const lines = [];
   if (earn>0) lines.push(`<div style="color:${state.settings.colorIncome}">${fmt(earn)}</div>`);
   if (pay>0)  lines.push(`<div style="color:${state.settings.colorPayday}">${fmt(pay)}</div>`);
+  if (inc>0)  lines.push(`<div style="color:${state.settings.colorIncomeEtc}">+${fmt(inc).slice(1)}</div>`);
+  if (chg>0)  lines.push(`<div style="color:${state.settings.colorCharge}">${fmt(chg)}</div>`);
   if (exp>0)  lines.push(`<div style="color:${state.settings.colorExpense}">-${fmt(exp).slice(1)}</div>`);
   if (pt>0)   lines.push(`<div style="color:${state.settings.colorPoint}">+${Math.round(pt).toLocaleString()}pt</div>`);
+  if (ptu>0)  lines.push(`<div style="color:${state.settings.colorPointUse}">-${Math.round(ptu).toLocaleString()}pt</div>`);
   if (!lines.length) return '';
   return `<div class="cal-week-amount" style="text-align:right;line-height:1.35;font-weight:600">${lines.join('')}</div>`;
 }
@@ -1364,10 +1516,11 @@ function renderCalList() {
       let amtHTML = '';
       if (state.settings.amountShow!=='off') {
         if (x.kind==='money') {
-          const isPt = x.mtype==='point';
-          const col = isPt ? state.settings.colorPoint : state.settings.colorExpense;
-          const txt = isPt ? ('+'+Math.round(x.moneyAmount).toLocaleString()+'pt') : ('-'+fmt(x.moneyAmount).slice(1));
-          amtHTML = `<div class="cal-list-amount" style="color:${col};font-weight:600">${txt}</div>`;
+          amtHTML = `<div class="cal-list-amount" style="color:${moneyColor(x.moneyCat)};font-weight:600">${moneyText(x.moneyCat, x.moneyAmount, x.ptTypeId)}</div>`;
+        } else if (x.kind==='charge') {
+          amtHTML = `<div class="cal-list-amount" style="text-align:right">
+            <div style="color:${state.settings.colorCharge};font-weight:600">${fmt(x.chargeAmt)}</div>
+            ${x.chargePt>0?`<div style="color:${state.settings.colorPoint};font-size:11px">+${Math.round(x.chargePt).toLocaleString()}pt</div>`:''}</div>`;
         } else if (x.amount>0) {
           const isPay = (x.kind==='payday'||x.kind==='payinfo');
           const col = isPay ? state.settings.colorPayday : state.settings.colorIncome;
@@ -1390,9 +1543,14 @@ function showDayDetail(ds) {
   if (!items.length) body.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:14px 0;font-size:13px">この日の予定・記録はありません</div>';
   else {
     const total = dayTotal(ds);
-    let expenseSum = 0, pointSum = 0, paySum = 0, earnSum = 0;
+    let expenseSum=0, incomeSum=0, pointSum=0, pointUseSum=0, paySum=0, earnSum=0;
     items.forEach(x=>{
-      if (x.kind==='money'){ if(x.mtype==='point') pointSum+=x.moneyAmount; else expenseSum+=x.moneyAmount; }
+      if (x.kind==='money'){
+        if(x.mtype==='point') pointSum+=x.moneyAmount;
+        else if(x.mtype==='pointuse') pointUseSum+=x.moneyAmount;
+        else if(x.mtype==='income') incomeSum+=x.moneyAmount;
+        else expenseSum+=x.moneyAmount;
+      }
       else if (x.kind==='payday' || x.kind==='payinfo') paySum += x.amount;
       else if (x.kind==='record') earnSum += x.amount;
     });
@@ -1400,8 +1558,8 @@ function showDayDetail(ds) {
       // 右側に出す金額（収入=緑 / 支出=赤 / ポイント=紫）
       let amtHTML = '';
       if (x.kind==='money') {
-        const col = x.mtype==='point' ? state.settings.colorPoint : state.settings.colorExpense;
-        const txt = x.mtype==='point' ? ('+'+Math.round(x.moneyAmount).toLocaleString()+'pt') : ('-'+fmt(x.moneyAmount).slice(1));
+        const col = moneyColor(x.moneyCat);
+        const txt = moneyText(x.moneyCat, x.moneyAmount, x.ptTypeId);
         amtHTML = `<span class="mono" style="font-size:13px;color:${col};font-weight:600">${txt}</span>`;
       } else if (x.kind==='charge') {
         amtHTML = `<span class="mono" style="font-size:12.5px;color:${state.settings.colorCharge};font-weight:600">${fmt(x.chargeAmt)}</span>` +
@@ -1433,18 +1591,21 @@ function showDayDetail(ds) {
           ${amtHTML}${btn}
         </div>
       </div>`;}).join('') +
-      buildDayTotalsHTML(earnSum, paySum, expenseSum, pointSum);
+      buildDayTotalsHTML({earn:earnSum, pay:paySum, expense:expenseSum, income:incomeSum, point:pointSum, pointuse:pointUseSum});
   }
   document.getElementById('day-add-btn').onclick = ()=>{ closeModal('modal-day'); openAddMenu(ds); };
   openModal('modal-day');
 }
 function escapeHTML(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-function buildDayTotalsHTML(income, payin, expense, point) {
+function buildDayTotalsHTML(t) {
   const rows = [];
-  if (income>0)  rows.push(`<div style="display:flex;justify-content:space-between;font-weight:700"><span>収入（発生）</span><span class="mono" style="color:${state.settings.colorIncome}">${fmt(income)}</span></div>`);
-  if (payin>0)   rows.push(`<div style="display:flex;justify-content:space-between;font-weight:700"><span>入金（支払日）</span><span class="mono" style="color:${state.settings.colorPayday}">${fmt(payin)}</span></div>`);
-  if (expense>0) rows.push(`<div style="display:flex;justify-content:space-between;font-weight:700"><span>支出</span><span class="mono" style="color:${state.settings.colorExpense}">-${fmt(expense).slice(1)}</span></div>`);
-  if (point>0)   rows.push(`<div style="display:flex;justify-content:space-between;font-weight:700"><span>ポイント</span><span class="mono" style="color:${state.settings.colorPoint}">+${Math.round(point).toLocaleString()}pt</span></div>`);
+  const row = (label, val, color) => `<div style="display:flex;justify-content:space-between;font-weight:700"><span>${label}</span><span class="mono" style="color:${color}">${val}</span></div>`;
+  if (t.earn>0)     rows.push(row('収入（発生）', fmt(t.earn), state.settings.colorIncome));
+  if (t.pay>0)      rows.push(row('入金（支払日）', fmt(t.pay), state.settings.colorPayday));
+  if (t.income>0)   rows.push(row('入金・受取', '+'+fmt(t.income).slice(1), state.settings.colorIncomeEtc));
+  if (t.expense>0)  rows.push(row('支出', '-'+fmt(t.expense).slice(1), state.settings.colorExpense));
+  if (t.point>0)    rows.push(row('ポイント獲得', '+'+Math.round(t.point).toLocaleString()+'pt', state.settings.colorPoint));
+  if (t.pointuse>0) rows.push(row('ポイント利用', '-'+Math.round(t.pointuse).toLocaleString()+'pt', state.settings.colorPointUse));
   return rows.length ? `<div style="padding-top:10px;display:flex;flex-direction:column;gap:4px">${rows.join('')}</div>` : '';
 }
 function editEventById(id){ const ev=state.events.find(e=>e.id===id); if(ev) openEventModal(ev); }
@@ -1946,9 +2107,19 @@ function setMoneyRepeat(v, el) {
 }
 function onMoneyCatChange() {
   const cat = moneyCatById(document.getElementById('mny-cat').value);
-  const isPt = cat && cat.type==='point';
-  document.getElementById('mny-amount-label').textContent = isPt ? 'ポイント数（pt）' : '金額（円）';
-  document.getElementById('mny-cat-note').textContent = isPt ? 'ポイントとして記録されます（円の集計には含まれません）' : '支出として記録されます';
+  const isPt = moneyUnit(cat)==='pt';
+  const t = cat && MONEY_TYPES[cat.type] ? MONEY_TYPES[cat.type] : MONEY_TYPES.expense;
+  document.getElementById('mny-amount-label').textContent = isPt ? 'ポイント数' : '金額（円）';
+  document.getElementById('mny-cat-note').textContent = t.label + 'として記録されます';
+  const ptRow = document.getElementById('mny-pt-row');
+  ptRow.style.display = isPt ? '' : 'none';
+  if (isPt) {
+    const sel = document.getElementById('mny-pointtype');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">指定なし</option>' +
+      sortByOrder(state.pointTypes).map(p=>`<option value="${p.id}">${escapeHTML(p.name)}</option>`).join('');
+    sel.value = cur;
+  }
 }
 function openMoneyModal(catId, ds, recId) {
   if (!state.moneyCats.filter(c=>c.active).length) { showToast('先に設定でカテゴリを追加してください'); return; }
@@ -1967,6 +2138,8 @@ function openMoneyModal(catId, ds, recId) {
   document.getElementById('mny-end').value = m?(m.endDate||''):'';
   document.getElementById('mny-memo').value = m?(m.memo||''):'';
   document.getElementById('mny-due').value = m?(m.dueDate||''):'';
+  onMoneyCatChange();
+  if (m && m.pointTypeId) document.getElementById('mny-pointtype').value = m.pointTypeId;
   const wsel = document.getElementById('mny-wallet');
   wsel.innerHTML = '<option value="">指定なし</option>' +
     sortByOrder(state.wallets.filter(w=>w.active)).map(w=>`<option value="${w.id}">${w.name}</option>`).join('');
@@ -1995,6 +2168,7 @@ function saveMoneyRec() {
     walletId: document.getElementById('mny-wallet').value||'',
     dueHolidayRule: document.getElementById('mny-holrule').value||'none',
     autoCheck: moneyAutoCheck,
+    pointTypeId: document.getElementById('mny-pointtype').value||'',
     paidDate: moneyPaid ? (moneyEditing&&moneyEditing.paidDate ? moneyEditing.paidDate : todayStr()) : '' };
   if (moneyRepeat==='monthly') {
     const day = parseInt(document.getElementById('mny-day').value)||0;
@@ -2059,10 +2233,29 @@ function deleteMoneyRec() {
 
 // ── お金カテゴリ ──
 let mcEditing = null, mcType = 'expense', mcStamp = '📋', mcColor = PALETTE[3];
-function setMoneyCatType(v, el) {
-  mcType = v;
-  document.querySelectorAll('#modal-moneycat .seg-btn[data-mct]').forEach(b=>b.classList.remove('active'));
-  el.classList.add('active');
+function onMcTypeChange() {
+  mcType = document.getElementById('mc-type').value;
+  const notes = { expense:'円が減る記録として集計されます', income:'円が増える記録として集計されます（銀行利息・還付金など）',
+    point:'ポイントが増える記録です', pointuse:'ポイントが減る記録です（クレカ充当など）' };
+  document.getElementById('mc-type-note').textContent = notes[mcType]||'';
+}
+const pointTypeById = id => state.pointTypes.find(p=>p.id===id);
+function moneyUnit(cat){ return (cat && (cat.type==='point'||cat.type==='pointuse')) ? 'pt' : 'yen'; }
+function moneySign(cat){ return (cat && MONEY_TYPES[cat.type]) ? MONEY_TYPES[cat.type].sign : -1; }
+function moneyColor(cat){
+  const k = (cat && MONEY_TYPES[cat.type]) ? MONEY_TYPES[cat.type].colorKey : 'colorExpense';
+  return state.settings[k] || state.settings.colorExpense;
+}
+// 金額の表示テキスト（符号・単位つき）
+function moneyText(cat, amount, ptTypeId) {
+  const sign = moneySign(cat);
+  const prefix = sign>0 ? '+' : '-';
+  if (moneyUnit(cat)==='pt') {
+    const pt = ptTypeId ? pointTypeById(ptTypeId) : null;
+    const unit = pt ? pt.unit : 'pt';
+    return prefix + Math.round(amount).toLocaleString() + unit;
+  }
+  return prefix + fmt(amount).slice(1);
 }
 function openMoneyCatModal(id) {
   mcEditing = id ? moneyCatById(id) : null;
@@ -2072,7 +2265,8 @@ function openMoneyCatModal(id) {
   document.getElementById('moneycat-modal-title').textContent = mcEditing?'カテゴリを編集':'カテゴリを追加';
   document.getElementById('mc-name').value = mcEditing?mcEditing.name:'';
   document.getElementById('mc-delete-btn').style.display = mcEditing?'':'none';
-  document.querySelectorAll('#modal-moneycat .seg-btn[data-mct]').forEach(b=>b.classList.toggle('active', b.dataset.mct===mcType));
+  document.getElementById('mc-type').value = mcType;
+  onMcTypeChange();
   refreshMcPickers();
   openModal('modal-moneycat');
 }
@@ -2126,27 +2320,26 @@ function renderHomeMoney() {
   const y=state.homeYear, m=state.homeMonth;
   const t = moneyMonthTotals(y,m);
   const sum = document.getElementById('home-money-summary');
+  const card = (label, val, color) => `<div class="card" style="padding:13px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <span style="font-size:12px;color:var(--text-secondary)">${label}</span>
+    <span class="mono" style="font-size:18px;color:${color};font-weight:600">${val}</span></div>`;
   const parts = [];
-  if (t.expense>0) parts.push(`<div class="card" style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-    <span style="font-size:12px;color:var(--text-secondary)">支出合計</span>
-    <span class="mono" style="font-size:19px;color:${state.settings.colorExpense};font-weight:600">-${fmt(t.expense).slice(1)}</span></div>`);
-  if (t.point>0) parts.push(`<div class="card" style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-    <span style="font-size:12px;color:var(--text-secondary)">ポイント獲得</span>
-    <span class="mono" style="font-size:19px;color:${state.settings.colorPoint};font-weight:600">+${Math.round(t.point).toLocaleString()}pt</span></div>`);
+  if (t.income>0)   parts.push(card('入金・受取', '+'+fmt(t.income).slice(1), state.settings.colorIncomeEtc));
+  if (t.expense>0)  parts.push(card('支出合計', '-'+fmt(t.expense).slice(1), state.settings.colorExpense));
+  if (t.point>0)    parts.push(card('ポイント獲得', '+'+Math.round(t.point).toLocaleString()+'pt', state.settings.colorPoint));
+  if (t.pointuse>0) parts.push(card('ポイント利用', '-'+Math.round(t.pointuse).toLocaleString()+'pt', state.settings.colorPointUse));
   sum.innerHTML = parts.join('');
   const list = moneyRecsInMonth(y,m);
   const el = document.getElementById('home-money-list');
   if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-text">この月の記録はありません</div></div>'; return; }
   el.innerHTML = list.map(mr=>{
     const cat = moneyCatById(mr.catId);
-    const isPt = cat && cat.type==='point';
-    const col = isPt ? state.settings.colorPoint : state.settings.colorExpense;
-    const txt = isPt ? ('+'+Math.round(mr.amount).toLocaleString()+'pt') : ('-'+fmt(mr.amount).slice(1));
+    const pt = mr.pointTypeId ? pointTypeById(mr.pointTypeId) : null;
     return `<div class="job-sum-row">${stampHTML(cat?cat.stamp:'💰')}
-      <div class="job-sum-name">${mr.name||(cat?cat.name:'')}
-        <div class="job-sum-sub">${mr._date.slice(5).replace('-','/')}　${cat?cat.name:''}${mr.repeat==='monthly'?'・毎月':''}</div></div>
+      <div class="job-sum-name">${escapeHTML(mr.name||(cat?cat.name:''))}
+        <div class="job-sum-sub">${mr._date.slice(5).replace('-','/')}　${cat?escapeHTML(cat.name):''}${pt?('・'+escapeHTML(pt.name)):''}${mr.repeat==='monthly'?'・毎月':''}</div></div>
       <div style="display:flex;align-items:center;gap:8px">
-        <span class="mono" style="font-size:13px;color:${col};font-weight:600">${txt}</span>
+        <span class="mono" style="font-size:13px;color:${moneyColor(cat)};font-weight:600">${moneyText(cat, mr.amount, mr.pointTypeId)}</span>
         <button class="btn btn-ghost btn-sm" onclick="openMoneyModal(null,null,'${mr.id}')">編集</button>
       </div></div>`;
   }).join('');
@@ -2226,6 +2419,7 @@ function renderChargeSteps() {
   const el = document.getElementById('charge-steps');
   const ws = sortByOrder(state.wallets.filter(w=>w.active));
   const opts = sel => '<option value="">選択</option>' + ws.map(w=>`<option value="${w.id}" ${w.id===sel?'selected':''}>${escapeHTML(w.name)}</option>`).join('');
+  const ptOpts = sel => '<option value="">ポイント種類</option>' + sortByOrder(state.pointTypes).map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${escapeHTML(p.name)}</option>`).join('');
   if (!chargeSteps.length) { el.innerHTML = '<div class="field-note" style="margin:0 0 6px">「＋ステップ」で追加してください</div>'; updateChargePreview(); return; }
   el.innerHTML = chargeSteps.map((st,i)=>`
     ${i>0?'<div class="chg-step-arrow">↓</div>':''}
@@ -2240,35 +2434,88 @@ function renderChargeSteps() {
         <div><label>移動先</label><select class="s-to">${opts(st.to)}</select></div>
       </div>
       <div class="chg-grid" style="margin-top:6px">
-        <div><label>金額（円）</label><input type="number" class="s-amount" value="${st.amount||''}" placeholder="10000"></div>
-        <div><label>獲得pt（任意）</label><input type="number" class="s-point" value="${st.point||''}" placeholder="50"></div>
+        <div><label>移動額（円）</label><input type="number" class="s-amount" value="${st.amount||''}" placeholder="50000"></div>
+        <div><label>還元率（%）</label><input type="number" step="0.01" class="s-rate" value="${st.rate||''}" placeholder="0.5"></div>
+      </div>
+      <div class="chg-grid" style="margin-top:6px">
+        <div><label>獲得ポイント</label><input type="number" class="s-point" value="${st.point||''}" placeholder="自動計算"></div>
+        <div><label>種類</label><select class="s-pt">${ptOpts(st.pointTypeId)}</select></div>
       </div>
     </div>`).join('');
   el.querySelectorAll('.chg-step').forEach(row=>{
     const i = +row.dataset.i;
     row.querySelector('.s-from').onchange = e=>{ chargeSteps[i].from=e.target.value; updateChargePreview(); };
-    row.querySelector('.s-to').onchange = e=>{ chargeSteps[i].to=e.target.value; updateChargePreview(); };
-    row.querySelector('.s-amount').oninput = e=>{ chargeSteps[i].amount=parseFloat(e.target.value)||''; updateChargePreview(); };
-    row.querySelector('.s-point').oninput = e=>{ chargeSteps[i].point=parseFloat(e.target.value)||''; updateChargePreview(); };
+    row.querySelector('.s-to').onchange = e=>{ chargeSteps[i].to=e.target.value; syncChainAmounts(i); updateChargePreview(); };
+    row.querySelector('.s-amount').oninput = e=>{
+      chargeSteps[i].amount = parseFloat(e.target.value)||'';
+      autoCalcPoint(i, row);
+      updateChargePreview();
+    };
+    row.querySelector('.s-rate').oninput = e=>{
+      chargeSteps[i].rate = parseFloat(e.target.value)||'';
+      autoCalcPoint(i, row);
+      updateChargePreview();
+    };
+    row.querySelector('.s-point').oninput = e=>{ chargeSteps[i].point=parseFloat(e.target.value)||''; chargeSteps[i]._manualPt=true; updateChargePreview(); };
+    row.querySelector('.s-pt').onchange = e=>{ chargeSteps[i].pointTypeId=e.target.value; updateChargePreview(); };
   });
   updateChargePreview();
 }
-function routeText(steps) {
-  const names = [];
+// 還元率から獲得ポイントを自動計算（手動入力があれば尊重しない）
+function autoCalcPoint(i, row) {
+  const st = chargeSteps[i];
+  const amt = parseFloat(st.amount)||0;
+  const rate = parseFloat(st.rate)||0;
+  if (amt>0 && rate>0) {
+    st.point = Math.floor(amt * rate / 100);
+    const inp = row.querySelector('.s-point');
+    if (inp) inp.value = st.point;
+  }
+}
+// 次ステップの移動額が未入力なら引き継ぐ
+function syncChainAmounts(i) {
+  const cur = chargeSteps[i];
+  const next = chargeSteps[i+1];
+  if (next && !next.amount && cur.amount) next.amount = cur.amount;
+}
+function routeText(steps, withAmount) {
+  // 各ステップは「移動元 →(移動額) 移動先」。金額は矢印の上に置く形で表現
+  const parts = [];
   steps.forEach((st,i)=>{
     const f = walletById(st.from), t = walletById(st.to);
-    if (i===0) names.push(f?f.name:'?');
-    names.push(t?t.name:'?');
+    if (i===0) parts.push(f?f.name:'?');
+    const amt = (withAmount && st.amount) ? `${Math.round(st.amount).toLocaleString()}円 ` : '';
+    parts.push(amt + (t?t.name:'?'));
   });
-  return names.join(' → ');
+  return parts.join(' → ');
+}
+// ポイント種類ごとの合計
+function chargePointsByType(c) {
+  const map = {};
+  (c.steps||[]).forEach(st=>{
+    const p = parseFloat(st.point)||0;
+    if (!p) return;
+    const key = st.pointTypeId||'';
+    map[key] = (map[key]||0) + p;
+  });
+  return map;
+}
+function pointsSummaryText(map) {
+  return Object.entries(map).map(([k,v])=>{
+    const pt = k ? pointTypeById(k) : null;
+    return '+' + Math.round(v).toLocaleString() + (pt?pt.unit:'pt') + (pt?`（${pt.name}）`:'');
+  }).join(' / ');
 }
 function updateChargePreview() {
-  const totalPt = chargeSteps.reduce((a,s)=>a+(parseFloat(s.point)||0),0);
-  const maxAmt = chargeSteps.reduce((a,s)=>Math.max(a,parseFloat(s.amount)||0),0);
   const el = document.getElementById('charge-preview');
   if (!chargeSteps.length) { el.innerHTML = 'ステップを追加すると経路が表示されます'; return; }
-  el.innerHTML = `<div class="chg-route-view">${escapeHTML(routeText(chargeSteps))}</div>
-    <div style="margin-top:6px">移動額 <b>${fmt(maxAmt)}</b>${totalPt>0?` ／ 獲得 <b>${Math.round(totalPt).toLocaleString()}pt</b>`:''}</div>`;
+  const startAmt = parseFloat(chargeSteps[0].amount)||0;
+  const endAmt = parseFloat(chargeSteps[chargeSteps.length-1].amount)||0;
+  const map = chargePointsByType({steps:chargeSteps});
+  const ptText = pointsSummaryText(map);
+  el.innerHTML = `<div class="chg-route-view">${escapeHTML(routeText(chargeSteps, true))}</div>
+    <div style="margin-top:6px">開始 <b>${fmt(startAmt)}</b>${endAmt!==startAmt?` → 最終 <b>${fmt(endAmt)}</b>`:''}
+    ${ptText?`<br>獲得 <b>${escapeHTML(ptText)}</b>`:''}</div>`;
 }
 function openChargeModal(ds, chargeId) {
   if (!state.wallets.filter(w=>w.active).length) { showToast('先に設定で資金置き場を追加してください'); return; }
@@ -2283,6 +2530,10 @@ function openChargeModal(ds, chargeId) {
   document.getElementById('chg-delete-btn').style.display = c?'':'none';
   const ab = document.querySelector(`#modal-charge .seg-btn[data-cauto="${chargeAutoCheck?1:0}"]`);
   if (ab) setChargeAutoCheck(chargeAutoCheck, ab);
+  editingTemplateId = null;
+  document.getElementById('chg-normal-mode').style.display = '';
+  document.getElementById('chg-tpl-mode').style.display = 'none';
+  document.getElementById('chg-delete-btn').setAttribute('onclick', 'deleteCharge()');
   renderChargeTplChips();
   if (!chargeSteps.length) addChargeStep(); else renderChargeSteps();
   openModal('modal-charge');
@@ -2331,9 +2582,11 @@ function deleteCharge() {
   });
 }
 function chargeTotals(c) {
-  const amt = (c.steps||[]).reduce((a,s)=>Math.max(a,parseFloat(s.amount)||0),0);
-  const pt = (c.steps||[]).reduce((a,s)=>a+(parseFloat(s.point)||0),0);
-  return { amt, pt };
+  const steps = c.steps||[];
+  const startAmt = steps.length ? (parseFloat(steps[0].amount)||0) : 0;
+  const endAmt = steps.length ? (parseFloat(steps[steps.length-1].amount)||0) : 0;
+  const pt = steps.reduce((a,s)=>a+(parseFloat(s.point)||0),0);
+  return { amt:startAmt, startAmt, endAmt, pt };
 }
 function renderChargeTplList() {
   const el = document.getElementById('charge-tpl-list');
@@ -2343,9 +2596,39 @@ function renderChargeTplList() {
     <div class="job-item">
       ${stampHTML('coin')}
       <div class="job-item-body"><div class="job-item-name">${escapeHTML(t.name)}</div>
-        <div class="job-item-sub">${escapeHTML(routeText(t.steps||[]))}</div></div>
-      <button class="btn btn-danger btn-sm" onclick="deleteChargeTemplate('${t.id}')">削除</button>
+        <div class="job-item-sub">${escapeHTML(routeText(t.steps||[], true))}</div></div>
+      <button class="btn btn-ghost btn-sm" onclick="openTemplateEditor('${t.id}')">編集</button>
     </div>`).join('');
+}
+// テンプレートを編集モードで開く
+let editingTemplateId = null;
+function openTemplateEditor(tid) {
+  const t = state.chargeTemplates.find(x=>x.id===tid); if(!t) return;
+  editingTemplateId = tid;
+  chargeEditing = null;
+  chargeSteps = JSON.parse(JSON.stringify(t.steps||[]));
+  chargeAutoCheck = false;
+  document.getElementById('charge-modal-title').textContent = 'テンプレートを編集';
+  document.getElementById('chg-name').value = t.name;
+  document.getElementById('chg-date').value = todayStr();
+  document.getElementById('chg-memo').value = '';
+  document.getElementById('chg-delete-btn').style.display = '';
+  document.getElementById('chg-delete-btn').setAttribute('onclick', `deleteChargeTemplate('${tid}')`);
+  document.getElementById('charge-tpl-row').style.display = 'none';
+  document.getElementById('chg-tpl-mode').style.display = '';
+  document.getElementById('chg-normal-mode').style.display = 'none';
+  renderChargeSteps();
+  openModal('modal-charge');
+}
+function saveTemplateEdit() {
+  if (!editingTemplateId) return;
+  const t = state.chargeTemplates.find(x=>x.id===editingTemplateId); if(!t) return;
+  const name = document.getElementById('chg-name').value.trim();
+  if (!name) { showToast('ルート名を入力してください'); return; }
+  t.name = name;
+  t.steps = JSON.parse(JSON.stringify(chargeSteps.filter(s=>s.from&&s.to)));
+  editingTemplateId = null;
+  save(); closeModal('modal-charge'); renderAll(); showToast('テンプレートを更新しました ✓');
 }
 function deleteChargeTemplate(id) {
   const t = state.chargeTemplates.find(x=>x.id===id); if(!t) return;
@@ -2367,13 +2650,14 @@ function renderHomeCharges() {
   el.innerHTML = (totalPt>0?`<div style="text-align:right;font-size:12px;color:var(--text-secondary);margin-bottom:8px">獲得ポイント計 <b class="mono" style="color:${state.settings.colorPoint};font-size:14px">${Math.round(totalPt).toLocaleString()}pt</b></div>`:'') +
     list.map(c=>{
       const t = chargeTotals(c);
+      const ptText = pointsSummaryText(chargePointsByType(c));
       return `<div class="job-sum-row">${stampHTML('coin')}
         <div class="job-sum-name">${escapeHTML(c.name)}
-          <div class="job-sum-sub">${c.date.slice(5).replace('-','/')}　${escapeHTML(routeText(c.steps||[]))}</div></div>
+          <div class="job-sum-sub">${c.date.slice(5).replace('-','/')}　${escapeHTML(routeText(c.steps||[], true))}</div></div>
         <div style="display:flex;align-items:center;gap:8px">
           <div style="text-align:right">
-            <div class="mono" style="font-size:12.5px;color:${state.settings.colorCharge};font-weight:600">${fmt(t.amt)}</div>
-            ${t.pt>0?`<div class="mono" style="font-size:11px;color:${state.settings.colorPoint}">+${Math.round(t.pt).toLocaleString()}pt</div>`:''}
+            <div class="mono" style="font-size:12.5px;color:${state.settings.colorCharge};font-weight:600">${fmt(t.startAmt)}${t.endAmt!==t.startAmt?`<span style="font-size:10px;color:var(--text-secondary)">→${fmt(t.endAmt)}</span>`:''}</div>
+            ${ptText?`<div class="mono" style="font-size:10.5px;color:${state.settings.colorPoint}">${escapeHTML(ptText)}</div>`:''}
           </div>
           <button class="btn btn-ghost btn-sm" onclick="openChargeModal(null,'${c.id}')">編集</button>
         </div></div>`;
@@ -2409,6 +2693,42 @@ function onCheckKindChange(){
   const k = document.getElementById('chk-kind').value;
   document.getElementById('chk-kind-note').textContent = KIND_NOTES[k]||'';
   document.getElementById('chk-yearmonth-row').style.display = k==='yearly'?'':'none';
+  document.getElementById('chk-monthday-row').style.display = (k==='monthly'||k==='yearly')?'':'none';
+  document.getElementById('chk-weekday-row').style.display = k==='weekly'?'':'none';
+  // 日にちセレクトを構築
+  const md = document.getElementById('chk-monthday');
+  if (md.options.length<=1) {
+    let h = '<option value="">指定しない</option>';
+    for (let d=1; d<=31; d++) h += `<option value="${d}">${d}日</option>`;
+    h += '<option value="99">月末</option>';
+    md.innerHTML = h;
+  }
+}
+// くり返し指定日から、その月の該当日を求める
+function checkOccurrenceDate(c) {
+  if (c.kind==='monthly' || c.kind==='yearly') {
+    if (!c.monthDay) return '';
+    if (c.kind==='yearly' && c.month!==(calMonth+1)) return '';
+    const dim = daysIn(calYear, calMonth);
+    const d = c.monthDay>=99 ? dim : Math.min(c.monthDay, dim);
+    return dstr(calYear, calMonth, d);
+  }
+  if (c.kind==='weekly') {
+    if (c.weekday===''||c.weekday===undefined||c.weekday===null) return '';
+    // 今日以降で最も近い該当曜日（表示月内）
+    const dim = daysIn(calYear, calMonth);
+    for (let d=1; d<=dim; d++) {
+      if (new Date(calYear, calMonth, d).getDay()===+c.weekday) {
+        const ds = dstr(calYear, calMonth, d);
+        if (ds >= todayStr()) return ds;
+      }
+    }
+    // 月内に残りがなければ最初の該当日
+    for (let d=1; d<=dim; d++) {
+      if (new Date(calYear, calMonth, d).getDay()===+c.weekday) return dstr(calYear, calMonth, d);
+    }
+  }
+  return '';
 }
 // 項目が現在表示中の月に出るか
 function isCheckVisible(c) {
@@ -2442,6 +2762,9 @@ function openCheckModal(id) {
   document.getElementById('chk-due').value = checkEditing?(checkEditing.dueDate||''):'';
   document.getElementById('chk-kind').value = checkEditing?checkEditing.kind:'month';
   document.getElementById('chk-yearmonth').value = String(checkEditing&&checkEditing.month?checkEditing.month:(calMonth+1));
+  onCheckKindChange();
+  document.getElementById('chk-monthday').value = checkEditing&&checkEditing.monthDay?String(checkEditing.monthDay):'';
+  document.getElementById('chk-weekday').value = (checkEditing&&checkEditing.weekday!==''&&checkEditing.weekday!==undefined)?String(checkEditing.weekday):'';
   document.getElementById('chk-delete-btn').style.display = checkEditing?'':'none';
   onCheckKindChange();
   openModal('modal-check');
@@ -2456,7 +2779,9 @@ function saveCheck() {
   const date = document.getElementById('chk-date').value||'';
   const dueDate = document.getElementById('chk-due').value||'';
   const month = parseInt(document.getElementById('chk-yearmonth').value)||(calMonth+1);
-  const data = { text, kind, date, dueDate, month };
+  const monthDay = parseInt(document.getElementById('chk-monthday').value)||0;
+  const wdVal = document.getElementById('chk-weekday').value;
+  const data = { text, kind, date, dueDate, month, monthDay, weekday: wdVal===''?'':(+wdVal) };
   if (checkEditing) {
     // くり返し型を編集する場合は適用範囲を尋ねる
     if (isRepeatingCheck(checkEditing)) {
@@ -2545,8 +2870,10 @@ function sortedChecks(){ return [...state.checks].sort((x,y)=>(x.order||0)-(y.or
 const KIND_BADGE = { month:'今月', monthly:'毎月', carry:'繰越', weekly:'毎週', yearly:'年1', always:'常設' };
 // 期限バッジ（期限切れ=赤 / 3日以内=橙 / それ以外=通常）
 function dueBadgeHTML(c, done) {
-  if (!c.dueDate) return '';
-  const label = `⏰ ${(+c.dueDate.slice(5,7))}/${(+c.dueDate.slice(8,10))}`;
+  const due = c.dueDate || (typeof checkOccurrenceDate==='function' ? checkOccurrenceDate(c) : '');
+  if (!due) return '';
+  c = Object.assign({}, c, { dueDate: due });
+  const label = `⏰ ${(+due.slice(5,7))}/${(+due.slice(8,10))}`;
   if (done) return `<span style="opacity:0.5">${label}</span>`;
   const today = todayStr();
   const diff = Math.round((new Date(c.dueDate+'T00:00:00') - new Date(today+'T00:00:00'))/86400000);
@@ -2565,6 +2892,8 @@ function checkRowHTML(c, idx, total) {
       <div style="font-size:10px;color:var(--text-secondary);display:flex;gap:6px;align-items:center;margin-top:1px;flex-wrap:wrap">
         <span style="background:var(--bg);padding:1px 6px;border-radius:8px">${KIND_BADGE[c.kind]||''}</span>
         ${c.date?`<span>📅 ${(+c.date.slice(5,7))}/${(+c.date.slice(8,10))}</span>`:''}
+        ${c.monthDay?`<span>📅 毎月${c.monthDay>=99?'月末':c.monthDay+'日'}</span>`:''}
+        ${(c.weekday!==''&&c.weekday!==undefined&&c.kind==='weekly')?`<span>📅 毎週${WD[c.weekday]}曜</span>`:''}
         ${dueBadgeHTML(c, done)}
       </div>
     </div>
