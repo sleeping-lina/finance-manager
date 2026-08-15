@@ -258,7 +258,7 @@
   <header class="topbar">
     <div style="display:flex;align-items:center;">
       <span class="topbar-logo">Finance<span>Mgr</span></span>
-      <span class="version-badge" id="version-badge">v11</span>
+      <span class="version-badge" id="version-badge">v12</span>
     </div>
     <div class="topbar-total">
       <div class="topbar-total-label">今月合計</div>
@@ -316,6 +316,7 @@
       <div id="home-money-summary"></div>
       <div class="card"><div class="card-title">仕事別の内訳</div><div id="home-jobs"></div></div>
       <div class="card"><div class="card-title">お金・ポイントの記録</div><div id="home-money-list"></div></div>
+      <div class="card"><div class="card-title">クレジットカード支払い</div><div id="home-card-list"></div></div>
       <div class="card"><div class="card-title">チャージ（ポイ活）</div><div id="home-charge-list"></div></div>
       <div class="card"><div class="card-title">月別収入推移（6ヶ月）</div>
         <div class="bar-section" id="bar-chart"></div><div class="bar-labels" id="bar-labels"></div></div>
@@ -338,6 +339,21 @@
           <button class="btn btn-ghost btn-sm" onclick="openWalletModal()">＋ 追加</button>
         </div>
         <div id="poi-wallet-list"></div>
+      </div>
+      <div id="poi-expiry-alert"></div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div class="card-title" style="margin-bottom:0">ポイント・マイルの種類</div>
+          <button class="btn btn-ghost btn-sm" onclick="openPointTypeModal()">＋ 追加</button>
+        </div>
+        <div id="poi-pointtype-list"></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div class="card-title" style="margin-bottom:0">預金・利息</div>
+          <button class="btn btn-ghost btn-sm" onclick="openDepositModal()">＋ 定期預金</button>
+        </div>
+        <div id="poi-deposit-list"></div>
       </div>
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -382,6 +398,11 @@
         </div>
         <div id="moneycat-list"></div>
         <div class="field-note">保険料・銀行引落・ポイント還元などを登録すると、カレンダーから記録できます。</div>
+      </div>
+      <div class="card">
+        <div class="card-title">種別ごとのデフォルトスタンプ</div>
+        <div id="typestamp-list"></div>
+        <div class="field-note">資金置き場で「種別のデフォルト」を選んでいるものに一括で反映されます。</div>
       </div>
       <div class="card">
         <div class="card-title">種別ごとの色</div>
@@ -438,7 +459,7 @@
           <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)"></div>
       </div>
       <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-        FinanceManager <span id="ver-footer">v11</span> / schema <span id="schema-footer">10</span> / 祝日データ 2025–2027
+        FinanceManager <span id="ver-footer">v12</span> / schema <span id="schema-footer">11</span> / 祝日データ 2025–2027
       </div>
     </div>
   </div>
@@ -638,7 +659,29 @@
       <div class="field-note" id="mny-cat-note"></div></div>
     <div class="form-group"><label>内容</label><input type="text" id="mny-name" placeholder="例：国民健康保険 7月分"></div>
     <div class="form-group"><label>月表示用の短縮名（任意）</label><input type="text" id="mny-short" placeholder="例：国保"></div>
-    <div class="form-group"><label id="mny-amount-label">金額（円）</label><input type="number" id="mny-amount" placeholder="15000"></div>
+    <div class="form-group"><label>金額の状態</label>
+      <div class="seg">
+        <div class="seg-btn active" data-mfix="1" onclick="setMoneyFixed(true,this)">確定</div>
+        <div class="seg-btn" data-mfix="0" onclick="setMoneyFixed(false,this)">未定</div>
+      </div>
+      <div class="field-note">「未定」にすると金額なしで予定だけ表示され、後から金額を入れて確定できます。</div></div>
+    <div class="form-group" id="mny-amount-row"><label id="mny-amount-label">金額（円）</label><input type="number" id="mny-amount" placeholder="15000"></div>
+    <div class="form-group" id="mny-period-row"><label>日付の指定方法</label>
+      <select id="mny-datemode" onchange="onMoneyDateModeChange()">
+        <option value="exact">日付を指定</option>
+        <option value="range">期間で指定（例：12〜24日）</option>
+        <option value="rough">ざっくり（上旬・中旬・下旬）</option>
+      </select></div>
+    <div class="form-row" id="mny-range-row" style="display:none">
+      <div class="form-group"><label>開始日（毎月）</label><input type="number" id="mny-rangefrom" min="1" max="31" placeholder="12"></div>
+      <div class="form-group"><label>終了日（毎月）</label><input type="number" id="mny-rangeto" min="1" max="31" placeholder="24"></div>
+    </div>
+    <div class="form-group" id="mny-rough-row" style="display:none"><label>時期</label>
+      <select id="mny-rough">
+        <option value="early">上旬（1〜10日）</option>
+        <option value="mid">中旬（11〜20日）</option>
+        <option value="late">下旬（21日〜月末）</option>
+      </select></div>
     <div class="form-group"><label>くり返し</label>
       <div class="seg">
         <div class="seg-btn active" data-mrep="once" onclick="setMoneyRepeat('once',this)">単発</div>
@@ -653,7 +696,10 @@
       </div>
     </div>
     <div class="form-group" id="mny-pt-row" style="display:none"><label>ポイントの種類</label>
-      <select id="mny-pointtype"></select></div>
+      <select id="mny-pointtype" onchange="onPointTypeChange()"></select></div>
+    <div class="form-group" id="mny-ptexp-row" style="display:none"><label>ポイントの有効期限</label>
+      <input type="date" id="mny-ptexpiry">
+      <div class="field-note">期限が近づくとポイ活タブとチェックリストで警告されます。</div></div>
     <div class="form-group" id="mny-due-row"><label>支払期限・引落日（任意）</label><input type="date" id="mny-due">
       <div class="field-note">期限を設定すると、カレンダーに期限マークが表示されます。</div></div>
     <div class="form-group"><label>引落先（金融機関・カード）</label>
@@ -676,6 +722,8 @@
         <div class="seg-btn active" data-mpaid="0" onclick="setMoneyPaid(false,this)">未払い</div>
         <div class="seg-btn" data-mpaid="1" onclick="setMoneyPaid(true,this)">支払済</div>
       </div></div>
+    <div class="form-group" id="mny-paiddate-row" style="display:none"><label>支払った日</label><input type="date" id="mny-paiddate">
+      <div class="field-note">支払済にすると、期限日ではなくこの日に表示されます（期限も併記）。</div></div>
     <div class="form-group"><label>メモ</label><input type="text" id="mny-memo" placeholder="口座・支払方法など"></div>
   </div>
   <div class="form-actions">
@@ -746,6 +794,60 @@
   </div>
 </div></div>
 
+<div class="modal-overlay" id="modal-pointtype"><div class="modal">
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div>
+  <div class="modal-title" id="pt-modal-title">ポイントを追加</div>
+  <div class="form-grid">
+    <div class="form-group"><label>名称</label><input type="text" id="pt-name" placeholder="例：Vポイント"></div>
+    <div class="form-group"><label>単位</label><input type="text" id="pt-unit" placeholder="pt / マイル"></div>
+    <div class="form-group"><label>期間限定ポイント</label>
+      <div class="seg">
+        <div class="seg-btn active" data-ptl="0" onclick="setPtLimited(false,this)">通常</div>
+        <div class="seg-btn" data-ptl="1" onclick="setPtLimited(true,this)">期間限定</div>
+      </div>
+      <div class="field-note">期間限定にすると、記録時に有効期限を入力でき、期限が近いと警告されます。</div></div>
+    <div class="form-group"><label>色</label><div class="color-picker" id="pt-color-picker"></div></div>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-danger" id="pt-delete-btn" style="margin-right:auto;display:none" onclick="deletePointType()">削除</button>
+    <button class="btn btn-ghost" onclick="closeModal('modal-pointtype')">キャンセル</button>
+    <button class="btn btn-primary" onclick="savePointType()">保存</button>
+  </div>
+</div></div>
+
+<div class="modal-overlay" id="modal-deposit"><div class="modal">
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div>
+  <div class="modal-title" id="dep-modal-title">定期預金を登録</div>
+  <div class="form-grid">
+    <div class="form-group"><label>名称</label><input type="text" id="dep-name" placeholder="例：楽天銀行 1年定期"></div>
+    <div class="form-group"><label>銀行</label><select id="dep-bank"></select></div>
+    <div class="form-row">
+      <div class="form-group"><label>預入額（円）</label><input type="number" id="dep-amount" placeholder="1000000"></div>
+      <div class="form-group"><label>年利（%）</label><input type="number" step="0.001" id="dep-rate" placeholder="0.35"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>預入日</label><input type="date" id="dep-start"></div>
+      <div class="form-group"><label>満期日</label><input type="date" id="dep-end"></div>
+    </div>
+    <div class="calc-preview" id="dep-preview"></div>
+    <div class="form-group"><label>メモ</label><input type="text" id="dep-memo"></div>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-danger" id="dep-delete-btn" style="margin-right:auto;display:none" onclick="deleteDeposit()">削除</button>
+    <button class="btn btn-ghost" onclick="closeModal('modal-deposit')">キャンセル</button>
+    <button class="btn btn-primary" onclick="saveDeposit()">保存</button>
+  </div>
+</div></div>
+
+<div class="modal-overlay" id="modal-typestamp"><div class="modal">
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div>
+  <div class="modal-title" id="ts-modal-title">スタンプを選択</div>
+  <div id="ts-stamp-area"></div>
+  <div class="form-actions">
+    <button class="btn btn-ghost" onclick="closeModal('modal-typestamp')">閉じる</button>
+  </div>
+</div></div>
+
 <div class="modal-overlay" id="modal-route"><div class="modal">
   <div class="modal-handle-zone"><div class="modal-handle"></div></div>
   <div class="modal-title" id="route-modal-title">チャージ経路を登録</div>
@@ -766,6 +868,13 @@
         <div><label class="lbl-s">残高上限</label><input type="number" class="inp-s" id="rt-limit-balance" placeholder="50000"></div>
       </div>
     </div>
+    <div class="subsection">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="subsection-title" style="margin-bottom:0">条件つき還元率</div>
+        <button class="btn btn-ghost btn-sm" onclick="addRouteBonus()">＋ 条件</button>
+      </div>
+      <div id="rt-bonus-list"></div>
+    </div>
     <div class="form-group"><label>条件・注意点</label><input type="text" id="rt-note" placeholder="例：ファミマカード以外からのチャージ / 20,001円以上"></div>
     <div class="form-row">
       <div class="form-group"><label>適用開始（任意）</label><input type="month" id="rt-start"></div>
@@ -781,12 +890,13 @@
 </div></div>
 
 <div class="modal-overlay" id="modal-wallet"><div class="modal">
-  <div class="modal-handle-zone"><div class="modal-handle"></div></div><div class="modal-title" id="wallet-modal-title">資金置き場を追加</div>
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div>
+  <div class="modal-title" id="wallet-modal-title">資金置き場を追加</div>
   <div class="form-grid">
     <div class="form-group"><label>名称</label><input type="text" id="wal-name" placeholder="例：楽天銀行デビットカード"></div>
     <div class="form-group"><label>月表示用の短縮名（任意）</label><input type="text" id="wal-short" placeholder="例：楽天ﾃﾞﾋﾞ"></div>
     <div class="form-group"><label>種別</label>
-      <select id="wal-type">
+      <select id="wal-type" onchange="onWalletTypeChange()">
         <option value="bank">銀行口座</option>
         <option value="card">クレジットカード</option>
         <option value="debit">デビットカード</option>
@@ -798,22 +908,75 @@
         <option value="securities">証券・投資</option>
         <option value="other">その他</option>
       </select></div>
-    <div class="form-row">
-      <div class="form-group"><label>国際ブランド</label>
-        <select id="wal-brand">
-          <option value="">なし</option>
-          <option value="VISA">VISA</option>
-          <option value="Mastercard">Mastercard</option>
-          <option value="JCB">JCB</option>
-          <option value="AMEX">AMEX</option>
-          <option value="Diners">Diners</option>
-        </select></div>
-      <div class="form-group"><label>基本還元率（%）</label><input type="number" step="0.01" id="wal-rate" placeholder="1.0"></div>
+
+    <div id="wal-card-fields">
+      <div class="form-row">
+        <div class="form-group"><label>国際ブランド</label>
+          <select id="wal-brand">
+            <option value="">なし</option>
+            <option value="VISA">VISA</option>
+            <option value="Mastercard">Mastercard</option>
+            <option value="JCB">JCB</option>
+            <option value="AMEX">AMEX</option>
+            <option value="Diners">Diners</option>
+          </select></div>
+        <div class="form-group"><label>基本還元率（%）</label><input type="number" step="0.01" id="wal-rate" placeholder="1.0"></div>
+      </div>
+      <div class="form-group"><label>貯まるポイント</label><select id="wal-pointtype"></select></div>
     </div>
-    <div class="form-group"><label>貯まるポイント</label><select id="wal-pointtype"></select></div>
-    <div class="form-group"><label>メモ（特典・注意点）</label><input type="text" id="wal-note" placeholder="例：10日はWポイントデー"></div>
-    <div class="form-group"><label>スタンプ</label><div id="wal-stamp-area"></div></div>
+
+    <div id="wal-credit-fields" style="display:none">
+      <div class="subsection">
+        <div class="subsection-title">支払い設定</div>
+        <div class="form-row">
+          <div class="form-group"><label>締め日</label>
+            <select id="wal-closing"><option value="">未設定</option><option value="31">末日</option>
+            <option value="5">5日</option><option value="10">10日</option><option value="15">15日</option>
+            <option value="20">20日</option><option value="25">25日</option></select></div>
+          <div class="form-group"><label>支払日（翌月）</label>
+            <select id="wal-payday"><option value="">未設定</option><option value="31">末日</option>
+            <option value="1">1日</option><option value="4">4日</option><option value="5">5日</option>
+            <option value="10">10日</option><option value="15">15日</option><option value="26">26日</option>
+            <option value="27">27日</option></select></div>
+        </div>
+        <div class="form-group"><label>引落口座</label><select id="wal-payaccount"></select></div>
+      </div>
+    </div>
+
+    <div id="wal-bank-fields" style="display:none">
+      <div class="form-group"><label>普通預金 年利（%）</label><input type="number" step="0.001" id="wal-interest" placeholder="0.2"></div>
+      <div class="field-note">定期預金は「ポイ活」タブの預金セクションから登録できます。</div>
+    </div>
+
+    <div id="wal-emoney-fields" style="display:none">
+      <div class="subsection">
+        <div class="subsection-title">上限（任意）</div>
+        <div class="form-row-3">
+          <div><label class="lbl-s">残高上限</label><input type="number" class="inp-s" id="wal-limit-balance" placeholder="50000"></div>
+          <div><label class="lbl-s">1回チャージ</label><input type="number" class="inp-s" id="wal-limit-once" placeholder="25000"></div>
+          <div><label class="lbl-s">月チャージ</label><input type="number" class="inp-s" id="wal-limit-month" placeholder="100000"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="subsection-title" style="margin-bottom:0">条件つき還元率</div>
+        <button class="btn btn-ghost btn-sm" onclick="addWalletBonus()">＋ 条件</button>
+      </div>
+      <div id="wal-bonus-list"></div>
+      <div class="field-note">例：「10日はWポイントデー」2% など。基本還元率とは別に登録できます。</div>
+    </div>
+
+    <div class="form-group"><label>スタンプ</label>
+      <div class="seg" style="margin-bottom:8px">
+        <div class="seg-btn active" data-wstamp="type" onclick="setWalStampMode('type',this)">種別のデフォルト</div>
+        <div class="seg-btn" data-wstamp="custom" onclick="setWalStampMode('custom',this)">個別に設定</div>
+      </div>
+      <div id="wal-stamp-area"></div>
+    </div>
     <div class="form-group"><label>色</label><div class="color-picker" id="wal-color-picker"></div></div>
+    <div class="form-group"><label>メモ（特典・注意点）</label><input type="text" id="wal-note" placeholder="例：10日はWポイントデー"></div>
   </div>
   <div class="form-actions">
     <button class="btn btn-danger" id="wal-delete-btn" style="margin-right:auto;display:none" onclick="deleteWallet()">削除</button>
@@ -853,8 +1016,8 @@
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '11';
-const SCHEMA_VERSION = 10;
+const APP_VERSION = '12';
+const SCHEMA_VERSION = 11;
 const STORAGE_KEY = 'financeManager';
 
 const C = { blue:['#5B8DEF','#3D6BD1','#EAF1FF'], teal:['#2DC5A4','#189A7E','#E4FAF4'], amber:['#F7B32B','#D3921A','#FFF6E0'], pink:['#F76D8E','#D94A6E','#FFEBF0'], violet:['#9B7EDE','#7A5CC4','#F1EBFF'], slate:['#6B7A99','#4D5B78','#EEF1F6'] };
@@ -924,24 +1087,35 @@ function defaultState() {
   return { schemaVersion: SCHEMA_VERSION, jobs: [], records: [], events: [], checks: [],
     moneyCats: defaultMoneyCats(), moneyRecs: [],
     wallets: defaultWallets(), charges: [], chargeTemplates: [], pointTypes: defaultPointTypes(),
-    chargeRoutes: [],
+    chargeRoutes: [], deposits: [],
     settings: { hoursFormat:'decimal', aggregation:'work', amountShow:'on', amountFormat:'k',
       colorIncome:'#1DB882', colorPayday:'#5B8DEF', colorExpense:'#E5544B', colorPoint:'#9B7EDE',
       colorCharge:'#F7B32B', calDisplay:'stamp', weekShowText:'on',
-      colorIncomeEtc:'#2DC5A4', colorPointUse:'#7A5CC4', calTextLen:6 },
+      colorIncomeEtc:'#2DC5A4', colorPointUse:'#7A5CC4', calTextLen:6,
+      typeStamps: defaultTypeStamps() },
     homeMonth: new Date().getMonth(), homeYear: new Date().getFullYear() };
 }
 // ポイント・マイルの種類
 function defaultPointTypes() {
   return [
-    { id:'pt_rakuten', name:'楽天ポイント', unit:'pt', color:'#F76D8E', order:1 },
+    { id:'pt_rakuten', name:'楽天ポイント',   unit:'pt', color:'#F76D8E', order:1 },
     { id:'pt_paypay',  name:'PayPayポイント', unit:'pt', color:'#E5544B', order:2 },
-    { id:'pt_ponta',   name:'Pontaポイント', unit:'pt', color:'#F7B32B', order:3 },
-    { id:'pt_v',       name:'Vポイント',     unit:'pt', color:'#5B8DEF', order:4 },
-    { id:'pt_d',       name:'dポイント',     unit:'pt', color:'#E5544B', order:5 },
-    { id:'ml_ana',     name:'ANAマイル',     unit:'マイル', color:'#5B8DEF', order:6 },
-    { id:'ml_jal',     name:'JALマイル',     unit:'マイル', color:'#E5544B', order:7 },
+    { id:'pt_ponta',   name:'Pontaポイント',  unit:'pt', color:'#F7B32B', order:3 },
+    { id:'pt_v',       name:'Vポイント',      unit:'pt', color:'#5B8DEF', order:4 },
+    { id:'pt_d',       name:'dポイント',      unit:'pt', color:'#E5544B', order:5 },
+    { id:'pt_famima',  name:'ファミマポイント', unit:'pt', color:'#2DC5A4', order:6 },
+    { id:'pt_waon',    name:'WAON POINT',    unit:'pt', color:'#9B7EDE', order:7 },
+    { id:'pt_nanaco',  name:'nanacoポイント', unit:'pt', color:'#F7B32B', order:8 },
+    { id:'pt_amazon',  name:'Amazonポイント', unit:'pt', color:'#6B7A99', order:9 },
+    { id:'pt_recruit', name:'リクルートポイント', unit:'pt', color:'#E5544B', order:10 },
+    { id:'ml_ana',     name:'ANAマイル',      unit:'マイル', color:'#5B8DEF', order:11 },
+    { id:'ml_jal',     name:'JALマイル',      unit:'マイル', color:'#E5544B', order:12 },
   ];
+}
+// 種別ごとのデフォルトスタンプ
+function defaultTypeStamps() {
+  return { bank:'bank', card:'💳', debit:'💳', virtual:'🎫', prepaid:'🎫',
+    applepay:'🍎', emoney:'📱', point:'coin', securities:'📈', other:'💰' };
 }
 // お金・ポイントの種別
 const MONEY_TYPES = {
@@ -1123,6 +1297,42 @@ function migrate(data) {
     if (data.settings.calTextLen===undefined) data.settings.calTextLen=6;
     v = 10;
   }
+  if (v < 11) {
+    // v10 → v11 : 種別別項目・条件付き還元率・期間限定ポイント・デフォルトスタンプ
+    data.settings = data.settings || {};
+    if (!data.settings.typeStamps) data.settings.typeStamps = defaultTypeStamps();
+    // ポイント種類の追加分をマージ
+    const defs = defaultPointTypes();
+    data.pointTypes = data.pointTypes || [];
+    defs.forEach(d=>{ if(!data.pointTypes.some(p=>p.id===d.id)) data.pointTypes.push(d); });
+    data.pointTypes.forEach(p=>{
+      if (p.limited===undefined) p.limited = false;
+      if (p.custom===undefined) p.custom = false;
+    });
+    (data.wallets||[]).forEach(w=>{
+      if (w.bonusRates===undefined) w.bonusRates = [];
+      if (w.limitBalance===undefined) w.limitBalance = '';
+      if (w.limitChargeOnce===undefined) w.limitChargeOnce = '';
+      if (w.limitChargeMonth===undefined) w.limitChargeMonth = '';
+      if (w.interestRate===undefined) w.interestRate = '';
+      if (w.useTypeStamp===undefined) w.useTypeStamp = true;
+      if (w.closingDay===undefined) w.closingDay = '';
+      if (w.payDay===undefined) w.payDay = '';
+      if (w.payAccountId===undefined) w.payAccountId = '';
+    });
+    (data.chargeRoutes||[]).forEach(r=>{ if(r.bonusRates===undefined) r.bonusRates=[]; });
+    (data.moneyRecs||[]).forEach(r=>{
+      if(r.pointExpiry===undefined) r.pointExpiry='';
+      if(r.fixed===undefined) r.fixed=true;
+      if(r.dateMode===undefined) r.dateMode='exact';
+      if(r.rangeFrom===undefined) r.rangeFrom=0;
+      if(r.rangeTo===undefined) r.rangeTo=0;
+      if(r.rough===undefined) r.rough='early';
+      if(r.cardId===undefined) r.cardId='';
+    });
+    data.deposits = data.deposits || [];
+    v = 11;
+  }
   data.schemaVersion = SCHEMA_VERSION;
   data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[]; data.checks=data.checks||[];
   data.moneyCats = (data.moneyCats&&data.moneyCats.length)?data.moneyCats:defaultMoneyCats();
@@ -1130,11 +1340,13 @@ function migrate(data) {
   data.wallets = (data.wallets&&data.wallets.length)?data.wallets:defaultWallets();
   data.pointTypes = (data.pointTypes&&data.pointTypes.length)?data.pointTypes:defaultPointTypes();
   data.chargeRoutes = data.chargeRoutes||[];
+  data.deposits = data.deposits||[];
   data.charges = data.charges||[]; data.chargeTemplates = data.chargeTemplates||[];
   data.settings = Object.assign({ hoursFormat:'decimal', aggregation:'work', amountShow:'on', amountFormat:'k',
     colorIncome:'#1DB882', colorPayday:'#5B8DEF', colorExpense:'#E5544B', colorPoint:'#9B7EDE',
     colorCharge:'#F7B32B', calDisplay:'stamp', weekShowText:'on',
-    colorIncomeEtc:'#2DC5A4', colorPointUse:'#7A5CC4', calTextLen:6 }, data.settings||{});
+    colorIncomeEtc:'#2DC5A4', colorPointUse:'#7A5CC4', calTextLen:6,
+    typeStamps: defaultTypeStamps() }, data.settings||{});
   return data;
 }
 function loadState() {
@@ -1207,13 +1419,20 @@ function buildPayMap() {
 }
 
 // ── nav / modal / toast ──
+let currentPage = 'calendar';
+const scrollMemory = {};
 function showPage(id, el) {
+  const content = document.getElementById('content');
+  // 現在のタブのスクロール位置を記憶
+  scrollMemory[currentPage] = content.scrollTop;
+  currentPage = id;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   if (el) el.classList.add('active');
-  document.getElementById('content').scrollTop = 0;
   renderAll();
+  // 記憶していた位置に復元（なければ先頭）
+  content.scrollTop = scrollMemory[id] || 0;
 }
 function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
@@ -1348,11 +1567,12 @@ function dayItems(ds) {
     const cat = moneyCatById(mr.catId);
     items.push({ kind:'money', mtype:(cat?cat.type:'expense'),
       stamp:(cat?cat.stamp:'💰'), color:(cat?cat.color:PALETTE[3]),
-      label: mr.name || (cat?cat.name:'記録'),
+      label: (mr.name || (cat?cat.name:'記録')) + (mr.fixed===false?'（未定）':''),
       short: (mr.shortName || (cat?cat.shortName:'') || ''),
-      sub: (cat?cat.name:'') + (mr.repeat==='monthly'?'（毎月）':'') + (mr.paid?'・支払済':''),
+      sub: (cat?cat.name:'') + (mr.repeat==='monthly'?'（毎月）':'') + (mr.paid?'・支払済':'')
+        + (moneyPeriodLabel(mr)?('・'+moneyPeriodLabel(mr)):''),
       amount:0, moneyAmount:mr.amount, moneyCat:cat, ptTypeId:mr.pointTypeId||'',
-      memo:mr.memo||'', ref:mr });
+      unfixed: mr.fixed===false, memo:mr.memo||'', ref:mr });
   });
   // チャージ記録
   state.charges.forEach(c=>{
@@ -1365,7 +1585,22 @@ function dayItems(ds) {
   // 支払期限・引落日（記録日と別日の場合のみ独立表示）
   state.moneyRecs.forEach(mr=>{
     const eff = effectiveDueDate(mr);
-    if (!eff || eff!==ds) return;
+    if (!eff) return;
+    // 支払済なら期限日には出さず、支払日に「期限：◯/◯」付きで表示
+    if (mr.paid && mr.paidDate) {
+      if (mr.paidDate!==ds) return;
+      if (moneyHitsDate(mr, ds)) return;
+      const cat2 = moneyCatById(mr.catId);
+      const wal2 = mr.walletId ? state.wallets.find(w=>w.id===mr.walletId) : null;
+      items.push({ kind:'due', mtype:(cat2?cat2.type:'expense'), stamp:'✅',
+        color:(cat2?cat2.color:PALETTE[3]),
+        label: (mr.name || (cat2?cat2.name:'支払')) + '（支払済）',
+        short:(mr.shortName||''),
+        sub: (cat2?cat2.name:'') + (wal2?('／'+wal2.name):'') + `・期限 ${(+eff.slice(5,7))}/${(+eff.slice(8,10))}`,
+        amount:0, dueAmount:mr.amount, memo:mr.memo||'', ref:mr });
+      return;
+    }
+    if (eff!==ds) return;
     if (moneyHitsDate(mr, ds)) return; // 同日なら上で表示済み
     const cat = moneyCatById(mr.catId);
     const wal = mr.walletId ? state.wallets.find(w=>w.id===mr.walletId) : null;
@@ -1397,6 +1632,17 @@ function isCheckVisibleOn(c, ds) {
 }
 // お金記録がその日に該当するか（単発 or 毎月くり返し）
 function moneyHitsDate(mr, ds) {
+  // 期間・ざっくり指定は開始日に1件だけ表示
+  if (mr.dateMode==='range' || mr.dateMode==='rough') {
+    const y=+ds.slice(0,4), m=+ds.slice(5,7)-1;
+    if (mr.repeat!=='monthly') {
+      if (!mr.date || mr.date.slice(0,7)!==ds.slice(0,7)) return false;
+    }
+    if (mr.startDate && ds < mr.startDate) return false;
+    if (mr.endDate && ds > mr.endDate) return false;
+    if (mr.skipDates && mr.skipDates.includes(ds)) return false;
+    return moneyPeriodDate(mr, y, m) === ds;
+  }
   if (mr.repeat==='monthly') {
     const y=+ds.slice(0,4), m=+ds.slice(5,7)-1;
     const day = Math.min(mr.day||1, daysIn(y,m));
@@ -1412,6 +1658,16 @@ function moneyRecsInMonth(y, m) {
   const out = [];
   const dim = daysIn(y,m);
   state.moneyRecs.forEach(mr=>{
+    if (mr.dateMode==='range' || mr.dateMode==='rough') {
+      const ds = moneyPeriodDate(mr, y, m);
+      if (!ds) return;
+      if (mr.repeat!=='monthly' && (!mr.date || mr.date.slice(0,7)!==ds.slice(0,7))) return;
+      if (mr.startDate && ds < mr.startDate) return;
+      if (mr.endDate && ds > mr.endDate) return;
+      if (mr.skipDates && mr.skipDates.includes(ds)) return;
+      out.push(Object.assign({}, mr, { _date: ds }));
+      return;
+    }
     if (mr.repeat==='monthly') {
       const day = Math.min(mr.day||1, dim);
       const ds = dstr(y,m,day);
@@ -1429,6 +1685,7 @@ function moneyRecsInMonth(y, m) {
 function moneyMonthTotals(y, m) {
   let expense = 0, income = 0, point = 0, pointuse = 0;
   moneyRecsInMonth(y,m).forEach(mr=>{
+    if (mr.fixed===false) return; // 未確定は集計に含めない
     const cat = moneyCatById(mr.catId);
     const t = cat ? cat.type : 'expense';
     if (t==='point') point += mr.amount;
@@ -1697,9 +1954,13 @@ function showDayDetail(ds) {
       // 右側に出す金額（収入=緑 / 支出=赤 / ポイント=紫）
       let amtHTML = '';
       if (x.kind==='money') {
-        const col = moneyColor(x.moneyCat);
-        const txt = moneyText(x.moneyCat, x.moneyAmount, x.ptTypeId);
-        amtHTML = `<span class="mono" style="font-size:13px;color:${col};font-weight:600">${txt}</span>`;
+        if (x.unfixed) {
+          amtHTML = `<span style="font-size:11.5px;color:var(--text-secondary);border:1px dashed var(--border);padding:2px 8px;border-radius:8px">金額未定</span>`;
+        } else {
+          const col = moneyColor(x.moneyCat);
+          const txt = moneyText(x.moneyCat, x.moneyAmount, x.ptTypeId);
+          amtHTML = `<span class="mono" style="font-size:13px;color:${col};font-weight:600">${txt}</span>`;
+        }
       } else if (x.kind==='charge') {
         amtHTML = `<span class="mono" style="font-size:12.5px;color:${state.settings.colorCharge};font-weight:600">${fmt(x.chargeAmt)}</span>` +
           (x.chargePt>0?`<span class="mono" style="font-size:11px;color:${state.settings.colorPoint}">+${Math.round(x.chargePt).toLocaleString()}pt</span>`:'');
@@ -1736,11 +1997,25 @@ function showDayDetail(ds) {
   openModal('modal-day');
 }
 function escapeHTML(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-// 月表示用のラベル（短縮名優先＋設定文字数で切る）
+// 文字の表示幅（半角=0.5, 全角=1）
+function charWidth(ch) {
+  const c = ch.codePointAt(0);
+  // ASCII・半角カナ・半角記号は0.5幅
+  if (c <= 0x7F) return 0.5;
+  if (c >= 0xFF61 && c <= 0xFF9F) return 0.5;
+  return 1;
+}
+// 月表示用のラベル（短縮名優先＋設定文字数ぶんの表示幅で切る）
 function calLabel(shortName, fullName) {
-  const len = state.settings.calTextLen || 6;
+  const maxW = state.settings.calTextLen || 6;
   const base = (shortName && shortName.trim()) ? shortName.trim() : (fullName||'');
-  return Array.from(base).slice(0, len).join('');
+  let w = 0, out = '';
+  for (const ch of base) {
+    const cw = charWidth(ch);
+    if (w + cw > maxW) break;
+    out += ch; w += cw;
+  }
+  return out;
 }
 function buildDayTotalsHTML(t) {
   const rows = [];
@@ -2236,7 +2511,36 @@ function moveJob(id, dir){ moveItem(state.jobs, id, dir, renderAll); }
 function moveMoneyCat(id, dir){ moveItem(state.moneyCats, id, dir, renderAll); }
 
 // ── お金・ポイント記録 ──
-let moneyEditing = null, moneyRepeat = 'once', moneyPaid = false, moneyAutoCheck = false;
+let moneyEditing = null, moneyRepeat = 'once', moneyPaid = false, moneyAutoCheck = false, moneyFixed = true;
+function setMoneyFixed(v, el) {
+  moneyFixed = v;
+  document.querySelectorAll('#modal-money .seg-btn[data-mfix]').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('mny-amount-row').style.display = v?'':'none';
+}
+function onMoneyDateModeChange() {
+  const mode = document.getElementById('mny-datemode').value;
+  document.getElementById('mny-range-row').style.display = mode==='range'?'':'none';
+  document.getElementById('mny-rough-row').style.display = mode==='rough'?'':'none';
+  const exact = mode==='exact';
+  document.getElementById('mny-date-row').style.display = (exact && moneyRepeat==='once')?'':'none';
+  document.getElementById('mny-monthly-rows').style.display = (exact && moneyRepeat==='monthly')?'':'none';
+}
+// 未確定の期間指定：その月の対象日を返す（開始日に表示）
+function moneyPeriodDate(mr, y, m) {
+  const dim = daysIn(y,m);
+  if (mr.dateMode==='range' && mr.rangeFrom) return dstr(y,m,Math.min(mr.rangeFrom,dim));
+  if (mr.dateMode==='rough') {
+    const map = { early:1, mid:11, late:21 };
+    return dstr(y,m,Math.min(map[mr.rough]||1,dim));
+  }
+  return '';
+}
+function moneyPeriodLabel(mr) {
+  if (mr.dateMode==='range' && mr.rangeFrom) return `${mr.rangeFrom}〜${mr.rangeTo||mr.rangeFrom}日ごろ`;
+  if (mr.dateMode==='rough') return ({early:'上旬',mid:'中旬',late:'下旬'})[mr.rough]||'';
+  return '';
+}
 function setMoneyAutoCheck(v, el) {
   moneyAutoCheck = v;
   document.querySelectorAll('#modal-money .seg-btn[data-mauto]').forEach(b=>b.classList.remove('active'));
@@ -2251,6 +2555,12 @@ function setMoneyPaid(v, el) {
   moneyPaid = v;
   document.querySelectorAll('#modal-money .seg-btn[data-mpaid]').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
+  const row = document.getElementById('mny-paiddate-row');
+  if (row) {
+    row.style.display = v?'':'none';
+    const inp = document.getElementById('mny-paiddate');
+    if (v && !inp.value) inp.value = todayStr();
+  }
 }
 function setMoneyRepeat(v, el) {
   moneyRepeat = v;
@@ -2258,6 +2568,14 @@ function setMoneyRepeat(v, el) {
   el.classList.add('active');
   document.getElementById('mny-date-row').style.display = v==='once'?'':'none';
   document.getElementById('mny-monthly-rows').style.display = v==='monthly'?'':'none';
+}
+// ポイント種類の変更で有効期限欄を出し分け
+function onPointTypeChange() {
+  const pid = document.getElementById('mny-pointtype').value;
+  const p = pid ? pointTypeById(pid) : null;
+  const row = document.getElementById('mny-ptexp-row');
+  const cat = moneyCatById(document.getElementById('mny-cat').value);
+  row.style.display = (p && p.limited && cat && cat.type==='point') ? '' : 'none';
 }
 function onMoneyCatChange() {
   const cat = moneyCatById(document.getElementById('mny-cat').value);
@@ -2274,6 +2592,7 @@ function onMoneyCatChange() {
       sortByOrder(state.pointTypes).map(p=>`<option value="${p.id}">${escapeHTML(p.name)}</option>`).join('');
     sel.value = cur;
   }
+  onPointTypeChange();
 }
 function openMoneyModal(catId, ds, recId) {
   if (!state.moneyCats.filter(c=>c.active).length) { showToast('先に設定でカテゴリを追加してください'); return; }
@@ -2295,6 +2614,8 @@ function openMoneyModal(catId, ds, recId) {
   document.getElementById('mny-due').value = m?(m.dueDate||''):'';
   onMoneyCatChange();
   if (m && m.pointTypeId) document.getElementById('mny-pointtype').value = m.pointTypeId;
+  document.getElementById('mny-ptexpiry').value = m?(m.pointExpiry||''):'';
+  onPointTypeChange();
   const wsel = document.getElementById('mny-wallet');
   wsel.innerHTML = '<option value="">指定なし</option>' +
     sortByOrder(state.wallets.filter(w=>w.active)).map(w=>`<option value="${w.id}">${w.name}</option>`).join('');
@@ -2303,7 +2624,15 @@ function openMoneyModal(catId, ds, recId) {
   moneyAutoCheck = m?!!m.autoCheck:false;
   const autoBtn = document.querySelector(`#modal-money .seg-btn[data-mauto="${moneyAutoCheck?1:0}"]`);
   if (autoBtn) setMoneyAutoCheck(moneyAutoCheck, autoBtn);
+  moneyFixed = m ? (m.fixed!==false) : true;
+  const fixBtn = document.querySelector(`#modal-money .seg-btn[data-mfix="${moneyFixed?1:0}"]`);
+  if (fixBtn) setMoneyFixed(moneyFixed, fixBtn);
+  document.getElementById('mny-datemode').value = m?(m.dateMode||'exact'):'exact';
+  document.getElementById('mny-rangefrom').value = m?(m.rangeFrom||''):'';
+  document.getElementById('mny-rangeto').value = m?(m.rangeTo||''):'';
+  document.getElementById('mny-rough').value = m?(m.rough||'early'):'early';
   moneyPaid = m?!!m.paid:false;
+  document.getElementById('mny-paiddate').value = m?(m.paidDate||''):'';
   const paidBtn = document.querySelector(`#modal-money .seg-btn[data-mpaid="${moneyPaid?1:0}"]`);
   if (paidBtn) setMoneyPaid(moneyPaid, paidBtn);
   const rep = m?(m.repeat||'once'):'once';
@@ -2316,16 +2645,22 @@ function saveMoneyRec() {
   const catId = document.getElementById('mny-cat').value;
   const name = document.getElementById('mny-name').value.trim();
   const amount = parseFloat(document.getElementById('mny-amount').value)||0;
-  if (!amount) { showToast('金額を入力してください'); return; }
+  if (moneyFixed && !amount) { showToast('金額を入力してください'); return; }
   const memo = document.getElementById('mny-memo').value;
   const dueDate = document.getElementById('mny-due').value||'';
   let data = { catId, name, amount, memo, repeat:moneyRepeat, dueDate, paid:moneyPaid,
     shortName: document.getElementById('mny-short').value.trim(),
+    fixed: moneyFixed,
+    dateMode: document.getElementById('mny-datemode').value,
+    rangeFrom: parseInt(document.getElementById('mny-rangefrom').value)||0,
+    rangeTo: parseInt(document.getElementById('mny-rangeto').value)||0,
+    rough: document.getElementById('mny-rough').value,
     walletId: document.getElementById('mny-wallet').value||'',
     dueHolidayRule: document.getElementById('mny-holrule').value||'none',
     autoCheck: moneyAutoCheck,
     pointTypeId: document.getElementById('mny-pointtype').value||'',
-    paidDate: moneyPaid ? (moneyEditing&&moneyEditing.paidDate ? moneyEditing.paidDate : todayStr()) : '' };
+    pointExpiry: document.getElementById('mny-ptexpiry').value||'',
+    paidDate: moneyPaid ? (document.getElementById('mny-paiddate').value || todayStr()) : '' };
   if (moneyRepeat==='monthly') {
     const day = parseInt(document.getElementById('mny-day').value)||0;
     if (!day || day<1 || day>31) { showToast('毎月の日にちを1〜31で入力してください'); return; }
@@ -2334,9 +2669,16 @@ function saveMoneyRec() {
     if (st && en && en<st) { showToast('終了日は開始日以降にしてください'); return; }
     Object.assign(data, { day, startDate:st, endDate:en, date:'' });
   } else {
-    const date = document.getElementById('mny-date').value;
-    if (!date) { showToast('日付を入力してください'); return; }
-    Object.assign(data, { date, day:0, startDate:'', endDate:'' });
+    const dm = document.getElementById('mny-datemode').value;
+    if (dm==='exact') {
+      const date = document.getElementById('mny-date').value;
+      if (!date) { showToast('日付を入力してください'); return; }
+      Object.assign(data, { date, day:0, startDate:'', endDate:'' });
+    } else {
+      // 期間・ざっくり指定は「その月」を基準にする
+      const base = document.getElementById('mny-date').value || todayStr();
+      Object.assign(data, { date: base, day:0, startDate:'', endDate:'' });
+    }
   }
   if (moneyEditing) {
     // 毎月くり返しの編集は適用範囲を尋ねる
@@ -2504,23 +2846,103 @@ function renderHomeMoney() {
 }
 
 // ── 資金置き場（ウォレット）──
-let walEditing=null, walStamp='bank', walColor=PALETTE[0];
+let walEditing=null, walStamp='bank', walColor=PALETTE[0], walStampMode='type', walBonuses=[];
 const walletById = id => state.wallets.find(w=>w.id===id);
-const WALLET_TYPE_LABEL = { bank:'銀行口座', card:'カード', emoney:'電子マネー', point:'ポイント', other:'その他' };
-function openWalletModal(id) {
+const WALLET_TYPE_LABEL = { bank:'銀行口座', card:'クレジットカード', debit:'デビットカード',
+  virtual:'バーチャルカード', prepaid:'プリペイド', applepay:'Apple Pay',
+  emoney:'電子マネー', point:'ポイント', securities:'証券・投資', other:'その他' };
+// 種別のグループ（セクション分け用）
+const WALLET_GROUPS = [
+  { key:'bank',   label:'🏦 銀行口座',       types:['bank'] },
+  { key:'card',   label:'💳 カード',         types:['card','debit','virtual','prepaid'] },
+  { key:'emoney', label:'📱 電子マネー・決済', types:['emoney','applepay'] },
+  { key:'point',  label:'🪙 ポイント',       types:['point'] },
+  { key:'other',  label:'📦 その他',         types:['securities','other'] },
+];
+// 実際に使うスタンプ（種別デフォルト or 個別）
+function walletStamp(w) {
+  if (w.useTypeStamp!==false) {
+    const ts = state.settings.typeStamps || defaultTypeStamps();
+    return ts[w.type] || '💰';
+  }
+  return w.stamp || '💰';
+}
+function onWalletTypeChange() {
+  const t = document.getElementById('wal-type').value;
+  const isCard = ['card','debit','virtual','prepaid','applepay'].includes(t);
+  document.getElementById('wal-card-fields').style.display = (isCard||t==='emoney')?'':'none';
+  document.getElementById('wal-credit-fields').style.display = (t==='card')?'':'none';
+  document.getElementById('wal-bank-fields').style.display = (t==='bank')?'':'none';
+  document.getElementById('wal-emoney-fields').style.display = (t==='emoney'||t==='prepaid')?'':'none';
+  // 引落口座の選択肢
+  const sel = document.getElementById('wal-payaccount');
+  if (sel) {
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">未設定</option>' +
+      sortByOrder(state.wallets.filter(w=>w.type==='bank')).map(w=>`<option value="${w.id}">${escapeHTML(w.name)}</option>`).join('');
+    sel.value = cur;
+  }
+  if (walStampMode==='type') refreshWalPickers();
+}
+function setWalStampMode(v, el) {
+  walStampMode = v;
+  document.querySelectorAll('#modal-wallet .seg-btn[data-wstamp]').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('wal-stamp-area').style.display = v==='custom'?'':'none';
+  if (v==='type') {
+    const ts = state.settings.typeStamps || defaultTypeStamps();
+    walStamp = ts[document.getElementById('wal-type').value] || '💰';
+  }
+  refreshWalPickers();
+}
+// 条件つき還元率
+function addWalletBonus(){ walBonuses.push({cond:'', rate:''}); renderWalletBonuses(); }
+function removeWalletBonus(i){ walBonuses.splice(i,1); renderWalletBonuses(); }
+function renderWalletBonuses() {
+  const el = document.getElementById('wal-bonus-list');
+  if (!walBonuses.length) { el.innerHTML = '<div class="field-note" style="margin:0 0 6px">条件つき還元率なし</div>'; return; }
+  el.innerHTML = walBonuses.map((b,i)=>`
+    <div class="pat-row" data-i="${i}">
+      <div class="pat-row-head">
+        <input type="text" class="b-cond" placeholder="例：毎月10日 / 20,001円以上" value="${escapeHTML(b.cond||'')}">
+        <button class="pat-del" onclick="removeWalletBonus(${i})">✕</button>
+      </div>
+      <div><label>還元率（%）</label><input type="number" step="0.01" class="b-rate" value="${b.rate||''}" placeholder="2.0"></div>
+    </div>`).join('');
+  el.querySelectorAll('.pat-row').forEach(row=>{
+    const i = +row.dataset.i;
+    row.querySelector('.b-cond').oninput = e=>walBonuses[i].cond=e.target.value;
+    row.querySelector('.b-rate').oninput = e=>walBonuses[i].rate=parseFloat(e.target.value)||'';
+  });
+}
+function openWalletModal(id, presetType) {
   walEditing = id ? walletById(id) : null;
-  walStamp = walEditing?walEditing.stamp:'bank';
-  walColor = walEditing?walEditing.color:PALETTE[0];
-  document.getElementById('wallet-modal-title').textContent = walEditing?'資金置き場を編集':'資金置き場を追加';
-  document.getElementById('wal-name').value = walEditing?walEditing.name:'';
-  document.getElementById('wal-short').value = walEditing?(walEditing.shortName||''):'';
-  document.getElementById('wal-type').value = walEditing?walEditing.type:'bank';
-  document.getElementById('wal-brand').value = walEditing?(walEditing.brand||''):'';
-  document.getElementById('wal-rate').value = walEditing?(walEditing.baseRate||''):'';
-  document.getElementById('wal-note').value = walEditing?(walEditing.note||''):'';
+  const w = walEditing;
+  walStampMode = w ? (w.useTypeStamp!==false ? 'type' : 'custom') : 'type';
+  walColor = w?w.color:PALETTE[0];
+  walBonuses = w ? JSON.parse(JSON.stringify(w.bonusRates||[])) : [];
+  document.getElementById('wallet-modal-title').textContent = w?'資金置き場を編集':'資金置き場を追加';
+  document.getElementById('wal-name').value = w?w.name:'';
+  document.getElementById('wal-short').value = w?(w.shortName||''):'';
+  document.getElementById('wal-type').value = w?w.type:(presetType||'bank');
+  document.getElementById('wal-brand').value = w?(w.brand||''):'';
+  document.getElementById('wal-rate').value = w?(w.baseRate||''):'';
+  document.getElementById('wal-note').value = w?(w.note||''):'';
+  document.getElementById('wal-interest').value = w?(w.interestRate||''):'';
+  document.getElementById('wal-limit-balance').value = w?(w.limitBalance||''):'';
+  document.getElementById('wal-limit-once').value = w?(w.limitChargeOnce||''):'';
+  document.getElementById('wal-limit-month').value = w?(w.limitChargeMonth||''):'';
+  document.getElementById('wal-closing').value = w?(w.closingDay||''):'';
+  document.getElementById('wal-payday').value = w?(w.payDay||''):'';
   document.getElementById('wal-pointtype').innerHTML = '<option value="">指定なし</option>' +
-    sortByOrder(state.pointTypes).map(p=>`<option value="${p.id}" ${walEditing&&p.id===walEditing.pointTypeId?'selected':''}>${escapeHTML(p.name)}</option>`).join('');
-  document.getElementById('wal-delete-btn').style.display = walEditing?'':'none';
+    sortByOrder(state.pointTypes).map(p=>`<option value="${p.id}" ${w&&p.id===w.pointTypeId?'selected':''}>${escapeHTML(p.name)}</option>`).join('');
+  document.getElementById('wal-delete-btn').style.display = w?'':'none';
+  onWalletTypeChange();
+  document.getElementById('wal-payaccount').value = w?(w.payAccountId||''):'';
+  walStamp = w ? (w.useTypeStamp!==false ? walletStamp(w) : (w.stamp||'💰')) : (state.settings.typeStamps||defaultTypeStamps())[document.getElementById('wal-type').value];
+  const smBtn = document.querySelector(`#modal-wallet .seg-btn[data-wstamp="${walStampMode}"]`);
+  if (smBtn) setWalStampMode(walStampMode, smBtn);
+  renderWalletBonuses();
   refreshWalPickers();
   openModal('modal-wallet');
 }
@@ -2531,12 +2953,22 @@ function refreshWalPickers(){
 function saveWallet() {
   const name = document.getElementById('wal-name').value.trim();
   if (!name) { showToast('名称を入力してください'); return; }
-  const data = { name, type:document.getElementById('wal-type').value, stamp:walStamp, color:walColor, active:true,
+  const type = document.getElementById('wal-type').value;
+  const data = { name, type, stamp:walStamp, color:walColor, active:true,
+    useTypeStamp: walStampMode==='type',
     shortName: document.getElementById('wal-short').value.trim(),
     brand: document.getElementById('wal-brand').value,
     baseRate: parseFloat(document.getElementById('wal-rate').value)||'',
     pointTypeId: document.getElementById('wal-pointtype').value||'',
-    note: document.getElementById('wal-note').value.trim() };
+    note: document.getElementById('wal-note').value.trim(),
+    bonusRates: walBonuses.filter(b=>b.cond||b.rate),
+    interestRate: parseFloat(document.getElementById('wal-interest').value)||'',
+    limitBalance: parseFloat(document.getElementById('wal-limit-balance').value)||'',
+    limitChargeOnce: parseFloat(document.getElementById('wal-limit-once').value)||'',
+    limitChargeMonth: parseFloat(document.getElementById('wal-limit-month').value)||'',
+    closingDay: document.getElementById('wal-closing').value||'',
+    payDay: document.getElementById('wal-payday').value||'',
+    payAccountId: document.getElementById('wal-payaccount').value||'' };
   if (walEditing) Object.assign(walEditing, data);
   else {
     const maxO = state.wallets.length?Math.max(...state.wallets.map(w=>w.order||0)):0;
@@ -2556,20 +2988,38 @@ function deleteWallet() {
     save(); closeModal('modal-wallet'); renderAll(); showToast('削除しました');
   });
 }
-function moveWallet(id, dir){ moveItem(state.wallets, id, dir, renderAll); }
+// グループ内での並べ替え
+function moveWalletInGroup(id, dir) {
+  const w = walletById(id); if(!w) return;
+  const grp = WALLET_GROUPS.find(g=>g.types.includes(w.type));
+  if (!grp) return;
+  const members = sortByOrder(state.wallets.filter(x=>grp.types.includes(x.type)));
+  const i = members.findIndex(x=>x.id===id);
+  const t = i+dir;
+  if (i<0 || t<0 || t>=members.length) return;
+  const a = members[i], b = members[t];
+  const ao = a.order||0, bo = b.order||0;
+  a.order = bo; b.order = ao;
+  if (ao===bo) sortByOrder(state.wallets).forEach((x,idx)=>x.order=idx+1);
+  save(); renderAll();
+}
 function renderWalletList() {
   const el = document.getElementById('wallet-list');
   if (!el) return;
-  const ws = sortByOrder(state.wallets);
-  if (!ws.length) { el.innerHTML = '<div class="empty"><div class="empty-text">「＋ 追加」から登録してください</div></div>'; return; }
-  el.innerHTML = ws.map((w,idx)=>`
-    <div class="job-item">
-      ${stampHTML(w.stamp)}
-      <div class="job-item-body"><div class="job-item-name">${escapeHTML(w.name)}</div>
-        <div class="job-item-sub">${WALLET_TYPE_LABEL[w.type]||''}</div></div>
-      <button class="btn btn-ghost btn-sm" onclick="openWalletModal('${w.id}')">編集</button>
-      ${orderBtnsHTML('moveWallet', w.id, idx, ws.length)}
-    </div>`).join('');
+  if (!state.wallets.length) { el.innerHTML = '<div class="empty"><div class="empty-text">「＋ 追加」から登録してください</div></div>'; return; }
+  el.innerHTML = WALLET_GROUPS.map(g=>{
+    const members = sortByOrder(state.wallets.filter(w=>g.types.includes(w.type)));
+    if (!members.length) return '';
+    return `<div style="font-size:11px;color:var(--text-secondary);margin:12px 0 4px;font-weight:600">${g.label}</div>` +
+      members.map((w,idx)=>`
+      <div class="job-item">
+        ${stampHTML(walletStamp(w))}
+        <div class="job-item-body"><div class="job-item-name">${escapeHTML(w.name)}</div>
+          <div class="job-item-sub">${WALLET_TYPE_LABEL[w.type]||''}${w.brand?' / '+w.brand:''}${w.baseRate?' / '+w.baseRate+'%':''}</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="openWalletModal('${w.id}')">編集</button>
+        ${orderBtnsHTML('moveWalletInGroup', w.id, idx, members.length)}
+      </div>`).join('');
+  }).join('');
 }
 
 // ── ポイ活カタログ ──
@@ -2581,28 +3031,333 @@ function rateBadge(rate) {
   if (!r) return '<span class="badge-sm bd-rate0">0%</span>';
   return `<span class="badge-sm bd-rate">${r}%</span>`;
 }
+// ── 種別デフォルトスタンプ ──
+let tsEditingType = null;
+function renderTypeStampList() {
+  const el = document.getElementById('typestamp-list');
+  if (!el) return;
+  const ts = state.settings.typeStamps || defaultTypeStamps();
+  el.innerHTML = Object.keys(WALLET_TYPE_LABEL).map(t=>`
+    <div class="settings-row" style="cursor:pointer" onclick="openTypeStampModal('${t}')">
+      <span>${WALLET_TYPE_LABEL[t]}</span>
+      <span style="display:flex;align-items:center;gap:8px">
+        <span style="width:26px;height:26px;display:flex;align-items:center;justify-content:center">${stampHTML(ts[t]||'💰')}</span>
+        <span style="font-size:11px;color:var(--text-secondary)">変更</span>
+      </span>
+    </div>`).join('');
+}
+function openTypeStampModal(type) {
+  tsEditingType = type;
+  document.getElementById('ts-modal-title').textContent = (WALLET_TYPE_LABEL[type]||'') + ' のスタンプ';
+  refreshTypeStampPicker();
+  openModal('modal-typestamp');
+}
+function refreshTypeStampPicker() {
+  const ts = state.settings.typeStamps || defaultTypeStamps();
+  renderStampArea('ts-stamp-area', ts[tsEditingType]||'💰', s2=>{
+    if (!state.settings.typeStamps) state.settings.typeStamps = defaultTypeStamps();
+    state.settings.typeStamps[tsEditingType] = s2;
+    save(); renderAll(); refreshTypeStampPicker();
+  });
+}
+
+// ── クレカ支払い（締め日・支払日から自動生成）──
+// 登録済みクレカから、その月の支払予定を生成
+function cardPaymentsInMonth(y, m) {
+  const out = [];
+  state.wallets.filter(w=>w.type==='card' && w.closingDay && w.payDay).forEach(w=>{
+    const dim = daysIn(y,m);
+    const pd = (+w.payDay>=31) ? dim : Math.min(+w.payDay, dim);
+    const raw = dstr(y,m,pd);
+    const ds = adjustPayDate(raw, 'after'); // クレカは翌営業日が一般的
+    // 実績が登録済みならそれを使う
+    const rec = state.moneyRecs.find(r=>r.cardId===w.id && r.date===ds);
+    out.push({ wallet:w, date:ds, rawDate:raw, rec: rec||null,
+      amount: rec?rec.amount:0, fixed: rec ? (rec.fixed!==false) : false });
+  });
+  return out;
+}
+// クレカ支払いの金額を入力（未登録なら作成）
+function openCardPayment(walletId, ds) {
+  const w = walletById(walletId); if(!w) return;
+  let rec = state.moneyRecs.find(r=>r.cardId===w.id && r.date===ds);
+  if (!rec) {
+    // カテゴリ「銀行引落」を既定に
+    const cat = state.moneyCats.find(c=>c.id==='mc_bank') || state.moneyCats.find(c=>c.type==='expense');
+    rec = { id:'m'+Date.now(), catId:cat?cat.id:'', cardId:w.id, name:w.name+' 支払い',
+      shortName:w.shortName||'', amount:0, fixed:false, memo:'', repeat:'once', date:ds,
+      dateMode:'exact', walletId:w.payAccountId||'', dueDate:ds, dueHolidayRule:'after',
+      paid:false, paidDate:'', autoCheck:true, pointTypeId:'', pointExpiry:'', skipDates:[] };
+    state.moneyRecs.push(rec);
+    save();
+  }
+  openMoneyModal(null, null, rec.id);
+}
+function renderCardPayments() {
+  const el = document.getElementById('home-card-list');
+  if (!el) return;
+  const list = cardPaymentsInMonth(state.homeYear, state.homeMonth);
+  if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-text">クレジットカードに締め日・支払日を設定すると、支払予定がここに出ます</div></div>'; return; }
+  el.innerHTML = list.map(p=>`
+    <div class="job-sum-row">
+      ${stampHTML(walletStamp(p.wallet))}
+      <div class="job-sum-name">${escapeHTML(p.wallet.name)}
+        <div class="job-sum-sub">${p.date.slice(5).replace('-','/')} 引落${p.date!==p.rawDate?'（翌営業日）':''}${p.wallet.payAccountId&&walletById(p.wallet.payAccountId)?'／'+escapeHTML(walletById(p.wallet.payAccountId).name):''}</div></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        ${p.fixed
+          ? `<span class="mono" style="font-size:13px;color:${state.settings.colorExpense};font-weight:600">-${fmt(p.amount).slice(1)}</span>`
+          : `<span style="font-size:11.5px;color:var(--text-secondary);border:1px dashed var(--border);padding:2px 8px;border-radius:8px">未定</span>`}
+        <button class="btn btn-ghost btn-sm" onclick="openCardPayment('${p.wallet.id}','${p.date}')">${p.fixed?'編集':'金額入力'}</button>
+      </div></div>`).join('');
+}
+
+// ── ポイント種類の管理 ──
+let ptEditing=null, ptLimited=false, ptColor='#F76D8E';
+function setPtLimited(v, el){
+  ptLimited=v;
+  document.querySelectorAll('#modal-pointtype .seg-btn[data-ptl]').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+function openPointTypeModal(id) {
+  ptEditing = id ? pointTypeById(id) : null;
+  const p = ptEditing;
+  ptLimited = p?!!p.limited:false;
+  ptColor = p?p.color:'#F76D8E';
+  document.getElementById('pt-modal-title').textContent = p?'ポイントを編集':'ポイントを追加';
+  document.getElementById('pt-name').value = p?p.name:'';
+  document.getElementById('pt-unit').value = p?(p.unit||'pt'):'pt';
+  document.getElementById('pt-delete-btn').style.display = (p&&p.custom)?'':'none';
+  const lb = document.querySelector(`#modal-pointtype .seg-btn[data-ptl="${ptLimited?1:0}"]`);
+  if (lb) setPtLimited(ptLimited, lb);
+  refreshPtPicker();
+  openModal('modal-pointtype');
+}
+function refreshPtPicker(){
+  const opts=['#F76D8E','#E5544B','#F7B32B','#5B8DEF','#2DC5A4','#9B7EDE','#6B7A99','#12805F'];
+  const el=document.getElementById('pt-color-picker');
+  el.innerHTML = opts.map(c=>`<div class="color-opt ${c===ptColor?'sel':''}" style="background:${c};width:26px;height:26px" data-c="${c}"></div>`).join('');
+  el.querySelectorAll('.color-opt').forEach(o=>o.onclick=()=>{ptColor=o.dataset.c;refreshPtPicker();});
+}
+function savePointType() {
+  const name = document.getElementById('pt-name').value.trim();
+  if (!name) { showToast('名称を入力してください'); return; }
+  const data = { name, unit: document.getElementById('pt-unit').value.trim()||'pt', limited:ptLimited, color:ptColor };
+  if (ptEditing) Object.assign(ptEditing, data);
+  else {
+    const maxO = state.pointTypes.length?Math.max(...state.pointTypes.map(p=>p.order||0)):0;
+    state.pointTypes.push(Object.assign({id:'pt_u'+Date.now(), order:maxO+1, custom:true}, data));
+  }
+  save(); closeModal('modal-pointtype'); renderAll(); showToast('保存しました ✓');
+}
+function deletePointType() {
+  if (!ptEditing || !ptEditing.custom) return;
+  const t = ptEditing;
+  const used = state.moneyRecs.some(r=>r.pointTypeId===t.id)
+    || state.charges.some(c=>(c.steps||[]).some(st=>st.pointTypeId===t.id))
+    || state.wallets.some(w=>w.pointTypeId===t.id);
+  if (used) { showToast('使用中のため削除できません'); return; }
+  confirmDelete('ポイントを削除', `「${t.name}」を削除します。よろしいですか？`, ()=>{
+    state.pointTypes = state.pointTypes.filter(p=>p.id!==t.id);
+    save(); closeModal('modal-pointtype'); renderAll(); showToast('削除しました');
+  });
+}
+// 期限が近い期間限定ポイント（90日以内 or 期限切れ）
+function expiringPoints() {
+  const today = todayStr();
+  const out = [];
+  state.moneyRecs.forEach(mr=>{
+    if (!mr.pointExpiry) return;
+    const cat = moneyCatById(mr.catId);
+    if (!cat || cat.type!=='point') return;
+    const diff = Math.round((new Date(mr.pointExpiry+'T00:00:00') - new Date(today+'T00:00:00'))/86400000);
+    if (diff <= 90) out.push({ rec:mr, cat, diff, pt: mr.pointTypeId?pointTypeById(mr.pointTypeId):null });
+  });
+  return out.sort((a,b)=>a.diff-b.diff);
+}
+function renderExpiryAlert() {
+  const el = document.getElementById('poi-expiry-alert');
+  if (!el) return;
+  const list = expiringPoints();
+  if (!list.length) { el.innerHTML=''; return; }
+  el.innerHTML = `<div class="card" style="border-left:4px solid ${state.settings.colorPoint}">
+    <div class="card-title">⏳ 期限が近いポイント</div>
+    ${list.map(x=>{
+      const urgent = x.diff<0 ? '期限切れ' : (x.diff===0 ? '今日まで' : `あと${x.diff}日`);
+      const col = x.diff<0 ? '#C0392B' : (x.diff<=14 ? '#D35400' : 'var(--text-secondary)');
+      return `<div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:500">${escapeHTML(x.rec.name||x.cat.name)}</div>
+          <div style="font-size:10.5px;color:var(--text-secondary)">${x.pt?escapeHTML(x.pt.name):''}　${x.rec.pointExpiry.replace(/-/g,'/')}まで</div>
+        </div>
+        <div style="text-align:right">
+          <div class="mono" style="font-size:13px;color:${state.settings.colorPoint};font-weight:600">${Math.round(x.rec.amount).toLocaleString()}${x.pt?x.pt.unit:'pt'}</div>
+          <div style="font-size:10.5px;color:${col};font-weight:600">${urgent}</div>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+function renderPointTypeList() {
+  const el = document.getElementById('poi-pointtype-list');
+  if (!el) return;
+  el.innerHTML = sortByOrder(state.pointTypes).map(p=>`
+    <div class="wal-row">
+      <span style="width:26px;flex-shrink:0;display:flex;justify-content:center">
+        <span style="width:16px;height:16px;border-radius:50%;background:${p.color}"></span></span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600">${escapeHTML(p.name)}</div>
+        <div class="route-badges" style="margin-top:3px">
+          <span class="badge-sm bd-type">${escapeHTML(p.unit||'pt')}</span>
+          ${p.limited?'<span class="badge-sm bd-limit">期間限定</span>':''}
+          ${p.custom?'<span class="badge-sm bd-pt">自分で追加</span>':''}
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="openPointTypeModal('${p.id}')">編集</button>
+    </div>`).join('');
+}
+
+// ── 定期預金 ──
+let depEditing=null;
+function calcInterest(amount, rate, startD, endD) {
+  if (!amount||!rate||!startD||!endD) return 0;
+  const days = Math.max(0, Math.round((new Date(endD)-new Date(startD))/86400000));
+  return Math.floor(amount * (rate/100) * days / 365);
+}
+function updateDepPreview() {
+  const a=parseFloat(document.getElementById('dep-amount').value)||0;
+  const r=parseFloat(document.getElementById('dep-rate').value)||0;
+  const s1=document.getElementById('dep-start').value, e1=document.getElementById('dep-end').value;
+  const int1 = calcInterest(a,r,s1,e1);
+  const el = document.getElementById('dep-preview');
+  if (!int1) { el.textContent = '金額・年利・期間を入れると利息の目安が出ます'; return; }
+  el.innerHTML = `税引前の利息（目安） <b>${fmt(int1)}</b><br>
+    <span style="font-size:11px">満期受取額（目安）約 ${fmt(a+int1)}　※税金は考慮していません</span>`;
+}
+function openDepositModal(id) {
+  depEditing = id ? state.deposits.find(d=>d.id===id) : null;
+  const d = depEditing;
+  document.getElementById('dep-modal-title').textContent = d?'定期預金を編集':'定期預金を登録';
+  document.getElementById('dep-bank').innerHTML = '<option value="">選択</option>' +
+    sortByOrder(state.wallets.filter(w=>w.type==='bank')).map(w=>`<option value="${w.id}" ${d&&w.id===d.bankId?'selected':''}>${escapeHTML(w.name)}</option>`).join('');
+  document.getElementById('dep-name').value = d?d.name:'';
+  document.getElementById('dep-amount').value = d?d.amount:'';
+  document.getElementById('dep-rate').value = d?d.rate:'';
+  document.getElementById('dep-start').value = d?(d.startDate||''):todayStr();
+  document.getElementById('dep-end').value = d?(d.endDate||''):'';
+  document.getElementById('dep-memo').value = d?(d.memo||''):'';
+  document.getElementById('dep-delete-btn').style.display = d?'':'none';
+  ['dep-amount','dep-rate','dep-start','dep-end'].forEach(idd=>{
+    const inp=document.getElementById(idd);
+    inp.oninput = updateDepPreview; inp.onchange = updateDepPreview;
+  });
+  updateDepPreview();
+  openModal('modal-deposit');
+}
+function saveDeposit() {
+  const name = document.getElementById('dep-name').value.trim();
+  const amount = parseFloat(document.getElementById('dep-amount').value)||0;
+  if (!name||!amount) { showToast('名称と預入額を入力してください'); return; }
+  const data = { name, bankId:document.getElementById('dep-bank').value,
+    amount, rate: parseFloat(document.getElementById('dep-rate').value)||0,
+    startDate: document.getElementById('dep-start').value,
+    endDate: document.getElementById('dep-end').value,
+    memo: document.getElementById('dep-memo').value };
+  if (depEditing) Object.assign(depEditing, data);
+  else state.deposits.push(Object.assign({id:'dp'+Date.now()}, data));
+  save(); closeModal('modal-deposit'); renderAll(); showToast('保存しました ✓');
+}
+function deleteDeposit() {
+  if (!depEditing) return;
+  const t = depEditing;
+  confirmDelete('定期預金を削除', `「${t.name}」を削除します。よろしいですか？`, ()=>{
+    state.deposits = state.deposits.filter(d=>d.id!==t.id);
+    save(); closeModal('modal-deposit'); renderAll(); showToast('削除しました');
+  });
+}
+function renderDepositList() {
+  const el = document.getElementById('poi-deposit-list');
+  if (!el) return;
+  const banks = sortByOrder(state.wallets.filter(w=>w.type==='bank' && w.interestRate));
+  let html = '';
+  if (banks.length) {
+    html += banks.map(w=>`
+      <div class="wal-row">
+        ${stampHTML(walletStamp(w))}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600">${escapeHTML(w.name)}</div>
+          <div class="route-badges" style="margin-top:3px"><span class="badge-sm bd-type">普通預金</span><span class="badge-sm bd-rate">年${w.interestRate}%</span></div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="openWalletModal('${w.id}')">編集</button>
+      </div>`).join('');
+  }
+  if (state.deposits.length) {
+    html += state.deposits.map(d=>{
+      const bank = d.bankId?walletById(d.bankId):null;
+      const int1 = calcInterest(d.amount,d.rate,d.startDate,d.endDate);
+      const isMatured = d.endDate && d.endDate < todayStr();
+      return `<div class="wal-row">
+        ${stampHTML('bank')}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600">${escapeHTML(d.name)}</div>
+          <div class="route-badges" style="margin-top:3px">
+            <span class="badge-sm bd-type">定期</span>
+            ${d.rate?`<span class="badge-sm bd-rate">年${d.rate}%</span>`:''}
+            ${bank?`<span class="badge-sm bd-type">${escapeHTML(bank.name)}</span>`:''}
+            ${isMatured?'<span class="badge-sm bd-limit">満期</span>':''}
+          </div>
+          <div class="route-note">${fmt(d.amount)}${d.endDate?` ／ 満期 ${d.endDate.replace(/-/g,'/')}`:''}${int1?` ／ 利息目安 ${fmt(int1)}`:''}</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="openDepositModal('${d.id}')">編集</button>
+      </div>`;
+    }).join('');
+  }
+  el.innerHTML = html || '<div class="empty"><div class="empty-text">銀行に年利を登録するか、定期預金を追加してください</div></div>';
+}
+
 function walletBadges(w) {
   const parts = [`<span class="badge-sm bd-type">${WALLET_TYPE_LABEL2[w.type]||'その他'}</span>`];
   if (w.brand) parts.push(`<span class="badge-sm ${brandClass(w.brand)}">${w.brand}</span>`);
   if (w.baseRate) parts.push(rateBadge(w.baseRate));
-  if (w.pointTypeId) { const p = pointTypeById(w.pointTypeId); if(p) parts.push(`<span class="badge-sm bd-pt">${escapeHTML(p.name)}</span>`); }
+  (w.bonusRates||[]).forEach(b=>{
+    if (b.rate) parts.push(`<span class="badge-sm bd-rate">${b.rate}%${b.cond?` ${escapeHTML(b.cond)}`:''}</span>`);
+  });
+  if (w.interestRate) parts.push(`<span class="badge-sm bd-rate">年${w.interestRate}%</span>`);
+  if (w.pointTypeId) { const p = pointTypeById(w.pointTypeId); if(p) parts.push(`<span class="badge-sm bd-pt">${escapeHTML(p.name)}${p.limited?'(期間限定)':''}</span>`); }
+  if (w.limitBalance) parts.push(`<span class="badge-sm bd-limit">残高上限 ${Math.round(w.limitBalance).toLocaleString()}</span>`);
+  if (w.limitChargeOnce) parts.push(`<span class="badge-sm bd-limit">1回 ${Math.round(w.limitChargeOnce).toLocaleString()}</span>`);
+  if (w.limitChargeMonth) parts.push(`<span class="badge-sm bd-limit">月 ${Math.round(w.limitChargeMonth).toLocaleString()}</span>`);
+  if (w.type==='card' && w.closingDay && w.payDay) {
+    const cd = w.closingDay>=31?'末':w.closingDay+'日';
+    const pd = w.payDay>=31?'末':w.payDay+'日';
+    parts.push(`<span class="badge-sm bd-type">${cd}〆 翌${pd}払</span>`);
+  }
   return parts.join('');
 }
 function renderPoiWalletList() {
   const el = document.getElementById('poi-wallet-list');
   if (!el) return;
-  const ws = sortByOrder(state.wallets);
-  if (!ws.length) { el.innerHTML = '<div class="empty"><div class="empty-text">「＋ 追加」からカード・決済手段を登録してください</div></div>'; return; }
-  el.innerHTML = ws.map(w=>`
-    <div class="wal-row">
-      ${stampHTML(w.stamp)}
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600">${escapeHTML(w.name)}</div>
-        <div class="route-badges" style="margin-top:4px">${walletBadges(w)}</div>
-        ${w.note?`<div class="route-note">${escapeHTML(w.note)}</div>`:''}
-      </div>
-      <button class="btn btn-ghost btn-sm" onclick="openWalletModal('${w.id}')">編集</button>
-    </div>`).join('');
+  if (!state.wallets.length) { el.innerHTML = '<div class="empty"><div class="empty-text">「＋ 追加」からカード・決済手段を登録してください</div></div>'; return; }
+  el.innerHTML = WALLET_GROUPS.map(g=>{
+    const members = sortByOrder(state.wallets.filter(w=>g.types.includes(w.type)));
+    if (!members.length) return '';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 4px">
+        <span style="font-size:11px;color:var(--text-secondary);font-weight:600">${g.label}</span>
+        <button class="btn btn-ghost btn-sm" style="padding:3px 9px;font-size:11px" onclick="openWalletModal(null,'${g.types[0]}')">＋</button>
+      </div>` +
+      members.map((w,idx)=>`
+      <div class="wal-row">
+        ${stampHTML(walletStamp(w))}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600">${escapeHTML(w.name)}</div>
+          <div class="route-badges" style="margin-top:4px">${walletBadges(w)}</div>
+          ${w.note?`<div class="route-note">${escapeHTML(w.note)}</div>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:4px">
+          <button class="btn btn-ghost btn-sm" onclick="openWalletModal('${w.id}')">編集</button>
+          ${orderBtnsHTML('moveWalletInGroup', w.id, idx, members.length)}
+        </div>
+      </div>`).join('');
+  }).join('');
 }
 // 経路
 let routeEditing = null, routeSort = 'route';
@@ -2611,6 +3366,26 @@ function setRouteSort(v, el) {
   document.querySelectorAll('.seg-btn[data-rs]').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
   renderRouteList();
+}
+let routeBonuses = [];
+function addRouteBonus(){ routeBonuses.push({cond:'', rate:''}); renderRouteBonuses(); }
+function removeRouteBonus(i){ routeBonuses.splice(i,1); renderRouteBonuses(); }
+function renderRouteBonuses() {
+  const el = document.getElementById('rt-bonus-list');
+  if (!routeBonuses.length) { el.innerHTML = '<div class="field-note" style="margin:0 0 6px">条件つき還元率なし</div>'; return; }
+  el.innerHTML = routeBonuses.map((b,i)=>`
+    <div class="pat-row" data-i="${i}">
+      <div class="pat-row-head">
+        <input type="text" class="rb-cond" placeholder="例：20,001円以上" value="${escapeHTML(b.cond||'')}">
+        <button class="pat-del" onclick="removeRouteBonus(${i})">✕</button>
+      </div>
+      <div><label>還元率（%）</label><input type="number" step="0.01" class="rb-rate" value="${b.rate||''}" placeholder="0.1"></div>
+    </div>`).join('');
+  el.querySelectorAll('.pat-row').forEach(row=>{
+    const i = +row.dataset.i;
+    row.querySelector('.rb-cond').oninput = e=>routeBonuses[i].cond=e.target.value;
+    row.querySelector('.rb-rate').oninput = e=>routeBonuses[i].rate=parseFloat(e.target.value)||'';
+  });
 }
 function openRouteModal(id) {
   if (!state.wallets.length) { showToast('先にカード・決済手段を追加してください'); return; }
@@ -2631,6 +3406,8 @@ function openRouteModal(id) {
   document.getElementById('rt-start').value = r?(r.startYm||''):'';
   document.getElementById('rt-end').value = r?(r.endYm||''):'';
   document.getElementById('rt-delete-btn').style.display = r?'':'none';
+  routeBonuses = r ? JSON.parse(JSON.stringify(r.bonusRates||[])) : [];
+  renderRouteBonuses();
   openModal('modal-route');
 }
 function saveRoute() {
@@ -2645,6 +3422,7 @@ function saveRoute() {
     limitMonth: parseFloat(document.getElementById('rt-limit-month').value)||0,
     limitBalance: parseFloat(document.getElementById('rt-limit-balance').value)||0,
     note: document.getElementById('rt-note').value.trim(),
+    bonusRates: routeBonuses.filter(b=>b.cond||b.rate),
     startYm: document.getElementById('rt-start').value||'',
     endYm: document.getElementById('rt-end').value||'' };
   if (routeEditing) Object.assign(routeEditing, data);
@@ -2682,7 +3460,10 @@ function renderRouteList() {
     const pt = r.pointTypeId ? pointTypeById(r.pointTypeId) : null;
     const badges = [];
     badges.push(rateBadge(r.rate));
-    if (pt) badges.push(`<span class="badge-sm bd-pt">${escapeHTML(pt.name)}</span>`);
+    (r.bonusRates||[]).forEach(b=>{
+      if (b.rate) badges.push(`<span class="badge-sm bd-rate">${b.rate}%${b.cond?` ${escapeHTML(b.cond)}`:''}</span>`);
+    });
+    if (pt) badges.push(`<span class="badge-sm bd-pt">${escapeHTML(pt.name)}${pt.limited?'(限定)':''}</span>`);
     if (r.limitOnce) badges.push(`<span class="badge-sm bd-limit">1回 ${Math.round(r.limitOnce).toLocaleString()}円</span>`);
     if (r.limitMonth) badges.push(`<span class="badge-sm bd-limit">月 ${Math.round(r.limitMonth).toLocaleString()}円</span>`);
     if (r.limitBalance) badges.push(`<span class="badge-sm bd-limit">残高 ${Math.round(r.limitBalance).toLocaleString()}円</span>`);
@@ -3307,6 +4088,11 @@ function renderAll() {
   renderWalletList();
   renderPoiWalletList();
   renderRouteList();
+  renderPointTypeList();
+  renderDepositList();
+  renderTypeStampList();
+  renderCardPayments();
+  renderExpiryAlert();
   renderChargeTplList();
   renderHomeCharges();
   renderColorSettings();
