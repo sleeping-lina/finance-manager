@@ -106,6 +106,10 @@
   .chg-step label { font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 3px; }
   .chg-route-view { font-size: 11px; color: var(--text-secondary); line-height: 1.6; }
   /* ポイ活バッジ */
+  .drag-item { transition: transform .12s, opacity .12s; }
+  .drag-item.dragging { opacity:.5; background: var(--bg); }
+  .drag-handle { cursor: grab; touch-action: none; padding: 0 8px; color: var(--text-secondary); font-size: 16px; flex-shrink:0; user-select:none; }
+  .drop-target { border-top: 2px solid var(--mint); }
   .badge-sm { display:inline-block; padding:1px 6px; border-radius:8px; font-size:9.5px; font-weight:700; line-height:1.5; white-space:nowrap; }
   .bd-visa { background:#E8EEFB; color:#1A4FA0; }
   .bd-master { background:#FFEDE3; color:#B5501A; }
@@ -275,7 +279,7 @@
   <header class="topbar">
     <div style="display:flex;align-items:center;">
       <span class="topbar-logo">Finance<span>Mgr</span></span>
-      <span class="version-badge" id="version-badge">v14</span>
+      <span class="version-badge" id="version-badge">v15</span>
     </div>
     <div class="topbar-total">
       <div class="topbar-total-label">今月合計</div>
@@ -348,7 +352,7 @@
         <div><div class="page-title">ポイ活</div><div class="page-sub">還元率・チャージ経路のカタログ</div></div>
       </div>
       <div class="subtabs">
-        <div class="subtab active" onclick="showSub('poi','cards',this)">カード・決済</div>
+        <div class="subtab active" onclick="showSub('poi','cards',this)">資金・決済</div>
         <div class="subtab" onclick="showSub('poi','routes',this)">チャージ経路</div>
         <div class="subtab" onclick="showSub('poi','points',this)">ポイント</div>
         <div class="subtab" onclick="showSub('poi','bank',this)">預金・利息</div>
@@ -357,8 +361,7 @@
       <div class="subpage active" id="sub-poi-cards">
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div class="card-title" style="margin-bottom:0">カード・決済手段</div>
-            <button class="btn btn-primary btn-sm" onclick="openWalletModal()">＋ 追加</button>
+            <div class="card-title" style="margin-bottom:0">資金・決済手段</div>
           </div>
           <div id="poi-wallet-list"></div>
         </div>
@@ -373,7 +376,7 @@
                 <div class="seg-btn active" data-rs="route" onclick="setRouteSort('route',this)">経路順</div>
                 <div class="seg-btn" data-rs="rate" onclick="setRouteSort('rate',this)">還元率順</div>
               </div>
-              <button class="btn btn-primary btn-sm" onclick="openRouteModal()">＋</button>
+              <span id="routes-head" style="display:flex;gap:5px"></span>
             </div>
           </div>
           <div id="poi-route-list"></div>
@@ -385,7 +388,7 @@
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <div class="card-title" style="margin-bottom:0">ポイント・マイルの種類</div>
-            <button class="btn btn-primary btn-sm" onclick="openPointTypeModal()">＋ 追加</button>
+            <div style="display:flex;gap:5px" id="pts-head"></div>
           </div>
           <div id="poi-pointtype-list"></div>
         </div>
@@ -415,7 +418,7 @@
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <div class="card-title" style="margin-bottom:0">仕事の管理</div>
-            <button class="btn btn-primary btn-sm" onclick="openJobModal()">＋ 追加</button>
+            <div style="display:flex;gap:5px" id="jobs-head"></div>
           </div>
           <div id="job-list"></div>
         </div>
@@ -424,28 +427,30 @@
       <div class="subpage" id="sub-set-money">
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div class="card-title" style="margin-bottom:0">資金置き場</div>
-            <button class="btn btn-primary btn-sm" onclick="openWalletModal()">＋ 追加</button>
+            <div class="card-title" style="margin-bottom:0">資金・決済手段</div>
           </div>
           <div id="wallet-list"></div>
         </div>
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <div class="card-title" style="margin-bottom:0">お金・ポイントのカテゴリ</div>
-            <button class="btn btn-primary btn-sm" onclick="openMoneyCatModal()">＋ 追加</button>
+            <div style="display:flex;gap:5px" id="cats-head"></div>
           </div>
           <div id="moneycat-list"></div>
         </div>
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <div class="card-title" style="margin-bottom:0">税金・保険料・年金</div>
-            <button class="btn btn-primary btn-sm" onclick="openTaxModal()">＋ 追加</button>
+            <div style="display:flex;gap:5px" id="taxes-head"></div>
           </div>
           <div id="tax-list"></div>
           <div class="field-note">通知書が届いたら年間の総額と納期限を登録すると、カレンダーとチェックリストに表示されます。</div>
         </div>
         <div class="card">
-          <div class="card-title">チャージのテンプレート</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="card-title" style="margin-bottom:0">チャージのテンプレート</div>
+            <div style="display:flex;gap:5px" id="tpls-head"></div>
+          </div>
           <div id="charge-tpl-list"></div>
         </div>
       </div>
@@ -498,6 +503,11 @@
               <div class="seg-btn" data-am="on" onclick="setAmountShow('on',this)">表示</div>
               <div class="seg-btn" data-am="off" onclick="setAmountShow('off',this)">非表示</div>
             </div></div>
+          <div class="settings-row"><span>並べ替えの方法</span>
+            <div class="seg seg-sm">
+              <div class="seg-btn" data-sm="button" onclick="setSortMethod('button',this)">↑↓ボタン</div>
+              <div class="seg-btn" data-sm="drag" onclick="setSortMethod('drag',this)">ドラッグ</div>
+            </div></div>
           <div class="settings-row"><span>未確定の薄さ</span>
             <div style="display:flex;align-items:center;gap:8px">
               <input type="range" id="unfixed-opacity" min="20" max="100" step="5" style="width:110px" oninput="setUnfixedOpacity(this.value)">
@@ -519,7 +529,7 @@
             <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)"></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v14</span> / schema <span id="schema-footer">13</span> / 祝日データ 2025–2027
+          FinanceManager <span id="ver-footer">v15</span> / schema <span id="schema-footer">14</span> / 祝日データ 2025–2027
         </div>
       </div>
     </div>
@@ -964,7 +974,8 @@
         <option value="virtual">バーチャルカード</option>
         <option value="prepaid">プリペイドカード</option>
         <option value="applepay">Apple Pay</option>
-        <option value="emoney">電子マネー・コード決済</option>
+        <option value="emoney">電子マネー（Suica・楽天Edyなど）</option>
+        <option value="codepay">コード決済（PayPay・楽天ペイなど）</option>
         <option value="point">ポイント</option>
         <option value="securities">証券・投資</option>
         <option value="other">その他</option>
@@ -1131,12 +1142,14 @@
         <input type="number" id="fix-point" placeholder="150">
         <select id="fix-pointtype"></select>
       </div></div>
-    <div class="form-group"><label>支払った日</label><input type="date" id="fix-date"></div>
+    <div class="form-group" id="fix-date-row"><label>支払った日</label><input type="date" id="fix-date"></div>
     <div class="form-group"><label>メモ（任意）</label><input type="text" id="fix-memo"></div>
+    <div class="field-note" id="fix-card-note" style="display:none">確定した金額は引落日に自動で支払済になります。</div>
   </div>
   <div class="form-actions">
+    <button class="btn btn-danger" id="fix-none-btn" style="margin-right:auto;display:none" onclick="markCardNoPayment()">支払なし</button>
     <button class="btn btn-ghost" onclick="closeModal('modal-fixamount')">キャンセル</button>
-    <button class="btn btn-primary" onclick="saveFixAmount()">支払済にする</button>
+    <button class="btn btn-primary" id="fix-save-btn" onclick="saveFixAmount()">支払済にする</button>
   </div>
 </div></div>
 
@@ -1155,8 +1168,8 @@
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '14';
-const SCHEMA_VERSION = 13;
+const APP_VERSION = '15';
+const SCHEMA_VERSION = 14;
 const STORAGE_KEY = 'financeManager';
 
 const C = { blue:['#5B8DEF','#3D6BD1','#EAF1FF'], teal:['#2DC5A4','#189A7E','#E4FAF4'], amber:['#F7B32B','#D3921A','#FFF6E0'], pink:['#F76D8E','#D94A6E','#FFEBF0'], violet:['#9B7EDE','#7A5CC4','#F1EBFF'], slate:['#6B7A99','#4D5B78','#EEF1F6'] };
@@ -1231,7 +1244,7 @@ function defaultState() {
       colorIncome:'#1DB882', colorPayday:'#5B8DEF', colorExpense:'#E5544B', colorPoint:'#9B7EDE',
       colorCharge:'#F7B32B', calDisplay:'stamp', weekShowText:'on',
       colorIncomeEtc:'#2DC5A4', colorPointUse:'#7A5CC4', calTextLen:6,
-      typeStamps: defaultTypeStamps(), unfixedOpacity:55,
+      typeStamps: defaultTypeStamps(), unfixedOpacity:55, sortMethod:'button', sortMethod:'button',
       calFilter:{work:true,money:true,charge:true,event:true,check:true,tax:true,card:true} },
     homeMonth: new Date().getMonth(), homeYear: new Date().getFullYear() };
 }
@@ -1265,7 +1278,7 @@ const TAX_PRESETS = {
 // 種別ごとのデフォルトスタンプ
 function defaultTypeStamps() {
   return { bank:'bank', card:'💳', debit:'💳', virtual:'🎫', prepaid:'🎫',
-    applepay:'🍎', emoney:'📱', point:'coin', securities:'📈', other:'💰' };
+    applepay:'🍎', emoney:'🎫', codepay:'📱', point:'coin', securities:'📈', other:'💰' };
 }
 // お金・ポイントの種別
 const MONEY_TYPES = {
@@ -1494,9 +1507,20 @@ function migrate(data) {
     data.taxes = data.taxes || [];
     data.settings = data.settings || {};
     if (data.settings.unfixedOpacity===undefined) data.settings.unfixedOpacity = 55;
+    if (data.settings.sortMethod===undefined) data.settings.sortMethod = 'button';
     if (!data.settings.calFilter) data.settings.calFilter = {
       work:true, money:true, charge:true, event:true, check:true, tax:true, card:true };
     v = 13;
+  }
+  if (v < 14) {
+    // v13 → v14 : クレカ「支払なし」、並べ替え方法
+    (data.moneyRecs||[]).forEach(r=>{ if(r.noPayment===undefined) r.noPayment=false; });
+    (data.chargeTemplates||[]).forEach((t,i)=>{ if(t.order===undefined) t.order=i+1; });
+    (data.taxes||[]).forEach((t,i)=>{ if(t.order===undefined) t.order=i+1; });
+    (data.chargeRoutes||[]).forEach((r,i)=>{ if(r.order===undefined) r.order=i+1; });
+    data.settings = data.settings || {};
+    if (data.settings.sortMethod===undefined) data.settings.sortMethod='button';
+    v = 14;
   }
   data.schemaVersion = SCHEMA_VERSION;
   data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[]; data.checks=data.checks||[];
@@ -1512,7 +1536,7 @@ function migrate(data) {
     colorIncome:'#1DB882', colorPayday:'#5B8DEF', colorExpense:'#E5544B', colorPoint:'#9B7EDE',
     colorCharge:'#F7B32B', calDisplay:'stamp', weekShowText:'on',
     colorIncomeEtc:'#2DC5A4', colorPointUse:'#7A5CC4', calTextLen:6,
-    typeStamps: defaultTypeStamps(), unfixedOpacity:55,
+    typeStamps: defaultTypeStamps(), unfixedOpacity:55, sortMethod:'button',
     calFilter:{work:true,money:true,charge:true,event:true,check:true,tax:true,card:true} }, data.settings||{});
   return data;
 }
@@ -1777,6 +1801,7 @@ function dayItems(ds) {
   });
   // お金・ポイント記録（単発 + 毎月くり返し）
   state.moneyRecs.forEach(mr=>{
+    if (mr.noPayment) return; // 支払なしの月は表示しない
     if (!moneyHitsDate(mr, ds)) return;
     const cat = moneyCatById(mr.catId);
     items.push({ kind:'money', mtype:(cat?cat.type:'expense'),
@@ -1819,6 +1844,7 @@ function dayItems(ds) {
     const y=+ds.slice(0,4), m=+ds.slice(5,7)-1;
     cardPaymentsInMonth(y,m).forEach(p=>{
       if (p.date!==ds) return;
+      if (p.noPayment) return; // 支払なしの月はカレンダーに出さない
       if (p.rec) return; // 実績登録済みなら money として表示されるので重複回避
       const acc = p.wallet.payAccountId ? walletById(p.wallet.payAccountId) : null;
       items.push({ kind:'cardpay', stamp: walletStamp(p.wallet), color: p.wallet.color||PALETTE[3],
@@ -2588,13 +2614,14 @@ function renderJobList() {
     if (j.payType==='hourly') sub += ' / 時給'+fmt(j.wage)+((j.patterns&&j.patterns.length)?(' / パターン'+j.patterns.length+'件'):'');
     if (j.payType==='monthly') sub += ' / 月額'+fmt(j.salary)+'・毎月'+j.payday+'日';
     if (j.closingDay) sub += ' / '+(j.closingDay>=31?'末':j.closingDay+'日')+'〆'+['当月','翌月','翌々月'][j.payMonthOffset||0]+((j.payDay||25)>=31?'末':(j.payDay||25))+'日払';
-    return `<div class="job-item ${j.active?'':'inactive'}">
+    return `<div class="job-item drag-item ${j.active?'':'inactive'}" data-item-id="${j.id}">
+      ${orderBtnsHTML('moveJob', j.id, idx, jobsSorted.length, 'jobs')}
       ${stampHTML(j.stamp)}
       <div class="job-item-body"><div class="job-item-name">${j.name}${j.active?'':'（無効）'}</div>
         <div class="job-item-sub">${sub}</div></div>
       <button class="btn btn-ghost btn-sm" onclick="openJobModal('${j.id}')">編集</button>
-      ${orderBtnsHTML('moveJob', j.id, idx, jobsSorted.length)}
     </div>`;}).join('');
+  enableDrag('job-list', state.jobs, 'jobs');
 }
 function openJobModal(id) {
   jobEditing = id ? jobById(id) : null;
@@ -2796,6 +2823,7 @@ function setHoursFormat(v, el){ state.settings.hoursFormat=v; save(); syncSettin
 function setAggregation(v, el){ state.settings.aggregation=v; save(); syncSettingsUI(); renderAll(); }
 function setAmountShow(v, el){ state.settings.amountShow=v; save(); syncSettingsUI(); renderAll(); }
 function setCalDisplay(v, el){ state.settings.calDisplay=v; save(); syncSettingsUI(); renderAll(); }
+function setSortMethod(v, el){ state.settings.sortMethod=v; save(); syncSettingsUI(); renderAll(); }
 function setUnfixedOpacity(v){ state.settings.unfixedOpacity=parseInt(v)||55; save();
   document.getElementById('unfixed-opacity-val').textContent=state.settings.unfixedOpacity+'%'; renderCalendar(); }
 function setCalTextLen(v){ state.settings.calTextLen=parseInt(v)||6; save(); document.getElementById('cal-textlen-val').textContent=state.settings.calTextLen+'文字'; renderCalendar(); }
@@ -2810,6 +2838,7 @@ function syncSettingsUI(){
   document.querySelectorAll('.seg-btn[data-wt]').forEach(b=>b.classList.toggle('active', b.dataset.wt===state.settings.weekShowText));
   const tl = document.getElementById('cal-textlen');
   if (tl) { tl.value = state.settings.calTextLen||6; document.getElementById('cal-textlen-val').textContent = (state.settings.calTextLen||6)+'文字'; }
+  document.querySelectorAll('.seg-btn[data-sm]').forEach(b=>b.classList.toggle('active', b.dataset.sm===(state.settings.sortMethod||'button')));
   const uo = document.getElementById('unfixed-opacity');
   if (uo) { uo.value = state.settings.unfixedOpacity||55; document.getElementById('unfixed-opacity-val').textContent = (state.settings.unfixedOpacity||55)+'%'; }
 }
@@ -2847,11 +2876,76 @@ function moveItem(arr, id, dir, afterSave) {
   const tmp = a.order; a.order = b.order; b.order = tmp;
   save(); if (afterSave) afterSave();
 }
-function orderBtnsHTML(fnName, id, idx, total) {
+// ── 並べ替えモード ──
+const sortModes = {}; // {listKey: true/false}
+function toggleSortMode(key) {
+  sortModes[key] = !sortModes[key];
+  renderAll();
+}
+function isSortMode(key){ return !!sortModes[key]; }
+// 並べ替えボタン（見出し横に置く）
+function sortToggleBtn(key) {
+  const on = isSortMode(key);
+  return `<button class="btn ${on?'btn-primary':'btn-ghost'} btn-sm" onclick="toggleSortMode('${key}')" style="padding:5px 10px">${on?'完了':'↑↓'}</button>`;
+}
+function orderBtnsHTML(fnName, id, idx, total, listKey) {
+  // 並べ替えモードでないときは何も出さない
+  if (listKey && !isSortMode(listKey)) return '';
+  if ((state.settings.sortMethod||'button')==='drag') {
+    return `<span class="drag-handle" data-drag-id="${id}">≡</span>`;
+  }
   return `<div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
     <button onclick="event.stopPropagation();${fnName}('${id}',-1)" ${idx===0?'disabled':''} style="border:1px solid var(--border);background:#fff;border-radius:5px;width:26px;height:20px;font-size:10px;cursor:pointer;opacity:${idx===0?0.3:1}">▲</button>
     <button onclick="event.stopPropagation();${fnName}('${id}',1)" ${idx===total-1?'disabled':''} style="border:1px solid var(--border);background:#fff;border-radius:5px;width:26px;height:20px;font-size:10px;cursor:pointer;opacity:${idx===total-1?0.3:1}">▼</button>
   </div>`;
+}
+// ドラッグ並べ替えを有効化（コンテナ内の .drag-item を対象）
+function enableDrag(containerId, arr, listKey, afterFn) {
+  if ((state.settings.sortMethod||'button')!=='drag' || !isSortMode(listKey)) return;
+  const box = document.getElementById(containerId);
+  if (!box) return;
+  let dragId=null, dragEl=null;
+  box.querySelectorAll('.drag-handle').forEach(h=>{
+    const start = e=>{
+      dragId = h.dataset.dragId;
+      dragEl = h.closest('.drag-item');
+      if (dragEl) dragEl.classList.add('dragging');
+      e.preventDefault();
+    };
+    h.addEventListener('touchstart', start, {passive:false});
+    h.addEventListener('mousedown', start);
+  });
+  const move = e=>{
+    if (!dragId) return;
+    const pt = e.touches ? e.touches[0] : e;
+    const el = document.elementFromPoint(pt.clientX, pt.clientY);
+    const row = el && el.closest ? el.closest('.drag-item') : null;
+    box.querySelectorAll('.drag-item').forEach(r=>r.classList.remove('drop-target'));
+    if (row && row!==dragEl) row.classList.add('drop-target');
+    if (e.cancelable) e.preventDefault();
+  };
+  const end = e=>{
+    if (!dragId) return;
+    const target = box.querySelector('.drag-item.drop-target');
+    box.querySelectorAll('.drag-item').forEach(r=>r.classList.remove('drop-target','dragging'));
+    if (target) {
+      const targetId = target.dataset.itemId;
+      const sorted = sortByOrder(arr);
+      const from = sorted.findIndex(x=>x.id===dragId);
+      const to = sorted.findIndex(x=>x.id===targetId);
+      if (from>=0 && to>=0 && from!==to) {
+        const [moved] = sorted.splice(from,1);
+        sorted.splice(to,0,moved);
+        sorted.forEach((x,i)=>x.order=i+1);
+        save(); if (afterFn) afterFn(); else renderAll();
+      }
+    }
+    dragId=null; dragEl=null;
+  };
+  document.addEventListener('touchmove', move, {passive:false});
+  document.addEventListener('touchend', end);
+  document.addEventListener('mousemove', move);
+  document.addEventListener('mouseup', end);
 }
 function moveJob(id, dir){ moveItem(state.jobs, id, dir, renderAll); }
 function moveMoneyCat(id, dir){ moveItem(state.moneyCats, id, dir, renderAll); }
@@ -3157,14 +3251,16 @@ function renderMoneyCatList() {
   const el = document.getElementById('moneycat-list');
   if (!state.moneyCats.length) { el.innerHTML = '<div class="empty"><div class="empty-text">「＋ 追加」からカテゴリを登録してください</div></div>'; return; }
   const catsSorted = sortByOrder(state.moneyCats);
+  const TYPE_LBL = { expense:'支出（円）', income:'入金・受取（円）', point:'ポイント獲得', pointuse:'ポイント利用' };
   el.innerHTML = catsSorted.map((c,idx)=>`
-    <div class="job-item">
+    <div class="job-item drag-item" data-item-id="${c.id}">
+      ${orderBtnsHTML('moveMoneyCat', c.id, idx, catsSorted.length, 'cats')}
       ${stampHTML(c.stamp)}
-      <div class="job-item-body"><div class="job-item-name">${c.name}</div>
-        <div class="job-item-sub">${c.type==='point'?'ポイント（pt）':'支出（円）'}</div></div>
+      <div class="job-item-body"><div class="job-item-name">${escapeHTML(c.name)}</div>
+        <div class="job-item-sub">${TYPE_LBL[c.type]||'支出（円）'}</div></div>
       <button class="btn btn-ghost btn-sm" onclick="openMoneyCatModal('${c.id}')">編集</button>
-      ${orderBtnsHTML('moveMoneyCat', c.id, idx, catsSorted.length)}
     </div>`).join('');
+  enableDrag('moneycat-list', state.moneyCats, 'cats');
 }
 // 色設定
 function renderColorSettings() {
@@ -3214,15 +3310,17 @@ function renderHomeMoney() {
 let walEditing=null, walStamp='bank', walColor=PALETTE[0], walStampMode='type', walBonuses=[];
 const walletById = id => state.wallets.find(w=>w.id===id);
 const WALLET_TYPE_LABEL = { bank:'銀行口座', card:'クレジットカード', debit:'デビットカード',
-  virtual:'バーチャルカード', prepaid:'プリペイド', applepay:'Apple Pay',
-  emoney:'電子マネー', point:'ポイント', securities:'証券・投資', other:'その他' };
+  virtual:'バーチャルカード', prepaid:'プリペイドカード', applepay:'Apple Pay',
+  emoney:'電子マネー', codepay:'コード決済', point:'ポイント', securities:'証券・投資', other:'その他' };
+// セクション内で区別が必要な種別だけバッジに出す（銀行・クレカはセクションと同じなので省略）
+const WALLET_BADGE_TYPES = ['debit','virtual','prepaid','applepay','emoney','codepay','securities'];
 // 種別のグループ（セクション分け用）
 const WALLET_GROUPS = [
-  { key:'bank',   label:'🏦 銀行口座',       types:['bank'] },
-  { key:'card',   label:'💳 カード',         types:['card','debit','virtual','prepaid'] },
-  { key:'emoney', label:'📱 電子マネー・決済', types:['emoney','applepay'] },
-  { key:'point',  label:'🪙 ポイント',       types:['point'] },
-  { key:'other',  label:'📦 その他',         types:['securities','other'] },
+  { key:'bank',   label:'🏦 銀行',              types:['bank'] },
+  { key:'card',   label:'💳 カード',            types:['card','debit','virtual','prepaid'] },
+  { key:'emoney', label:'📱 電子マネー・コード決済', types:['emoney','codepay','applepay'] },
+  { key:'point',  label:'🪙 ポイント',          types:['point'] },
+  { key:'other',  label:'📦 その他',            types:['securities','other'] },
 ];
 // 実際に使うスタンプ（種別デフォルト or 個別）
 function walletStamp(w) {
@@ -3235,10 +3333,10 @@ function walletStamp(w) {
 function onWalletTypeChange() {
   const t = document.getElementById('wal-type').value;
   const isCard = ['card','debit','virtual','prepaid','applepay'].includes(t);
-  document.getElementById('wal-card-fields').style.display = (isCard||t==='emoney')?'':'none';
+  document.getElementById('wal-card-fields').style.display = (isCard||t==='emoney'||t==='codepay')?'':'none';
   document.getElementById('wal-credit-fields').style.display = (t==='card')?'':'none';
   document.getElementById('wal-bank-fields').style.display = (t==='bank')?'':'none';
-  document.getElementById('wal-emoney-fields').style.display = (t==='emoney'||t==='prepaid')?'':'none';
+  document.getElementById('wal-emoney-fields').style.display = (t==='emoney'||t==='codepay'||t==='prepaid')?'':'none';
   // 引落口座の選択肢
   const sel = document.getElementById('wal-payaccount');
   if (sel) {
@@ -3388,6 +3486,10 @@ function deleteWallet() {
   });
 }
 // グループ内での並べ替え
+function moveRoute(id, dir){ moveItem(state.chargeRoutes, id, dir, renderAll); }
+function movePointType(id, dir){ moveItem(state.pointTypes, id, dir, renderAll); }
+function moveTax(id, dir){ moveItem(state.taxes, id, dir, renderAll); }
+function moveChargeTpl(id, dir){ moveItem(state.chargeTemplates, id, dir, renderAll); }
 function moveWalletInGroup(id, dir) {
   const w = walletById(id); if(!w) return;
   const grp = WALLET_GROUPS.find(g=>g.types.includes(w.type));
@@ -3409,21 +3511,29 @@ function renderWalletList() {
   el.innerHTML = WALLET_GROUPS.map(g=>{
     const members = sortByOrder(state.wallets.filter(w=>g.types.includes(w.type)));
     if (!members.length) return '';
-    return `<div style="font-size:11px;color:var(--text-secondary);margin:12px 0 4px;font-weight:600">${g.label}</div>` +
+    return `<div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 6px">
+        <span style="font-size:11.5px;color:var(--text-secondary);font-weight:700">${g.label}</span>
+        <div style="display:flex;gap:5px">
+          ${sortToggleBtn('walset-'+g.key)}
+          <button class="btn btn-primary btn-sm" style="padding:5px 11px" onclick="openWalletModal(null,'${g.types[0]}')">＋</button>
+        </div>
+      </div><div id="walsetbox-${g.key}">` +
       members.map((w,idx)=>`
-      <div class="job-item">
+      <div class="job-item drag-item" data-item-id="${w.id}">
+        ${orderBtnsHTML('moveWalletInGroup', w.id, idx, members.length, 'walset-'+g.key)}
         ${stampHTML(walletStamp(w))}
         <div class="job-item-body"><div class="job-item-name">${escapeHTML(w.name)}</div>
           <div class="job-item-sub">${WALLET_TYPE_LABEL[w.type]||''}${w.brand?' / '+w.brand:''}${w.baseRate?' / '+w.baseRate+'%':''}</div></div>
         <button class="btn btn-ghost btn-sm" onclick="openWalletModal('${w.id}')">編集</button>
-        ${orderBtnsHTML('moveWalletInGroup', w.id, idx, members.length)}
-      </div>`).join('');
+      </div>`).join('') + '</div>';
   }).join('');
+  WALLET_GROUPS.forEach(g=>enableDrag('walsetbox-'+g.key, state.wallets, 'walset-'+g.key));
 }
 
 // ── ポイ活カタログ ──
 const WALLET_TYPE_LABEL2 = { bank:'銀行', card:'クレカ', debit:'デビット', virtual:'バーチャル',
-  prepaid:'プリペイド', applepay:'Apple Pay', emoney:'電子マネー', point:'ポイント', securities:'証券', other:'その他' };
+  prepaid:'プリペイド', applepay:'Apple Pay', emoney:'電子マネー', codepay:'コード決済',
+  point:'ポイント', securities:'証券', other:'その他' };
 function brandClass(b){ return b==='VISA'?'bd-visa':b==='Mastercard'?'bd-master':b==='JCB'?'bd-jcb':b==='AMEX'?'bd-amex':'bd-type'; }
 function rateBadge(rate) {
   const r = parseFloat(rate);
@@ -3477,7 +3587,8 @@ function cardPaymentsInMonth(y, m) {
     const ds = adjustPayDate(raw, 'after'); // クレカは翌営業日が一般的
     const rec = state.moneyRecs.find(r=>r.cardId===w.id && r.date===ds);
     out.push({ wallet:w, date:ds, rawDate:raw, rec: rec||null, offset: info.offset,
-      amount: rec?rec.amount:0, fixed: rec ? (rec.fixed!==false) : false });
+      amount: rec?rec.amount:0, fixed: rec ? (rec.fixed!==false) : false,
+      paid: rec ? !!rec.paid : false, noPayment: rec ? !!rec.noPayment : false });
   });
   return out;
 }
@@ -3499,9 +3610,11 @@ function renderCardPayments() {
       <div class="job-sum-name">${escapeHTML(p.wallet.name)}
         <div class="job-sum-sub">${p.date.slice(5).replace('-','/')} 引落${p.offset===2?'（翌々月払い）':''}${p.date!==p.rawDate?'（翌営業日）':''}${p.wallet.payAccountId&&walletById(p.wallet.payAccountId)?'／'+escapeHTML(walletById(p.wallet.payAccountId).name):''}</div></div>
       <div style="display:flex;align-items:center;gap:8px">
-        ${p.fixed
-          ? `<span class="mono" style="font-size:13px;color:${state.settings.colorExpense};font-weight:600">-${fmt(p.amount).slice(1)}</span>`
-          : `<span style="font-size:11.5px;color:var(--text-secondary);border:1px dashed var(--border);padding:2px 8px;border-radius:8px">未定</span>`}
+        ${p.noPayment
+          ? `<span style="font-size:11.5px;color:var(--text-secondary)">支払なし</span>`
+          : (p.fixed
+            ? `<span class="mono" style="font-size:13px;color:${state.settings.colorExpense};font-weight:600;${p.paid?'':'opacity:'+((state.settings.unfixedOpacity||55)/100)}">-${fmt(p.amount).slice(1)}</span>`
+            : `<span style="font-size:11.5px;color:var(--text-secondary);border:1px dashed var(--border);padding:2px 8px;border-radius:8px">未定</span>`)}
         <button class="btn btn-ghost btn-sm" onclick="openCardPayment('${p.wallet.id}','${p.date}')">${p.fixed?'編集':'金額入力'}</button>
       </div></div>`).join('');
 }
@@ -3545,11 +3658,41 @@ function onTaxModeChange() {
 function distributeTaxAmount() {
   const total = parseFloat(document.getElementById('tax-total').value)||0;
   if (!total || !taxInstallments.length) return;
-  const n = taxInstallments.length;
-  const base = Math.floor(total/n/100)*100; // 100円単位
-  const rest = total - base*(n-1);
-  taxInstallments.forEach((ins,i)=>{ if(!ins.paid) ins.amount = (i===0)?rest:base; });
+  // 総額を変えたら手動フラグをリセットして全期に均等割り
+  taxInstallments.forEach(ins=>{ ins._manual = false; });
+  const payable = taxInstallments.filter(i=>!i.paid);
+  const paidSum = taxInstallments.filter(i=>i.paid).reduce((a,i)=>a+(i.amount||0),0);
+  const rest = Math.max(0, total - paidSum);
+  const n = payable.length || 1;
+  const base = Math.floor(rest/n/100)*100; // 100円単位
+  const first = rest - base*(n-1);
+  let k = 0;
+  taxInstallments.forEach(ins=>{ if(!ins.paid){ ins.amount = (k===0)?first:base; k++; } });
   renderTaxInstallments();
+}
+// ある期を手入力したら、残額を「それ以降の未編集の期」に均等割り
+function redistributeRemaining(editedIdx) {
+  const total = parseFloat(document.getElementById('tax-total').value)||0;
+  if (!total) return;
+  // 編集済み・支払済の合計
+  let fixedSum = 0;
+  const targets = [];
+  taxInstallments.forEach((ins,i)=>{
+    if (i<=editedIdx || ins._manual || ins.paid) fixedSum += (ins.amount||0);
+    else targets.push(i);
+  });
+  if (!targets.length) return;
+  const rest = Math.max(0, total - fixedSum);
+  const n = targets.length;
+  const base = Math.floor(rest/n/100)*100;
+  const first = rest - base*(n-1);
+  targets.forEach((idx,k)=>{ taxInstallments[idx].amount = (k===0)?first:base; });
+  // 入力欄だけ更新（フォーカスを奪わない）
+  const el = document.getElementById('tax-installments');
+  targets.forEach(idx=>{
+    const inp = el.querySelector(`.pat-row[data-i="${idx}"] .ti-amt`);
+    if (inp) inp.value = taxInstallments[idx].amount || '';
+  });
 }
 function addTaxInstallment() {
   const y = parseInt(document.getElementById('tax-year').value) || new Date().getFullYear();
@@ -3578,7 +3721,11 @@ function renderTaxInstallments() {
   el.querySelectorAll('.pat-row').forEach(row=>{
     const i = +row.dataset.i;
     row.querySelector('.ti-due').onchange = e=>taxInstallments[i].dueDate=e.target.value;
-    row.querySelector('.ti-amt').oninput = e=>taxInstallments[i].amount=parseFloat(e.target.value)||0;
+    row.querySelector('.ti-amt').oninput = e=>{
+      taxInstallments[i].amount = parseFloat(e.target.value)||0;
+      taxInstallments[i]._manual = true;
+      redistributeRemaining(i);
+    };
   });
 }
 function openTaxModal(id) {
@@ -3638,6 +3785,23 @@ function payTaxInstallment(key, info) {
   Object.assign(f.inst, { amount:info.amount, paid:true, paidDate:info.paidDate,
     walletId:info.walletId, memo:info.memo });
 }
+// 各リストの見出しボタン（並べ替え＋追加）を描画
+function renderListHeaders() {
+  const defs = [
+    ['jobs-head','jobs','openJobModal()'],
+    ['cats-head','cats','openMoneyCatModal()'],
+    ['taxes-head','taxes','openTaxModal()'],
+    ['tpls-head','tpls',''],
+    ['pts-head','pts','openPointTypeModal()'],
+    ['routes-head','routes','openRouteModal()'],
+  ];
+  defs.forEach(([elId,key,addFn])=>{
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.innerHTML = sortToggleBtn(key) +
+      (addFn?`<button class="btn btn-primary btn-sm" style="padding:5px 11px" onclick="${addFn}">＋</button>`:'');
+  });
+}
 function renderTaxList() {
   const el = document.getElementById('tax-list');
   if (!el) return;
@@ -3647,13 +3811,15 @@ function renderTaxList() {
     const total = (t.installments||[]).reduce((a,i)=>a+(i.amount||0),0);
     const paidCnt = (t.installments||[]).filter(i=>i.paid).length;
     const n = (t.installments||[]).length;
-    return `<div class="job-item">
+    return `<div class="job-item drag-item" data-item-id="${t.id}">
+      ${orderBtnsHTML('moveTax', t.id, state.taxes.indexOf(t), state.taxes.length, 'taxes')}
       <span style="width:28px;text-align:center;font-size:22px;flex-shrink:0">${pre.stamp}</span>
       <div class="job-item-body"><div class="job-item-name">${escapeHTML(t.name)}</div>
         <div class="job-item-sub">${t.year}年度 / ${t.mode==='lump'?'一括':n+'期分割'} / 計${fmt(total)} / ${paidCnt}件支払済${t.walletId?' / 口座振替':''}</div></div>
       <button class="btn btn-ghost btn-sm" onclick="openTaxModal('${t.id}')">編集</button>
     </div>`;
   }).join('');
+  enableDrag('tax-list', state.taxes, 'taxes');
 }
 
 function undoTaxPayment(key) {
@@ -3667,7 +3833,13 @@ function undoTaxPayment(key) {
 let fixTarget = null; // {kind:'money'|'card'|'tax', ...}
 function openFixAmount(kind, id, ds, label) {
   fixTarget = { kind, id, ds };
-  document.getElementById('fix-title').textContent = '金額を入力して支払済に';
+  const isCard = (kind==='card');
+  document.getElementById('fix-title').textContent = isCard ? '請求金額を確定する' : '金額を入力して支払済に';
+  // カードは「引落日に自動で支払済」になるため、支払日欄とボタン文言を変える
+  document.getElementById('fix-date-row').style.display = isCard ? 'none' : '';
+  document.getElementById('fix-save-btn').textContent = isCard ? '金額を確定' : '支払済にする';
+  document.getElementById('fix-none-btn').style.display = isCard ? '' : 'none';
+  document.getElementById('fix-card-note').style.display = isCard ? '' : 'none';
   document.getElementById('fix-sub').textContent = label || '';
   document.getElementById('fix-amount').value = '';
   document.getElementById('fix-point').value = '';
@@ -3708,15 +3880,31 @@ function saveFixAmount() {
 
   if (kind==='money') {
     const mr = state.moneyRecs.find(r=>r.id===id);
-    if (mr) Object.assign(mr, { amount, fixed:true, paid:true, paidDate, walletId, memo });
+    if (mr) {
+      // catId など既存の属性は保持し、金額と支払情報だけ更新する
+      mr.amount = amount;
+      mr.fixed = true;
+      mr.paid = true;
+      mr.paidDate = paidDate;
+      if (walletId) mr.walletId = walletId;
+      if (memo) mr.memo = memo;
+    }
   } else if (kind==='card') {
     const w = walletById(id);
     const cat = state.moneyCats.find(c=>c.id==='mc_bank') || state.moneyCats.find(c=>c.type==='expense');
-    state.moneyRecs.push({ id:'m'+Date.now(), catId:cat?cat.id:'', cardId:id,
-      name:(w?w.name:'')+' 支払い', shortName:(w?(w.shortName||''):''), amount, fixed:true,
-      memo, repeat:'once', date:ds, dateMode:'exact', walletId: walletId||(w?w.payAccountId:''),
-      dueDate:ds, dueHolidayRule:'after', paid:true, paidDate, autoCheck:false,
-      pointTypeId:'', pointExpiry:'', skipDates:[] });
+    // 金額を確定するだけ。引落日が来たら自動で支払済になる
+    const already = state.moneyRecs.find(r=>r.cardId===id && r.date===ds);
+    if (already) {
+      already.amount = amount; already.fixed = true; already.noPayment = false;
+      if (walletId) already.walletId = walletId;
+      if (memo) already.memo = memo;
+    } else {
+      state.moneyRecs.push({ id:'m'+Date.now(), catId:cat?cat.id:'', cardId:id,
+        name:(w?w.name:'')+' 支払い', shortName:(w?(w.shortName||''):''), amount, fixed:true,
+        memo, repeat:'once', date:ds, dateMode:'exact', walletId: walletId||(w?w.payAccountId:''),
+        dueDate:ds, dueHolidayRule:'after', paid:false, paidDate:'', autoCheck:false,
+        noPayment:false, pointTypeId:'', pointExpiry:'', skipDates:[] });
+    }
   } else if (kind==='tax') {
     payTaxInstallment(id, { amount, walletId, paidDate, memo });
   }
@@ -3730,7 +3918,36 @@ function saveFixAmount() {
         paid:false, paidDate:'', autoCheck:false, pointTypeId, pointExpiry:'', skipDates:[] });
     }
   }
-  save(); closeModal('modal-fixamount'); renderAll(); showToast('支払済にしました ✓');
+  save(); closeModal('modal-fixamount'); renderAll();
+  showToast(kind==='card' ? '金額を確定しました ✓' : '支払済にしました ✓');
+}
+
+// クレカ「支払なし」
+function markCardNoPayment() {
+  if (!fixTarget || fixTarget.kind!=='card') return;
+  const { id, ds } = fixTarget;
+  const w = walletById(id);
+  const already = state.moneyRecs.find(r=>r.cardId===id && r.date===ds);
+  if (already) { already.noPayment = true; already.fixed = true; already.amount = 0; already.paid = true; already.paidDate = ds; }
+  else {
+    const cat = state.moneyCats.find(c=>c.id==='mc_bank') || state.moneyCats.find(c=>c.type==='expense');
+    state.moneyRecs.push({ id:'m'+Date.now(), catId:cat?cat.id:'', cardId:id,
+      name:(w?w.name:'')+' 支払い', shortName:(w?(w.shortName||''):''), amount:0, fixed:true,
+      memo:'', repeat:'once', date:ds, dateMode:'exact', walletId:'', dueDate:ds,
+      dueHolidayRule:'after', paid:true, paidDate:ds, autoCheck:false, noPayment:true,
+      pointTypeId:'', pointExpiry:'', skipDates:[] });
+  }
+  save(); closeModal('modal-fixamount'); renderAll(); showToast('支払なしにしました');
+}
+// 引落日を過ぎたクレカ支払いを自動で支払済にする
+function autoSettleCardPayments() {
+  const today = todayStr();
+  let changed = false;
+  state.moneyRecs.forEach(r=>{
+    if (!r.cardId || r.paid || r.fixed===false || r.noPayment) return;
+    if (r.date && r.date <= today) { r.paid = true; r.paidDate = r.date; changed = true; }
+  });
+  if (changed) save();
 }
 
 // ── ポイント種類の管理 ──
@@ -3822,8 +4039,10 @@ function renderExpiryAlert() {
 function renderPointTypeList() {
   const el = document.getElementById('poi-pointtype-list');
   if (!el) return;
-  el.innerHTML = sortByOrder(state.pointTypes).map(p=>`
-    <div class="wal-row">
+  const ptSorted = sortByOrder(state.pointTypes);
+  el.innerHTML = ptSorted.map((p,idx)=>`
+    <div class="wal-row drag-item" data-item-id="${p.id}">
+      ${orderBtnsHTML('movePointType', p.id, idx, ptSorted.length, 'pts')}
       <span style="width:26px;flex-shrink:0;display:flex;justify-content:center">
         <span style="width:16px;height:16px;border-radius:50%;background:${p.color}"></span></span>
       <div style="flex:1;min-width:0">
@@ -3835,6 +4054,7 @@ function renderPointTypeList() {
       </div>
       <button class="btn btn-ghost btn-sm" onclick="openPointTypeModal('${p.id}')">編集</button>
     </div>`).join('');
+  enableDrag('poi-pointtype-list', state.pointTypes, 'pts');
 }
 
 // ── 定期預金 ──
@@ -3936,7 +4156,9 @@ function renderDepositList() {
 }
 
 function walletBadges(w) {
-  const parts = [`<span class="badge-sm bd-type">${WALLET_TYPE_LABEL2[w.type]||'その他'}</span>`];
+  const parts = [];
+  // セクションと重複しない種別だけ表示
+  if (WALLET_BADGE_TYPES.includes(w.type)) parts.push(`<span class="badge-sm bd-type">${WALLET_TYPE_LABEL2[w.type]}</span>`);
   if (w.brand) parts.push(`<span class="badge-sm ${brandClass(w.brand)}">${w.brand}</span>`);
   if (w.baseRate) parts.push(rateBadge(w.baseRate));
   (w.bonusRates||[]).forEach(b=>{
@@ -3975,24 +4197,27 @@ function renderPoiWalletList() {
   el.innerHTML = WALLET_GROUPS.map(g=>{
     const members = sortByOrder(state.wallets.filter(w=>g.types.includes(w.type)));
     if (!members.length) return '';
-    return `<div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 4px">
-        <span style="font-size:11px;color:var(--text-secondary);font-weight:600">${g.label}</span>
-        <button class="btn btn-ghost btn-sm" style="padding:3px 9px;font-size:11px" onclick="openWalletModal(null,'${g.types[0]}')">＋</button>
-      </div>` +
+    return `<div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 6px">
+        <span style="font-size:11.5px;color:var(--text-secondary);font-weight:700">${g.label}</span>
+        <div style="display:flex;gap:5px">
+          ${sortToggleBtn('wallet-'+g.key)}
+          <button class="btn btn-primary btn-sm" style="padding:5px 11px" onclick="openWalletModal(null,'${g.types[0]}')">＋</button>
+        </div>
+      </div>
+      <div id="walbox-${g.key}">` +
       members.map((w,idx)=>`
-      <div class="wal-row">
+      <div class="wal-row drag-item" data-item-id="${w.id}">
+        ${orderBtnsHTML('moveWalletInGroup', w.id, idx, members.length, 'wallet-'+g.key)}
         ${stampHTML(walletStamp(w))}
         <div style="flex:1;min-width:0">
           <div style="font-size:13px;font-weight:600">${escapeHTML(w.name)}</div>
-          <div class="route-badges" style="margin-top:4px">${walletBadges(w)}</div>
+          ${walletBadges(w)?`<div class="route-badges" style="margin-top:4px">${walletBadges(w)}</div>`:''}
           ${w.note?`<div class="route-note">${escapeHTML(w.note)}</div>`:''}
         </div>
-        <div style="display:flex;align-items:center;gap:4px">
-          <button class="btn btn-ghost btn-sm" onclick="openWalletModal('${w.id}')">編集</button>
-          ${orderBtnsHTML('moveWalletInGroup', w.id, idx, members.length)}
-        </div>
-      </div>`).join('');
+        <button class="btn btn-ghost btn-sm" onclick="openWalletModal('${w.id}')">編集</button>
+      </div>`).join('') + '</div>';
   }).join('');
+  WALLET_GROUPS.forEach(g=>enableDrag('walbox-'+g.key, state.wallets, 'wallet-'+g.key));
 }
 // 経路
 let routeEditing = null, routeSort = 'route';
@@ -4104,7 +4329,9 @@ function renderRouteList() {
     if (r.limitBalance) badges.push(`<span class="badge-sm bd-limit">残高 ${Math.round(r.limitBalance).toLocaleString()}円</span>`);
     const period = (r.startYm||r.endYm) ? `${r.startYm||''}〜${r.endYm||''}` : '';
     const inactive = !routeActiveNow(r);
-    return `<div class="route-card" style="${inactive?'opacity:0.5':''}" onclick="openRouteModal('${r.id}')">
+    return `<div class="route-card drag-item" data-item-id="${r.id}" style="${inactive?'opacity:0.5':''};display:flex;align-items:center;gap:6px" onclick="openRouteModal('${r.id}')">
+      ${orderBtnsHTML('moveRoute', r.id, list.indexOf(r), list.length, 'routes')}
+      <div style="flex:1;min-width:0">
       <div class="route-head">
         ${f?stampHTML(f.stamp):''}<span>${escapeHTML(f?f.name:'?')}</span>
         <span class="route-arrow">→</span>
@@ -4116,8 +4343,10 @@ function renderRouteList() {
         ${period?`<span class="badge-sm bd-type">${period}${inactive?'（対象外）':''}</span>`:''}
       </div>
       ${r.note?`<div class="route-note">※ ${escapeHTML(r.note)}</div>`:''}
+      </div>
     </div>`;
   }).join('');
+  enableDrag('poi-route-list', state.chargeRoutes, 'routes');
 }
 
 // ── チャージ（ポイ活ルート）──
@@ -4312,13 +4541,16 @@ function renderChargeTplList() {
   const el = document.getElementById('charge-tpl-list');
   if (!el) return;
   if (!state.chargeTemplates.length) { el.innerHTML = '<div class="empty"><div class="empty-text">テンプレートはまだありません</div></div>'; return; }
-  el.innerHTML = state.chargeTemplates.map(t=>`
-    <div class="job-item">
+  const tplSorted = sortByOrder(state.chargeTemplates);
+  el.innerHTML = tplSorted.map((t,idx)=>`
+    <div class="job-item drag-item" data-item-id="${t.id}">
+      ${orderBtnsHTML('moveChargeTpl', t.id, idx, tplSorted.length, 'tpls')}
       ${stampHTML('coin')}
       <div class="job-item-body"><div class="job-item-name">${escapeHTML(t.name)}</div>
         <div class="job-item-sub">${escapeHTML(routeText(t.steps||[], true))}</div></div>
       <button class="btn btn-ghost btn-sm" onclick="openTemplateEditor('${t.id}')">編集</button>
     </div>`).join('');
+  enableDrag('charge-tpl-list', state.chargeTemplates, 'tpls');
 }
 // テンプレートを編集モードで開く
 let editingTemplateId = null;
@@ -4756,6 +4988,7 @@ function renderAll() {
   renderTypeStampList();
   renderCardPayments();
   renderTaxList();
+  renderListHeaders();
   updateFilterBadge();
   renderExpiryAlert();
   renderChargeTplList();
@@ -4763,6 +4996,7 @@ function renderAll() {
   renderColorSettings();
 }
 save();
+autoSettleCardPayments();
 syncSettingsUI();
 renderAll();
 updateMonthNav();
