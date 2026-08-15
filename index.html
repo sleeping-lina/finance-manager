@@ -25,6 +25,22 @@
   .topbar-total { text-align: right; }
   .topbar-total-label { font-size: 9px; color: rgba(45,212,160,0.7); letter-spacing: 1px; }
   .topbar-total-amount { font-family: 'DM Mono'; font-size: 15px; color: var(--mint); font-weight: 500; line-height: 1.1; }
+  /* サブタブ */
+  .subtabs { display: flex; gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0 10px; margin-bottom: 2px; }
+  .subtabs::-webkit-scrollbar { display: none; }
+  .subtab { flex-shrink: 0; padding: 7px 14px; border-radius: 20px; background: #fff; border: 1.5px solid var(--border);
+    font-size: 12.5px; cursor: pointer; user-select: none; white-space: nowrap; color: var(--text-secondary); }
+  .subtab.active { background: var(--navy); border-color: var(--navy); color: #fff; font-weight: 600; }
+  .subpage { display: none; }
+  .subpage.active { display: block; }
+  .month-bar { position: sticky; top: 0; z-index: 45; display: none; align-items: center; justify-content: center; gap: 10px;
+    background: rgba(255,255,255,0.97); backdrop-filter: saturate(180%) blur(12px); -webkit-backdrop-filter: saturate(180%) blur(12px);
+    border-bottom: 1px solid var(--border); padding: 7px 12px; }
+  .month-bar.show { display: flex; }
+  .month-bar button { background: none; border: 1.5px solid var(--border); border-radius: 7px; width: 30px; height: 30px; cursor: pointer; font-size: 14px; }
+  .month-bar-label { font-weight: 700; font-size: 15px; min-width: 108px; text-align: center; cursor: pointer; padding: 4px 6px; border-radius: 8px; }
+  .month-bar-label::after { content: ' ▾'; font-size: 10px; color: var(--text-secondary); }
+  .month-bar-today { width: auto !important; padding: 0 10px !important; font-size: 11px !important; color: var(--mint-dim); font-weight: 600; border-color: transparent !important; }
   .content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px 10px calc(var(--tabbar-h) + var(--safe-bottom) + 18px); }
   .page { display: none; animation: fade 0.18s; }
   .page.active { display: block; }
@@ -258,7 +274,7 @@
   <header class="topbar">
     <div style="display:flex;align-items:center;">
       <span class="topbar-logo">Finance<span>Mgr</span></span>
-      <span class="version-badge" id="version-badge">v12</span>
+      <span class="version-badge" id="version-badge">v13</span>
     </div>
     <div class="topbar-total">
       <div class="topbar-total-label">今月合計</div>
@@ -266,16 +282,18 @@
     </div>
   </header>
 
+  <div class="month-bar" id="month-bar">
+    <button onclick="changeMonthGlobal(-1)">‹</button>
+    <span class="month-bar-label" id="month-bar-label" onclick="openYmPicker()">—</span>
+    <button onclick="changeMonthGlobal(1)">›</button>
+    <button class="month-bar-today" onclick="goTodayGlobal()">今日</button>
+  </div>
+
   <div class="content" id="content">
     <div class="page active" id="page-calendar">
       <div class="cal-wrap" id="cal-swipe-area">
-        <div class="cal-controls">
-          <div class="cal-nav">
-            <button onclick="changeCalMonth(-1)">‹</button>
-            <span class="cal-title" id="cal-title" onclick="openYmPicker()">—</span>
-            <button onclick="changeCalMonth(1)">›</button>
-          </div>
-          <button class="today-btn" onclick="goToday()">今日</button>
+        <div class="cal-controls" style="justify-content:flex-end">
+          <span class="cal-title" id="cal-title" style="display:none"></span>
           <div class="cal-switch">
             <div class="cal-switch-btn active" onclick="setCalView('month',this)">月</div>
             <div class="cal-switch-btn" onclick="setCalView('week',this)">週</div>
@@ -306,12 +324,7 @@
     </div>
 
     <div class="page" id="page-home">
-      <div class="month-nav">
-        <button onclick="changeHomeMonth(-1)">‹</button>
-        <span class="month-label" id="home-month-label">—</span>
-        <button onclick="changeHomeMonth(1)">›</button>
-      </div>
-      <div class="agg-note" id="agg-note"></div>
+      <div class="agg-note" id="agg-note" style="margin-top:4px"></div>
       <div class="total-banner"><span class="lbl">月合計収入</span><span class="amt" id="home-total">¥0</span></div>
       <div id="home-money-summary"></div>
       <div class="card"><div class="card-title">仕事別の内訳</div><div id="home-jobs"></div></div>
@@ -331,135 +344,168 @@
     <div class="page" id="page-poikatsu">
       <div class="page-head">
         <div><div class="page-title">ポイ活</div><div class="page-sub">還元率・チャージ経路のカタログ</div></div>
-        <button class="btn btn-primary btn-sm" onclick="openRouteModal()">＋ 経路</button>
       </div>
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <div class="card-title" style="margin-bottom:0">カード・決済手段</div>
-          <button class="btn btn-ghost btn-sm" onclick="openWalletModal()">＋ 追加</button>
-        </div>
-        <div id="poi-wallet-list"></div>
+      <div class="subtabs">
+        <div class="subtab active" onclick="showSub('poi','cards',this)">カード・決済</div>
+        <div class="subtab" onclick="showSub('poi','routes',this)">チャージ経路</div>
+        <div class="subtab" onclick="showSub('poi','points',this)">ポイント</div>
+        <div class="subtab" onclick="showSub('poi','bank',this)">預金・利息</div>
       </div>
-      <div id="poi-expiry-alert"></div>
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <div class="card-title" style="margin-bottom:0">ポイント・マイルの種類</div>
-          <button class="btn btn-ghost btn-sm" onclick="openPointTypeModal()">＋ 追加</button>
-        </div>
-        <div id="poi-pointtype-list"></div>
-      </div>
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <div class="card-title" style="margin-bottom:0">預金・利息</div>
-          <button class="btn btn-ghost btn-sm" onclick="openDepositModal()">＋ 定期預金</button>
-        </div>
-        <div id="poi-deposit-list"></div>
-      </div>
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <div class="card-title" style="margin-bottom:0">チャージ経路</div>
-          <div class="seg seg-sm">
-            <div class="seg-btn active" data-rs="route" onclick="setRouteSort('route',this)">経路順</div>
-            <div class="seg-btn" data-rs="rate" onclick="setRouteSort('rate',this)">還元率順</div>
+
+      <div class="subpage active" id="sub-poi-cards">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="card-title" style="margin-bottom:0">カード・決済手段</div>
+            <button class="btn btn-primary btn-sm" onclick="openWalletModal()">＋ 追加</button>
           </div>
+          <div id="poi-wallet-list"></div>
         </div>
-        <div id="poi-route-list"></div>
+      </div>
+
+      <div class="subpage" id="sub-poi-routes">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div class="card-title" style="margin-bottom:0">チャージ経路</div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <div class="seg seg-sm">
+                <div class="seg-btn active" data-rs="route" onclick="setRouteSort('route',this)">経路順</div>
+                <div class="seg-btn" data-rs="rate" onclick="setRouteSort('rate',this)">還元率順</div>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="openRouteModal()">＋</button>
+            </div>
+          </div>
+          <div id="poi-route-list"></div>
+        </div>
+      </div>
+
+      <div class="subpage" id="sub-poi-points">
+        <div id="poi-expiry-alert"></div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="card-title" style="margin-bottom:0">ポイント・マイルの種類</div>
+            <button class="btn btn-primary btn-sm" onclick="openPointTypeModal()">＋ 追加</button>
+          </div>
+          <div id="poi-pointtype-list"></div>
+        </div>
+      </div>
+
+      <div class="subpage" id="sub-poi-bank">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="card-title" style="margin-bottom:0">預金・利息</div>
+            <button class="btn btn-primary btn-sm" onclick="openDepositModal()">＋ 定期預金</button>
+          </div>
+          <div id="poi-deposit-list"></div>
+        </div>
       </div>
     </div>
 
     <div class="page" id="page-settings">
       <div class="page-head"><div><div class="page-title">設定</div><div class="page-sub">仕事の登録・アプリ設定</div></div></div>
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <div class="card-title" style="margin-bottom:0">仕事の管理</div>
-          <button class="btn btn-primary btn-sm" onclick="openJobModal()">＋ 追加</button>
+      <div class="subtabs">
+        <div class="subtab active" onclick="showSub('set','jobs',this)">仕事</div>
+        <div class="subtab" onclick="showSub('set','money',this)">お金・資金</div>
+        <div class="subtab" onclick="showSub('set','display',this)">表示・集計</div>
+        <div class="subtab" onclick="showSub('set','data',this)">データ</div>
+      </div>
+
+      <div class="subpage active" id="sub-set-jobs">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="card-title" style="margin-bottom:0">仕事の管理</div>
+            <button class="btn btn-primary btn-sm" onclick="openJobModal()">＋ 追加</button>
+          </div>
+          <div id="job-list"></div>
         </div>
-        <div id="job-list"></div>
       </div>
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <div class="card-title" style="margin-bottom:0">資金置き場（銀行・カード・電子マネー）</div>
-          <button class="btn btn-primary btn-sm" onclick="openWalletModal()">＋ 追加</button>
+
+      <div class="subpage" id="sub-set-money">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="card-title" style="margin-bottom:0">資金置き場</div>
+            <button class="btn btn-primary btn-sm" onclick="openWalletModal()">＋ 追加</button>
+          </div>
+          <div id="wallet-list"></div>
         </div>
-        <div id="wallet-list"></div>
-        <div class="field-note">チャージルートや引落先の選択肢になります。</div>
-      </div>
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <div class="card-title" style="margin-bottom:0">チャージのテンプレート</div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="card-title" style="margin-bottom:0">お金・ポイントのカテゴリ</div>
+            <button class="btn btn-primary btn-sm" onclick="openMoneyCatModal()">＋ 追加</button>
+          </div>
+          <div id="moneycat-list"></div>
         </div>
-        <div id="charge-tpl-list"></div>
-        <div class="field-note">チャージ記録から「テンプレ保存」すると、ここに登録されます。</div>
-      </div>
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <div class="card-title" style="margin-bottom:0">お金・ポイントのカテゴリ</div>
-          <button class="btn btn-primary btn-sm" onclick="openMoneyCatModal()">＋ 追加</button>
+        <div class="card">
+          <div class="card-title">チャージのテンプレート</div>
+          <div id="charge-tpl-list"></div>
         </div>
-        <div id="moneycat-list"></div>
-        <div class="field-note">保険料・銀行引落・ポイント還元などを登録すると、カレンダーから記録できます。</div>
       </div>
-      <div class="card">
-        <div class="card-title">種別ごとのデフォルトスタンプ</div>
-        <div id="typestamp-list"></div>
-        <div class="field-note">資金置き場で「種別のデフォルト」を選んでいるものに一括で反映されます。</div>
+
+      <div class="subpage" id="sub-set-display">
+        <div class="card">
+          <div class="card-title">種別ごとのデフォルトスタンプ</div>
+          <div id="typestamp-list"></div>
+          <div class="field-note">資金置き場で「種別のデフォルト」を選んでいるものに一括で反映されます。</div>
+        </div>
+        <div class="card">
+          <div class="card-title">種別ごとの色</div>
+          <div class="settings-row"><span>収入（日毎・案件）</span><div class="color-picker" id="color-income-picker"></div></div>
+          <div class="settings-row"><span>入金（支払日）</span><div class="color-picker" id="color-payday-picker"></div></div>
+          <div class="settings-row"><span>入金・受取</span><div class="color-picker" id="color-incomeetc-picker"></div></div>
+          <div class="settings-row"><span>支出</span><div class="color-picker" id="color-expense-picker"></div></div>
+          <div class="settings-row"><span>ポイント獲得</span><div class="color-picker" id="color-point-picker"></div></div>
+          <div class="settings-row"><span>ポイント利用</span><div class="color-picker" id="color-pointuse-picker"></div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">表示・集計</div>
+          <div class="settings-row"><span>実働時間の表示</span>
+            <div class="seg seg-sm">
+              <div class="seg-btn" data-hf="decimal" onclick="setHoursFormat('decimal',this)">7.5h</div>
+              <div class="seg-btn" data-hf="colon" onclick="setHoursFormat('colon',this)">7:30</div>
+            </div></div>
+          <div class="settings-row"><span>月の集計基準</span>
+            <div class="seg seg-sm">
+              <div class="seg-btn" data-ag="work" onclick="setAggregation('work',this)">勤務日</div>
+              <div class="seg-btn" data-ag="pay" onclick="setAggregation('pay',this)">支払日</div>
+            </div></div>
+          <div class="settings-row"><span>月表示の内容</span>
+            <div class="seg seg-sm">
+              <div class="seg-btn" data-cd="stamp" onclick="setCalDisplay('stamp',this)">スタンプ</div>
+              <div class="seg-btn" data-cd="text" onclick="setCalDisplay('text',this)">文字</div>
+              <div class="seg-btn" data-cd="both" onclick="setCalDisplay('both',this)">両方</div>
+            </div></div>
+          <div class="settings-row"><span>月表示の文字数</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="range" id="cal-textlen" min="3" max="12" step="1" style="width:110px" oninput="setCalTextLen(this.value)">
+              <span class="mono" id="cal-textlen-val" style="font-size:12px;min-width:38px;text-align:right"></span>
+            </div></div>
+          <div class="settings-row"><span>週表示に内容を表示</span>
+            <div class="seg seg-sm">
+              <div class="seg-btn" data-wt="on" onclick="setWeekShowText('on',this)">する</div>
+              <div class="seg-btn" data-wt="off" onclick="setWeekShowText('off',this)">しない</div>
+            </div></div>
+          <div class="settings-row"><span>カレンダーの金額表示</span>
+            <div class="seg seg-sm">
+              <div class="seg-btn" data-am="on" onclick="setAmountShow('on',this)">表示</div>
+              <div class="seg-btn" data-am="off" onclick="setAmountShow('off',this)">非表示</div>
+            </div></div>
+          <div class="settings-row"><span>金額の表記</span>
+            <div class="seg seg-sm">
+              <div class="seg-btn" data-af="k" onclick="setAmountFormat('k',this)">18k</div>
+              <div class="seg-btn" data-af="full" onclick="setAmountFormat('full',this)">18,000</div>
+            </div></div>
+        </div>
       </div>
-      <div class="card">
-        <div class="card-title">種別ごとの色</div>
-        <div class="settings-row"><span>収入（日毎・案件）</span><div class="color-picker" id="color-income-picker"></div></div>
-        <div class="settings-row"><span>入金（支払日）</span><div class="color-picker" id="color-payday-picker"></div></div>
-        <div class="settings-row"><span>支出</span><div class="color-picker" id="color-expense-picker"></div></div>
-        <div class="settings-row"><span>ポイント</span><div class="color-picker" id="color-point-picker"></div></div>
-        <div class="field-note">カレンダーや詳細で金額を表示するときの文字色です。</div>
-      </div>
-      <div class="card">
-        <div class="card-title">表示・集計</div>
-        <div class="settings-row"><span>実働時間の表示</span>
-          <div class="seg seg-sm">
-            <div class="seg-btn" data-hf="decimal" onclick="setHoursFormat('decimal',this)">7.5h</div>
-            <div class="seg-btn" data-hf="colon" onclick="setHoursFormat('colon',this)">7:30</div>
-          </div></div>
-        <div class="settings-row"><span>月の集計基準</span>
-          <div class="seg seg-sm">
-            <div class="seg-btn" data-ag="work" onclick="setAggregation('work',this)">勤務日</div>
-            <div class="seg-btn" data-ag="pay" onclick="setAggregation('pay',this)">支払日</div>
-          </div></div>
-        <div class="field-note" style="padding:0 4px 6px">支払日ベースは、各仕事の「締め日・支払日」設定を使って入金月に計上します（未設定の仕事は勤務日ベース）。</div>
-        <div class="settings-row"><span>月表示の内容</span>
-          <div class="seg seg-sm">
-            <div class="seg-btn" data-cd="stamp" onclick="setCalDisplay('stamp',this)">スタンプ</div>
-            <div class="seg-btn" data-cd="text" onclick="setCalDisplay('text',this)">文字</div>
-            <div class="seg-btn" data-cd="both" onclick="setCalDisplay('both',this)">両方</div>
-          </div></div>
-        <div class="settings-row"><span>月表示の文字数</span>
-          <div style="display:flex;align-items:center;gap:8px">
-            <input type="range" id="cal-textlen" min="3" max="12" step="1" style="width:110px" oninput="setCalTextLen(this.value)">
-            <span class="mono" id="cal-textlen-val" style="font-size:12px;min-width:34px;text-align:right"></span>
-          </div></div>
-        <div class="settings-row"><span>週表示に内容を表示</span>
-          <div class="seg seg-sm">
-            <div class="seg-btn" data-wt="on" onclick="setWeekShowText('on',this)">する</div>
-            <div class="seg-btn" data-wt="off" onclick="setWeekShowText('off',this)">しない</div>
-          </div></div>
-        <div class="settings-row"><span>カレンダーの金額表示</span>
-          <div class="seg seg-sm">
-            <div class="seg-btn" data-am="on" onclick="setAmountShow('on',this)">表示</div>
-            <div class="seg-btn" data-am="off" onclick="setAmountShow('off',this)">非表示</div>
-          </div></div>
-        <div class="settings-row"><span>金額の表記</span>
-          <div class="seg seg-sm">
-            <div class="seg-btn" data-af="k" onclick="setAmountFormat('k',this)">18k</div>
-            <div class="seg-btn" data-af="full" onclick="setAmountFormat('full',this)">18,000</div>
-          </div></div>
-      </div>
-      <div class="card">
-        <div class="card-title">データ</div>
-        <div class="settings-row"><span>バックアップ（書き出し）</span><button class="btn btn-ghost btn-sm" onclick="exportData()">JSON保存</button></div>
-        <div class="settings-row"><span>復元（読み込み）</span><button class="btn btn-ghost btn-sm" onclick="document.getElementById('import-file').click()">ファイル選択</button>
-          <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)"></div>
-      </div>
-      <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-        FinanceManager <span id="ver-footer">v12</span> / schema <span id="schema-footer">11</span> / 祝日データ 2025–2027
+
+      <div class="subpage" id="sub-set-data">
+        <div class="card">
+          <div class="card-title">データ</div>
+          <div class="settings-row"><span>バックアップ（書き出し）</span><button class="btn btn-ghost btn-sm" onclick="exportData()">JSON保存</button></div>
+          <div class="settings-row"><span>復元（読み込み）</span><button class="btn btn-ghost btn-sm" onclick="document.getElementById('import-file').click()">ファイル選択</button>
+            <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)"></div>
+        </div>
+        <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
+          FinanceManager <span id="ver-footer">v13</span> / schema <span id="schema-footer">12</span> / 祝日データ 2025–2027
+        </div>
       </div>
     </div>
   </div>
@@ -724,7 +770,7 @@
       </div></div>
     <div class="form-group" id="mny-paiddate-row" style="display:none"><label>支払った日</label><input type="date" id="mny-paiddate">
       <div class="field-note">支払済にすると、期限日ではなくこの日に表示されます（期限も併記）。</div></div>
-    <div class="form-group"><label>メモ</label><input type="text" id="mny-memo" placeholder="口座・支払方法など"></div>
+    <div class="form-group"><label>メモ</label><input type="text" id="mny-memo" placeholder="内容の補足・注意点など"></div>
   </div>
   <div class="form-actions">
     <button class="btn btn-danger" id="mny-delete-btn" style="margin-right:auto;display:none" onclick="deleteMoneyRec()">削除</button>
@@ -933,13 +979,23 @@
             <select id="wal-closing"><option value="">未設定</option><option value="31">末日</option>
             <option value="5">5日</option><option value="10">10日</option><option value="15">15日</option>
             <option value="20">20日</option><option value="25">25日</option></select></div>
-          <div class="form-group"><label>支払日（翌月）</label>
-            <select id="wal-payday"><option value="">未設定</option><option value="31">末日</option>
-            <option value="1">1日</option><option value="4">4日</option><option value="5">5日</option>
-            <option value="10">10日</option><option value="15">15日</option><option value="26">26日</option>
-            <option value="27">27日</option></select></div>
+          <div class="form-group"><label>支払日</label>
+            <select id="wal-payday"><option value="">未設定</option>
+            <option value="1">翌月1日</option><option value="2">翌月2日</option><option value="4">翌月4日</option>
+            <option value="5">翌月5日</option><option value="10">翌月10日</option><option value="15">翌月15日</option>
+            <option value="26">翌月26日</option><option value="27">翌月27日</option><option value="31">翌月末日</option>
+            <option value="101">翌々月1日</option><option value="102">翌々月2日</option>
+            <option value="110">翌々月10日</option><option value="127">翌々月27日</option></select></div>
         </div>
         <div class="form-group"><label>引落口座</label><select id="wal-payaccount"></select></div>
+        <div class="subsection">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div class="subsection-title" style="margin-bottom:0">締め日の例外</div>
+            <button class="btn btn-ghost btn-sm" onclick="addClosingRule()">＋ 例外</button>
+          </div>
+          <div id="wal-closing-rules"></div>
+          <div class="field-note">例：楽天カードは「楽天市場での利用は25日締」など、利用先で締め日が違う場合に登録します。</div>
+        </div>
       </div>
     </div>
 
@@ -1016,8 +1072,8 @@
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '12';
-const SCHEMA_VERSION = 11;
+const APP_VERSION = '13';
+const SCHEMA_VERSION = 12;
 const STORAGE_KEY = 'financeManager';
 
 const C = { blue:['#5B8DEF','#3D6BD1','#EAF1FF'], teal:['#2DC5A4','#189A7E','#E4FAF4'], amber:['#F7B32B','#D3921A','#FFF6E0'], pink:['#F76D8E','#D94A6E','#FFEBF0'], violet:['#9B7EDE','#7A5CC4','#F1EBFF'], slate:['#6B7A99','#4D5B78','#EEF1F6'] };
@@ -1321,6 +1377,7 @@ function migrate(data) {
       if (w.payAccountId===undefined) w.payAccountId = '';
     });
     (data.chargeRoutes||[]).forEach(r=>{ if(r.bonusRates===undefined) r.bonusRates=[]; });
+    (data.wallets||[]).forEach(w=>{ if(w.closingRules===undefined) w.closingRules=[]; });
     (data.moneyRecs||[]).forEach(r=>{
       if(r.pointExpiry===undefined) r.pointExpiry='';
       if(r.fixed===undefined) r.fixed=true;
@@ -1332,6 +1389,11 @@ function migrate(data) {
     });
     data.deposits = data.deposits || [];
     v = 11;
+  }
+  if (v < 12) {
+    // v11 → v12 : 締め日の例外ルール
+    (data.wallets||[]).forEach(w=>{ if(w.closingRules===undefined) w.closingRules=[]; });
+    v = 12;
   }
   data.schemaVersion = SCHEMA_VERSION;
   data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[]; data.checks=data.checks||[];
@@ -1431,9 +1493,19 @@ function showPage(id, el) {
   document.getElementById('page-'+id).classList.add('active');
   if (el) el.classList.add('active');
   renderAll();
-  // 記憶していた位置に復元（なければ先頭）
-  content.scrollTop = scrollMemory[id] || 0;
+  // DOM再構築後に復元（2フレーム待つ）
+  const target = scrollMemory[id] || 0;
+  content.scrollTop = target;
+  requestAnimationFrame(()=>{
+    content.scrollTop = target;
+    requestAnimationFrame(()=>{ content.scrollTop = target; });
+  });
+  updateMonthNav();
 }
+// スクロール中も随時記憶（タブ切替以外のケースに備える）
+document.getElementById('content').addEventListener('scroll', ()=>{
+  scrollMemory[currentPage] = document.getElementById('content').scrollTop;
+}, {passive:true});
 function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); }));
@@ -1486,8 +1558,8 @@ function confirmDelete(title, body, onOk) {
 // ── calendar state / swipe / ym picker ──
 let calMonth = new Date().getMonth(), calYear = new Date().getFullYear();
 let calView = 'month';
-function changeCalMonth(d){ calMonth+=d; if(calMonth<0){calMonth=11;calYear--;} if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); renderChecklist(); }
-function goToday(){ const t=new Date(); calMonth=t.getMonth(); calYear=t.getFullYear(); renderCalendar(); renderChecklist(); }
+function changeCalMonth(d){ changeMonthGlobal(d); }
+function goToday(){ goTodayGlobal(); }
 function setCalView(v, el){ calView=v;
   document.querySelectorAll('.cal-switch-btn').forEach(b=>b.classList.remove('active')); el.classList.add('active');
   document.getElementById('cal-month-view').style.display = v==='month'?'':'none';
@@ -1520,7 +1592,54 @@ function openYmPicker() {
     const b = ms.querySelector('.sel'); if(b) ms.scrollTop = b.offsetTop - ms.clientHeight/2 + 20;
   }, 60);
 }
-function applyYm(){ calYear=ymY; calMonth=ymM; closeModal('modal-ym'); renderCalendar(); renderChecklist(); }
+function applyYm(){ calYear=ymY; calMonth=ymM; state.homeYear=calYear; state.homeMonth=calMonth; save(); closeModal('modal-ym'); renderAll(); updateMonthNav(); }
+// 固定月ナビの表示制御
+// サブタブ切替
+const subState = { poi:'cards', set:'jobs' };
+function showSub(group, key, el) {
+  subState[group] = key;
+  const prefix = 'sub-'+group+'-';
+  document.querySelectorAll(`[id^="${prefix}"]`).forEach(p=>p.classList.remove('active'));
+  const target = document.getElementById(prefix+key);
+  if (target) target.classList.add('active');
+  if (el) {
+    el.parentElement.querySelectorAll('.subtab').forEach(t=>t.classList.remove('active'));
+    el.classList.add('active');
+  }
+  document.getElementById('content').scrollTop = 0;
+}
+function updateMonthNav() {
+  const bar = document.getElementById('month-bar');
+  const show = (currentPage==='calendar' || currentPage==='home');
+  bar.classList.toggle('show', show);
+  document.getElementById('month-bar-label').textContent = calYear+'年 '+MONTHS[calMonth];
+}
+// ページ全体の左右スワイプで月移動（カレンダー・ホーム）
+(function(){
+  const content = document.getElementById('content');
+  let sx=0, sy=0, tracking=false, decided=false, horizontal=false;
+  content.addEventListener('touchstart', e=>{
+    if (e.touches.length!==1) return;
+    sx=e.touches[0].clientX; sy=e.touches[0].clientY;
+    tracking=true; decided=false; horizontal=false;
+  }, {passive:true});
+  content.addEventListener('touchmove', e=>{
+    if(!tracking) return;
+    const dx=e.touches[0].clientX-sx, dy=e.touches[0].clientY-sy;
+    if(!decided && (Math.abs(dx)>10 || Math.abs(dy)>10)) {
+      decided = true;
+      // 横方向が縦の1.5倍以上明確なときだけ横スワイプと判定
+      horizontal = Math.abs(dx) > Math.abs(dy)*1.5;
+    }
+  }, {passive:true});
+  content.addEventListener('touchend', e=>{
+    if(!tracking) return; tracking=false;
+    if(!horizontal) return;
+    if(currentPage!=='calendar' && currentPage!=='home') return;
+    const dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5) changeMonthGlobal(dx<0?1:-1);
+  }, {passive:true});
+})();
 
 // ── day items / totals ──
 function dayItems(ds) {
@@ -1582,6 +1701,20 @@ function dayItems(ds) {
       label: c.name, short:(c.shortName||''), sub: routeText(c.steps||[]),
       amount:0, chargeAmt:t.amt, chargePt:t.pt, memo:c.memo||'', ref:c });
   });
+  // クレジットカードの支払予定（金額未入力でも表示）
+  {
+    const y=+ds.slice(0,4), m=+ds.slice(5,7)-1;
+    cardPaymentsInMonth(y,m).forEach(p=>{
+      if (p.date!==ds) return;
+      if (p.rec) return; // 実績登録済みなら money として表示されるので重複回避
+      const acc = p.wallet.payAccountId ? walletById(p.wallet.payAccountId) : null;
+      items.push({ kind:'cardpay', stamp: walletStamp(p.wallet), color: p.wallet.color||PALETTE[3],
+        label: p.wallet.name + ' 支払い（未定）',
+        short: (p.wallet.shortName||p.wallet.name),
+        sub: (acc?acc.name+'から':'') + '引落' + (p.date!==p.rawDate?'（翌営業日）':''),
+        amount:0, unfixed:true, cardRef:p, memo:'', ref:p.wallet });
+    });
+  }
   // 支払期限・引落日（記録日と別日の場合のみ独立表示）
   state.moneyRecs.forEach(mr=>{
     const eff = effectiveDueDate(mr);
@@ -1964,6 +2097,8 @@ function showDayDetail(ds) {
       } else if (x.kind==='charge') {
         amtHTML = `<span class="mono" style="font-size:12.5px;color:${state.settings.colorCharge};font-weight:600">${fmt(x.chargeAmt)}</span>` +
           (x.chargePt>0?`<span class="mono" style="font-size:11px;color:${state.settings.colorPoint}">+${Math.round(x.chargePt).toLocaleString()}pt</span>`:'');
+      } else if (x.kind==='cardpay') {
+        amtHTML = `<span style="font-size:11.5px;color:var(--text-secondary);border:1px dashed var(--border);padding:2px 8px;border-radius:8px">金額未定</span>`;
       } else if (x.kind==='due') {
         const col = x.ref.paid ? 'var(--text-secondary)' : state.settings.colorExpense;
         const txt = x.mtype==='point' ? (Math.round(x.dueAmount).toLocaleString()+'pt') : fmt(x.dueAmount);
@@ -1978,6 +2113,7 @@ function showDayDetail(ds) {
       else if (x.kind==='event') btn = `<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');editEventById('${x.ref.id}')">編集</button>`;
       else if (x.kind==='money') btn = `<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openMoneyModal(null,null,'${x.ref.id}')">編集</button>`;
       else if (x.kind==='charge') btn = `<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openChargeModal(null,'${x.ref.id}')">編集</button>`;
+      else if (x.kind==='cardpay') btn = `<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openCardPayment('${x.ref.id}','${ds}')">金額入力</button>`;
       else if (x.kind==='due') btn = `<button class="btn btn-ghost btn-sm" onclick="toggleMoneyPaid('${x.ref.id}');showDayDetail('${ds}')">${x.ref.paid?'未払いに':'支払済に'}</button>`;
       else if (x.kind==='check') btn = `<button class="btn btn-ghost btn-sm" onclick="toggleCheck('${x.ref.id}');showDayDetail('${ds}')">${isCheckDone(x.ref)?'未完了に':'完了'}</button>`;
       return `<div style="display:flex;align-items:flex-start;gap:11px;padding:10px 0;border-bottom:1px solid var(--border)">
@@ -2400,14 +2536,29 @@ function renderInputTab() {
 }
 
 // ── home ──
-function changeHomeMonth(d){ state.homeMonth+=d; if(state.homeMonth<0){state.homeMonth=11;state.homeYear--;} if(state.homeMonth>11){state.homeMonth=0;state.homeYear++;} save(); renderHome(); }
+// 表示月はカレンダーと共通（calYear/calMonth を正とする）
+function changeHomeMonth(d){ changeMonthGlobal(d); }
+function changeMonthGlobal(d) {
+  calMonth += d;
+  if (calMonth<0) { calMonth=11; calYear--; }
+  if (calMonth>11) { calMonth=0; calYear++; }
+  state.homeYear = calYear; state.homeMonth = calMonth;
+  save(); renderAll(); updateMonthNav();
+}
+function goTodayGlobal() {
+  const t = new Date();
+  calYear = t.getFullYear(); calMonth = t.getMonth();
+  state.homeYear = calYear; state.homeMonth = calMonth;
+  save(); renderAll(); updateMonthNav();
+}
 function jobMonthAmount(j, y, m) {
   if (j.payType==='monthly') return j.active?(j.salary||0):0;
   return state.records.filter(r=>r.jobId===j.id).filter(r=>{ const d=recAggDate(r); return +d.slice(0,4)===y && +d.slice(5,7)-1===m; }).reduce((a,r)=>a+r.amount,0);
 }
 function renderHome() {
-  const y=state.homeYear, m=state.homeMonth;
-  document.getElementById('home-month-label').textContent = y+'年 '+MONTHS[m];
+  state.homeYear = calYear; state.homeMonth = calMonth;
+  const y=calYear, m=calMonth;
+  const hml = document.getElementById('home-month-label'); if (hml) hml.textContent = y+'年 '+MONTHS[m];
   document.getElementById('agg-note').textContent = state.settings.aggregation==='pay' ? '集計基準：支払日（入金月に計上）' : '集計基準：勤務日（働いた月に計上）';
   document.getElementById('home-total').textContent = fmt(monthTotal(y,m));
   const el = document.getElementById('home-jobs');
@@ -2536,6 +2687,16 @@ function moneyPeriodDate(mr, y, m) {
   }
   return '';
 }
+// 期間指定の終了日（チェックリストの期限に使う）
+function moneyPeriodEndDate(mr, y, m) {
+  const dim = daysIn(y,m);
+  if (mr.dateMode==='range') return dstr(y,m,Math.min(mr.rangeTo||mr.rangeFrom||dim,dim));
+  if (mr.dateMode==='rough') {
+    const map = { early:10, mid:20, late:dim };
+    return dstr(y,m,Math.min(map[mr.rough]||dim,dim));
+  }
+  return '';
+}
 function moneyPeriodLabel(mr) {
   if (mr.dateMode==='range' && mr.rangeFrom) return `${mr.rangeFrom}〜${mr.rangeTo||mr.rangeFrom}日ごろ`;
   if (mr.dateMode==='rough') return ({early:'上旬',mid:'中旬',late:'下旬'})[mr.rough]||'';
@@ -2579,6 +2740,11 @@ function onPointTypeChange() {
 }
 function onMoneyCatChange() {
   const cat = moneyCatById(document.getElementById('mny-cat').value);
+  // 短縮名が未入力なら、カテゴリの短縮名を自動で入れる
+  const shortInp = document.getElementById('mny-short');
+  if (shortInp && !shortInp.value.trim() && cat && cat.shortName) shortInp.value = cat.shortName;
+  const nameInp = document.getElementById('mny-name');
+  if (nameInp && !nameInp.value.trim() && cat) nameInp.placeholder = cat.name + ' ' + (calMonth+1) + '月分';
   const isPt = moneyUnit(cat)==='pt';
   const t = cat && MONEY_TYPES[cat.type] ? MONEY_TYPES[cat.type] : MONEY_TYPES.expense;
   document.getElementById('mny-amount-label').textContent = isPt ? 'ポイント数' : '金額（円）';
@@ -2808,7 +2974,8 @@ function renderMoneyCatList() {
 // 色設定
 function renderColorSettings() {
   const opts = ['#1DB882','#2DC5A4','#5B8DEF','#E5544B','#F76D8E','#F7B32B','#9B7EDE','#6B7A99'];
-  [['color-income-picker','colorIncome'],['color-payday-picker','colorPayday'],['color-expense-picker','colorExpense'],['color-point-picker','colorPoint']].forEach(([elId,key])=>{
+  [['color-income-picker','colorIncome'],['color-payday-picker','colorPayday'],['color-incomeetc-picker','colorIncomeEtc'],
+   ['color-expense-picker','colorExpense'],['color-point-picker','colorPoint'],['color-pointuse-picker','colorPointUse']].forEach(([elId,key])=>{
     const el = document.getElementById(elId);
     if (!el) return;
     el.innerHTML = opts.map(c=>`<div class="color-opt ${c===state.settings[key]?'sel':''}" style="background:${c};width:24px;height:24px" data-c="${c}"></div>`).join('');
@@ -2817,7 +2984,7 @@ function renderColorSettings() {
 }
 // ホームのお金サマリー・一覧
 function renderHomeMoney() {
-  const y=state.homeYear, m=state.homeMonth;
+  const y=calYear, m=calMonth;
   const t = moneyMonthTotals(y,m);
   const sum = document.getElementById('home-money-summary');
   const card = (label, val, color) => `<div class="card" style="padding:13px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -2835,9 +3002,11 @@ function renderHomeMoney() {
   el.innerHTML = list.map(mr=>{
     const cat = moneyCatById(mr.catId);
     const pt = mr.pointTypeId ? pointTypeById(mr.pointTypeId) : null;
+    const dueInfo = (mr.paid && mr.dueDate) ? `・期限 ${(+mr.dueDate.slice(5,7))}/${(+mr.dueDate.slice(8,10))}` : '';
+    const paidInfo = (mr.paid && mr.paidDate) ? `・${(+mr.paidDate.slice(5,7))}/${(+mr.paidDate.slice(8,10))}支払済` : '';
     return `<div class="job-sum-row">${stampHTML(cat?cat.stamp:'💰')}
-      <div class="job-sum-name">${escapeHTML(mr.name||(cat?cat.name:''))}
-        <div class="job-sum-sub">${mr._date.slice(5).replace('-','/')}　${cat?escapeHTML(cat.name):''}${pt?('・'+escapeHTML(pt.name)):''}${mr.repeat==='monthly'?'・毎月':''}</div></div>
+      <div class="job-sum-name">${escapeHTML(mr.name||(cat?cat.name:''))}${mr.fixed===false?'<span style="font-size:10px;color:var(--text-secondary)">（未定）</span>':''}
+        <div class="job-sum-sub">${mr._date.slice(5).replace('-','/')}　${cat?escapeHTML(cat.name):''}${pt?('・'+escapeHTML(pt.name)):''}${mr.repeat==='monthly'?'・毎月':''}${paidInfo}${dueInfo}</div></div>
       <div style="display:flex;align-items:center;gap:8px">
         <span class="mono" style="font-size:13px;color:${moneyColor(cat)};font-weight:600">${moneyText(cat, mr.amount, mr.pointTypeId)}</span>
         <button class="btn btn-ghost btn-sm" onclick="openMoneyModal(null,null,'${mr.id}')">編集</button>
@@ -2895,6 +3064,37 @@ function setWalStampMode(v, el) {
   }
   refreshWalPickers();
 }
+// 締め日の例外ルール
+let walClosingRules = [];
+function addClosingRule(){ walClosingRules.push({label:'', day:''}); renderClosingRules(); }
+function removeClosingRule(i){ walClosingRules.splice(i,1); renderClosingRules(); }
+function renderClosingRules() {
+  const el = document.getElementById('wal-closing-rules');
+  if (!el) return;
+  if (!walClosingRules.length) { el.innerHTML = '<div class="field-note" style="margin:0 0 6px">例外なし（すべて上の締め日）</div>'; return; }
+  el.innerHTML = walClosingRules.map((r,i)=>`
+    <div class="pat-row" data-i="${i}">
+      <div class="pat-row-head">
+        <input type="text" class="cr-label" placeholder="例：楽天市場" value="${escapeHTML(r.label||'')}">
+        <button class="pat-del" onclick="removeClosingRule(${i})">✕</button>
+      </div>
+      <div><label>締め日</label>
+        <select class="cr-day">
+          <option value="">選択</option>
+          <option value="5" ${r.day==5?'selected':''}>5日</option>
+          <option value="10" ${r.day==10?'selected':''}>10日</option>
+          <option value="15" ${r.day==15?'selected':''}>15日</option>
+          <option value="20" ${r.day==20?'selected':''}>20日</option>
+          <option value="25" ${r.day==25?'selected':''}>25日</option>
+          <option value="31" ${r.day==31?'selected':''}>末日</option>
+        </select></div>
+    </div>`).join('');
+  el.querySelectorAll('.pat-row').forEach(row=>{
+    const i = +row.dataset.i;
+    row.querySelector('.cr-label').oninput = e=>walClosingRules[i].label=e.target.value;
+    row.querySelector('.cr-day').onchange = e=>walClosingRules[i].day=parseInt(e.target.value)||'';
+  });
+}
 // 条件つき還元率
 function addWalletBonus(){ walBonuses.push({cond:'', rate:''}); renderWalletBonuses(); }
 function removeWalletBonus(i){ walBonuses.splice(i,1); renderWalletBonuses(); }
@@ -2921,6 +3121,7 @@ function openWalletModal(id, presetType) {
   walStampMode = w ? (w.useTypeStamp!==false ? 'type' : 'custom') : 'type';
   walColor = w?w.color:PALETTE[0];
   walBonuses = w ? JSON.parse(JSON.stringify(w.bonusRates||[])) : [];
+  walClosingRules = w ? JSON.parse(JSON.stringify(w.closingRules||[])) : [];
   document.getElementById('wallet-modal-title').textContent = w?'資金置き場を編集':'資金置き場を追加';
   document.getElementById('wal-name').value = w?w.name:'';
   document.getElementById('wal-short').value = w?(w.shortName||''):'';
@@ -2943,6 +3144,7 @@ function openWalletModal(id, presetType) {
   const smBtn = document.querySelector(`#modal-wallet .seg-btn[data-wstamp="${walStampMode}"]`);
   if (smBtn) setWalStampMode(walStampMode, smBtn);
   renderWalletBonuses();
+  renderClosingRules();
   refreshWalPickers();
   openModal('modal-wallet');
 }
@@ -2962,6 +3164,7 @@ function saveWallet() {
     pointTypeId: document.getElementById('wal-pointtype').value||'',
     note: document.getElementById('wal-note').value.trim(),
     bonusRates: walBonuses.filter(b=>b.cond||b.rate),
+    closingRules: walClosingRules.filter(r=>r.label||r.day),
     interestRate: parseFloat(document.getElementById('wal-interest').value)||'',
     limitBalance: parseFloat(document.getElementById('wal-limit-balance').value)||'',
     limitChargeOnce: parseFloat(document.getElementById('wal-limit-once').value)||'',
@@ -3063,16 +3266,21 @@ function refreshTypeStampPicker() {
 
 // ── クレカ支払い（締め日・支払日から自動生成）──
 // 登録済みクレカから、その月の支払予定を生成
+// payDay: 1〜31=翌月, 101〜131=翌々月（+100）
+function cardPayDayInfo(w) {
+  const v = +w.payDay;
+  return v >= 100 ? { day: v-100, offset: 2 } : { day: v, offset: 1 };
+}
 function cardPaymentsInMonth(y, m) {
   const out = [];
   state.wallets.filter(w=>w.type==='card' && w.closingDay && w.payDay).forEach(w=>{
     const dim = daysIn(y,m);
-    const pd = (+w.payDay>=31) ? dim : Math.min(+w.payDay, dim);
+    const info = cardPayDayInfo(w);
+    const pd = (info.day>=31) ? dim : Math.min(info.day, dim);
     const raw = dstr(y,m,pd);
     const ds = adjustPayDate(raw, 'after'); // クレカは翌営業日が一般的
-    // 実績が登録済みならそれを使う
     const rec = state.moneyRecs.find(r=>r.cardId===w.id && r.date===ds);
-    out.push({ wallet:w, date:ds, rawDate:raw, rec: rec||null,
+    out.push({ wallet:w, date:ds, rawDate:raw, rec: rec||null, offset: info.offset,
       amount: rec?rec.amount:0, fixed: rec ? (rec.fixed!==false) : false });
   });
   return out;
@@ -3096,13 +3304,13 @@ function openCardPayment(walletId, ds) {
 function renderCardPayments() {
   const el = document.getElementById('home-card-list');
   if (!el) return;
-  const list = cardPaymentsInMonth(state.homeYear, state.homeMonth);
+  const list = cardPaymentsInMonth(calYear, calMonth);
   if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-text">クレジットカードに締め日・支払日を設定すると、支払予定がここに出ます</div></div>'; return; }
   el.innerHTML = list.map(p=>`
     <div class="job-sum-row">
       ${stampHTML(walletStamp(p.wallet))}
       <div class="job-sum-name">${escapeHTML(p.wallet.name)}
-        <div class="job-sum-sub">${p.date.slice(5).replace('-','/')} 引落${p.date!==p.rawDate?'（翌営業日）':''}${p.wallet.payAccountId&&walletById(p.wallet.payAccountId)?'／'+escapeHTML(walletById(p.wallet.payAccountId).name):''}</div></div>
+        <div class="job-sum-sub">${p.date.slice(5).replace('-','/')} 引落${p.offset===2?'（翌々月払い）':''}${p.date!==p.rawDate?'（翌営業日）':''}${p.wallet.payAccountId&&walletById(p.wallet.payAccountId)?'／'+escapeHTML(walletById(p.wallet.payAccountId).name):''}</div></div>
       <div style="display:flex;align-items:center;gap:8px">
         ${p.fixed
           ? `<span class="mono" style="font-size:13px;color:${state.settings.colorExpense};font-weight:600">-${fmt(p.amount).slice(1)}</span>`
@@ -3209,7 +3417,6 @@ function renderPointTypeList() {
         <div class="route-badges" style="margin-top:3px">
           <span class="badge-sm bd-type">${escapeHTML(p.unit||'pt')}</span>
           ${p.limited?'<span class="badge-sm bd-limit">期間限定</span>':''}
-          ${p.custom?'<span class="badge-sm bd-pt">自分で追加</span>':''}
         </div>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="openPointTypeModal('${p.id}')">編集</button>
@@ -3328,8 +3535,22 @@ function walletBadges(w) {
   if (w.limitChargeMonth) parts.push(`<span class="badge-sm bd-limit">月 ${Math.round(w.limitChargeMonth).toLocaleString()}</span>`);
   if (w.type==='card' && w.closingDay && w.payDay) {
     const cd = w.closingDay>=31?'末':w.closingDay+'日';
-    const pd = w.payDay>=31?'末':w.payDay+'日';
-    parts.push(`<span class="badge-sm bd-type">${cd}〆 翌${pd}払</span>`);
+    const info = cardPayDayInfo(w);
+    const pd = info.day>=31?'末':info.day+'日';
+    parts.push(`<span class="badge-sm bd-type">${cd}〆 ${info.offset===2?'翌々月':'翌'}${pd}払</span>`);
+  }
+  // 締め日の例外
+  (w.closingRules||[]).forEach(r=>{
+    if (r.label && r.day) parts.push(`<span class="badge-sm bd-type">${escapeHTML(r.label)}は${r.day>=31?'末':r.day+'日'}〆</span>`);
+  });
+  // 引落関係の相互表示
+  if (w.type==='card' && w.payAccountId) {
+    const acc = walletById(w.payAccountId);
+    if (acc) parts.push(`<span class="badge-sm bd-limit">🏦 ${escapeHTML(acc.name)}から引落</span>`);
+  }
+  if (w.type==='bank') {
+    const cards = state.wallets.filter(x=>x.type==='card' && x.payAccountId===w.id);
+    cards.forEach(c=>parts.push(`<span class="badge-sm bd-limit">💳 ${escapeHTML(c.name)}の引落先</span>`));
   }
   return parts.join('');
 }
@@ -3726,7 +3947,7 @@ function deleteChargeTemplate(id) {
 function renderHomeCharges() {
   const el = document.getElementById('home-charge-list');
   if (!el) return;
-  const y=state.homeYear, m=state.homeMonth;
+  const y=calYear, m=calMonth;
   const list = state.charges.filter(c=>+c.date.slice(0,4)===y && +c.date.slice(5,7)-1===m)
     .sort((a,b)=>b.date.localeCompare(a.date));
   if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-text">この月のチャージ記録はありません</div></div>'; return; }
@@ -3998,7 +4219,12 @@ function autoCheckItems() {
     const src = state.moneyRecs.find(r=>r.id===mr.id);
     if (!src) return;
     const cat = moneyCatById(mr.catId);
-    const due = mr.dueDate ? adjustPayDate(mr.dueDate, mr.dueHolidayRule||'none') : mr._date;
+    let due = mr.dueDate ? adjustPayDate(mr.dueDate, mr.dueHolidayRule||'none') : mr._date;
+    // 期間・ざっくり指定は終了日を期限として扱う
+    if (mr.dateMode==='range' || mr.dateMode==='rough') {
+      const e2 = moneyPeriodEndDate(mr, y, m);
+      if (e2) due = e2;
+    }
     out.push({ _auto:true, id:mr.id, text:(mr.name||(cat?cat.name:'支払')) + '　' +
       (cat&&cat.type==='point' ? (Math.round(mr.amount).toLocaleString()+'pt') : fmt(mr.amount)),
       kind:'auto', date:mr._date, dueDate:due, done:!!src.paid, order:-1 });
@@ -4100,6 +4326,7 @@ function renderAll() {
 save();
 syncSettingsUI();
 renderAll();
+updateMonthNav();
 </script>
 </body>
 </html>
