@@ -279,7 +279,7 @@
   <header class="topbar">
     <div style="display:flex;align-items:center;">
       <span class="topbar-logo">Finance<span>Mgr</span></span>
-      <span class="version-badge" id="version-badge">v15</span>
+      <span class="version-badge" id="version-badge">v16</span>
     </div>
     <div class="topbar-total">
       <div class="topbar-total-label">今月合計</div>
@@ -335,6 +335,7 @@
       <div id="home-money-summary"></div>
       <div class="card"><div class="card-title">仕事別の内訳</div><div id="home-jobs"></div></div>
       <div class="card"><div class="card-title">お金・ポイントの記録</div><div id="home-money-list"></div></div>
+      <div class="card"><div class="card-title">税金・保険料</div><div id="home-tax-list"></div></div>
       <div class="card"><div class="card-title">クレジットカード支払い</div><div id="home-card-list"></div></div>
       <div class="card"><div class="card-title">チャージ（ポイ活）</div><div id="home-charge-list"></div></div>
       <div class="card"><div class="card-title">月別収入推移（6ヶ月）</div>
@@ -529,7 +530,7 @@
             <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)"></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v15</span> / schema <span id="schema-footer">14</span> / 祝日データ 2025–2027
+          FinanceManager <span id="ver-footer">v16</span> / schema <span id="schema-footer">15</span> / 祝日データ 2025–2027
         </div>
       </div>
     </div>
@@ -995,6 +996,18 @@
         <div class="form-group"><label>基本還元率（%）</label><input type="number" step="0.01" id="wal-rate" placeholder="1.0"></div>
       </div>
       <div class="form-group"><label>貯まるポイント</label><select id="wal-pointtype"></select></div>
+      <div class="form-group"><label>ポイント付与のタイミング</label>
+        <select id="wal-pttiming" onchange="onPtTimingChange()">
+          <option value="immediate">即時</option>
+          <option value="nextday">翌日</option>
+          <option value="days">◯日後</option>
+          <option value="nextmonth">翌月◯日</option>
+          <option value="month2">翌々月◯日</option>
+        </select></div>
+      <div class="form-row" id="wal-pttiming-detail" style="display:none">
+        <div class="form-group"><label id="wal-pttiming-label">日数</label><input type="number" id="wal-pttiming-num" placeholder="7"></div>
+        <div class="form-group"><div class="field-note" style="margin-top:22px">支払い記録時に付与予定日が自動計算されます。</div></div>
+      </div>
     </div>
 
     <div id="wal-credit-fields" style="display:none">
@@ -1168,8 +1181,8 @@
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '15';
-const SCHEMA_VERSION = 14;
+const APP_VERSION = '16';
+const SCHEMA_VERSION = 15;
 const STORAGE_KEY = 'financeManager';
 
 const C = { blue:['#5B8DEF','#3D6BD1','#EAF1FF'], teal:['#2DC5A4','#189A7E','#E4FAF4'], amber:['#F7B32B','#D3921A','#FFF6E0'], pink:['#F76D8E','#D94A6E','#FFEBF0'], violet:['#9B7EDE','#7A5CC4','#F1EBFF'], slate:['#6B7A99','#4D5B78','#EEF1F6'] };
@@ -1522,6 +1535,26 @@ function migrate(data) {
     if (data.settings.sortMethod===undefined) data.settings.sortMethod='button';
     v = 14;
   }
+  if (v < 15) {
+    // v14 → v15 : ポイント付与タイミング、獲得予定/確定
+    (data.wallets||[]).forEach(w=>{
+      if (w.ptTiming===undefined) w.ptTiming = 'immediate';
+      if (w.ptTimingDays===undefined) w.ptTimingDays = 0;
+      if (w.ptTimingDay===undefined) w.ptTimingDay = 0;
+    });
+    (data.moneyRecs||[]).forEach(r=>{
+      if (r.ptStatus===undefined) r.ptStatus = '';      // '' | 'pending' | 'granted'
+      if (r.ptGrantDate===undefined) r.ptGrantDate = '';
+      if (r.sourceRecId===undefined) r.sourceRecId = '';
+    });
+    (data.taxes||[]).forEach(t=>{
+      (t.installments||[]).forEach(ins=>{
+        if (ins.point===undefined) ins.point = 0;
+        if (ins.pointTypeId===undefined) ins.pointTypeId = '';
+      });
+    });
+    v = 15;
+  }
   data.schemaVersion = SCHEMA_VERSION;
   data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[]; data.checks=data.checks||[];
   data.moneyCats = (data.moneyCats&&data.moneyCats.length)?data.moneyCats:defaultMoneyCats();
@@ -1618,11 +1651,16 @@ function showPage(id, el) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   if (el) el.classList.add('active');
-  renderAll();
-  updateMonthNav();
-  // タブ切替時は常に先頭へ
+  // 先にスクロールを戻してから描画（レイアウト変化の影響を避ける）
   content.scrollTop = 0;
-  requestAnimationFrame(()=>{ content.scrollTop = 0; });
+  updateMonthNav();
+  renderAll();
+  content.scrollTop = 0;
+  // 描画・レイアウト確定後にも念のため戻す
+  requestAnimationFrame(()=>{
+    content.scrollTop = 0;
+    setTimeout(()=>{ content.scrollTop = 0; }, 60);
+  });
 }
 function openModal(id){
   const ov = document.getElementById(id);
@@ -1720,7 +1758,9 @@ function showSub(group, key, el) {
     el.parentElement.querySelectorAll('.subtab').forEach(t=>t.classList.remove('active'));
     el.classList.add('active');
   }
-  document.getElementById('content').scrollTop = 0;
+  const c = document.getElementById('content');
+  c.scrollTop = 0;
+  requestAnimationFrame(()=>{ c.scrollTop = 0; });
 }
 function updateMonthNav() {
   const bar = document.getElementById('month-bar');
@@ -1811,7 +1851,8 @@ function dayItems(ds) {
       sub: (cat?cat.name:'') + (mr.repeat==='monthly'?'（毎月）':'') + (mr.paid?'・支払済':'')
         + (moneyPeriodLabel(mr)?('・'+moneyPeriodLabel(mr)):''),
       amount:0, moneyAmount:mr.amount, moneyCat:cat, ptTypeId:mr.pointTypeId||'',
-      unfixed: mr.fixed===false, memo:mr.memo||'', ref:mr });
+      unfixed: mr.fixed===false, ptPending: mr.ptStatus==='pending',
+      memo:mr.memo||'', ref:mr });
   });
   // チャージ記録
   state.charges.forEach(c=>{
@@ -1834,7 +1875,11 @@ function dayItems(ds) {
       items.push({ kind:'tax', stamp: pre.stamp, color: pre.color,
         label: t.name + (t.mode==='lump'?'':` 第${ins.no}期`) + (ins.paid?'（支払済）':(unfixed?'（金額未定）':'')),
         short: (t.shortName||pre.name),
-        sub: (ins.paid && ins.paidDate ? `期限 ${(+eff.slice(5,7))}/${(+eff.slice(8,10))}` : (t.walletId?'口座振替':'納期限')),
+        sub: (ins.paid && ins.paidDate
+          ? `期限 ${(+eff.slice(5,7))}/${(+eff.slice(8,10))}`
+            + (ins.walletId&&walletById(ins.walletId)?` / ${walletById(ins.walletId).name}`:'')
+            + (ins.point?` / +${Math.round(ins.point).toLocaleString()}${ins.pointTypeId&&pointTypeById(ins.pointTypeId)?pointTypeById(ins.pointTypeId).unit:'pt'}`:'')
+          : (t.walletId?'口座振替':'納期限')),
         amount:0, taxAmount: ins.amount||0, unfixed, paid: !!ins.paid,
         taxKey: t.id+'#'+ins.no, memo: ins.memo||t.memo||'', ref:t });
     });
@@ -1930,6 +1975,13 @@ function moneyRecsInMonth(y, m) {
   const out = [];
   const dim = daysIn(y,m);
   state.moneyRecs.forEach(mr=>{
+    // 支払済は「支払った日」でその月に含める
+    if (mr.paid && mr.paidDate) {
+      if (+mr.paidDate.slice(0,4)===y && +mr.paidDate.slice(5,7)-1===m) {
+        out.push(Object.assign({}, mr, { _date: mr.paidDate }));
+      }
+      return;
+    }
     if (mr.dateMode==='range' || mr.dateMode==='rough') {
       const ds = moneyPeriodDate(mr, y, m);
       if (!ds) return;
@@ -1958,6 +2010,7 @@ function moneyMonthTotals(y, m) {
   let expense = 0, income = 0, point = 0, pointuse = 0;
   moneyRecsInMonth(y,m).forEach(mr=>{
     if (mr.fixed===false) return; // 未確定は集計に含めない
+    if (mr.ptStatus==='pending') return; // 獲得予定のポイントは別枠
     const cat = moneyCatById(mr.catId);
     const t = cat ? cat.type : 'expense';
     if (t==='point') point += mr.amount;
@@ -2228,7 +2281,11 @@ function showDayDetail(ds) {
       // 右側に出す金額（収入=緑 / 支出=赤 / ポイント=紫）
       let amtHTML = '';
       if (x.kind==='money') {
-        if (x.unfixed) {
+        if (x.ptPending) {
+          const col = state.settings.colorPoint;
+          amtHTML = `<span class="mono" style="font-size:13px;color:${col};font-weight:600;opacity:${(state.settings.unfixedOpacity||55)/100}">${moneyText(x.moneyCat, x.moneyAmount, x.ptTypeId)}</span>
+            <span style="font-size:10px;color:var(--text-secondary)">獲得予定</span>`;
+        } else if (x.unfixed) {
           amtHTML = `<span style="font-size:11.5px;color:var(--text-secondary);border:1px dashed var(--border);padding:2px 8px;border-radius:8px">金額未定</span>`;
         } else {
           const col = moneyColor(x.moneyCat);
@@ -2260,7 +2317,9 @@ function showDayDetail(ds) {
       let btn = '';
       if (x.kind==='record') btn = `<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openRecordModal(null,null,'${x.ref.id}')">編集</button>`;
       else if (x.kind==='event') btn = `<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');editEventById('${x.ref.id}')">編集</button>`;
-      else if (x.kind==='money') btn = `<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openMoneyModal(null,null,'${x.ref.id}')">編集</button>`;
+      else if (x.kind==='money') btn = x.ptPending
+        ? `<button class="btn btn-primary btn-sm" onclick="grantPoint('${x.ref.id}');showDayDetail('${ds}')">受取確認</button>`
+        : `<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openMoneyModal(null,null,'${x.ref.id}')">編集</button>`;
       else if (x.kind==='charge') btn = `<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openChargeModal(null,'${x.ref.id}')">編集</button>`;
       else if (x.kind==='tax') btn = x.paid
         ? `<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openTaxModal('${x.ref.id}')">編集</button>`
@@ -3286,15 +3345,18 @@ function renderHomeMoney() {
   if (t.expense>0)  parts.push(card('支出合計', '-'+fmt(t.expense).slice(1), state.settings.colorExpense));
   if (t.point>0)    parts.push(card('ポイント獲得', '+'+Math.round(t.point).toLocaleString()+'pt', state.settings.colorPoint));
   if (t.pointuse>0) parts.push(card('ポイント利用', '-'+Math.round(t.pointuse).toLocaleString()+'pt', state.settings.colorPointUse));
+  const pending = pendingPointsInMonth(y,m);
+  if (pending>0) parts.push(card('ポイント獲得予定', '+'+Math.round(pending).toLocaleString()+'pt', state.settings.colorPoint).replace('font-weight:600','font-weight:600;opacity:'+((state.settings.unfixedOpacity||55)/100)));
   sum.innerHTML = parts.join('');
-  const list = moneyRecsInMonth(y,m);
+  // クレカ支払いは専用セクションに出すので除外
+  const list = moneyRecsInMonth(y,m).filter(mr=>!mr.cardId);
   const el = document.getElementById('home-money-list');
   if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-text">この月の記録はありません</div></div>'; return; }
   el.innerHTML = list.map(mr=>{
     const cat = moneyCatById(mr.catId);
     const pt = mr.pointTypeId ? pointTypeById(mr.pointTypeId) : null;
     const effDue = mr.dueDate ? adjustPayDate(mr.dueDate, mr.dueHolidayRule||'none') : '';
-    const dueInfo = effDue ? `・期限 ${(+effDue.slice(5,7))}/${(+effDue.slice(8,10))}` : '';
+    const dueInfo = (effDue && effDue!==mr._date) ? `・期限 ${(+effDue.slice(5,7))}/${(+effDue.slice(8,10))}` : '';
     const paidInfo = (mr.paid && mr.paidDate) ? `・${(+mr.paidDate.slice(5,7))}/${(+mr.paidDate.slice(8,10))}支払済` : '';
     return `<div class="job-sum-row">${stampHTML(cat?cat.stamp:'💰')}
       <div class="job-sum-name">${escapeHTML(mr.name||(cat?cat.name:''))}${mr.fixed===false?'<span style="font-size:10px;color:var(--text-secondary)">（未定）</span>':''}
@@ -3329,6 +3391,32 @@ function walletStamp(w) {
     return ts[w.type] || '💰';
   }
   return w.stamp || '💰';
+}
+function onPtTimingChange() {
+  const v = document.getElementById('wal-pttiming').value;
+  const row = document.getElementById('wal-pttiming-detail');
+  const lbl = document.getElementById('wal-pttiming-label');
+  if (v==='days') { row.style.display=''; lbl.textContent='何日後'; }
+  else if (v==='nextmonth'||v==='month2') { row.style.display=''; lbl.textContent='何日'; }
+  else row.style.display='none';
+}
+// 支払日からポイント付与予定日を求める
+function calcGrantDate(wallet, paidDate) {
+  if (!wallet || !paidDate) return paidDate||'';
+  const t = wallet.ptTiming || 'immediate';
+  const y=+paidDate.slice(0,4), m=+paidDate.slice(5,7)-1;
+  if (t==='immediate') return paidDate;
+  if (t==='nextday') return shiftDate(paidDate, 1);
+  if (t==='days') return shiftDate(paidDate, wallet.ptTimingDays||0);
+  if (t==='nextmonth' || t==='month2') {
+    const add = (t==='nextmonth') ? 1 : 2;
+    let yy=y, mm=m+add;
+    while (mm>11) { mm-=12; yy++; }
+    const dim = daysIn(yy,mm);
+    const d = Math.min(wallet.ptTimingDay||dim, dim);
+    return dstr(yy,mm,d);
+  }
+  return paidDate;
 }
 function onWalletTypeChange() {
   const t = document.getElementById('wal-type').value;
@@ -3424,6 +3512,9 @@ function openWalletModal(id, presetType) {
   document.getElementById('wal-rate').value = w?(w.baseRate||''):'';
   document.getElementById('wal-note').value = w?(w.note||''):'';
   document.getElementById('wal-interest').value = w?(w.interestRate||''):'';
+  document.getElementById('wal-pttiming').value = w?(w.ptTiming||'immediate'):'immediate';
+  document.getElementById('wal-pttiming-num').value = w?((w.ptTiming==='days')?(w.ptTimingDays||''):(w.ptTimingDay||'')):'';
+  onPtTimingChange();
   document.getElementById('wal-limit-balance').value = w?(w.limitBalance||''):'';
   document.getElementById('wal-limit-once').value = w?(w.limitChargeOnce||''):'';
   document.getElementById('wal-limit-month').value = w?(w.limitChargeMonth||''):'';
@@ -3460,6 +3551,9 @@ function saveWallet() {
     bonusRates: walBonuses.filter(b=>b.cond||b.rate),
     closingRules: walClosingRules.filter(r=>r.label||r.day),
     interestRate: parseFloat(document.getElementById('wal-interest').value)||'',
+    ptTiming: document.getElementById('wal-pttiming').value,
+    ptTimingDays: (document.getElementById('wal-pttiming').value==='days') ? (parseInt(document.getElementById('wal-pttiming-num').value)||0) : 0,
+    ptTimingDay: (['nextmonth','month2'].includes(document.getElementById('wal-pttiming').value)) ? (parseInt(document.getElementById('wal-pttiming-num').value)||0) : 0,
     limitBalance: parseFloat(document.getElementById('wal-limit-balance').value)||'',
     limitChargeOnce: parseFloat(document.getElementById('wal-limit-once').value)||'',
     limitChargeMonth: parseFloat(document.getElementById('wal-limit-month').value)||'',
@@ -3599,6 +3693,56 @@ function openCardPayment(walletId, ds) {
   if (rec) { openMoneyModal(null, null, rec.id); return; }
   openFixAmount('card', walletId, ds, w.name + ' ' + ds.slice(5).replace('-','/') + ' 引落');
 }
+// ホームの税金・保険料一覧
+function renderHomeTaxes() {
+  const el = document.getElementById('home-tax-list');
+  if (!el) return;
+  const y=calYear, m=calMonth;
+  const rows = [];
+  state.taxes.forEach(t=>{
+    const pre = TAX_PRESETS[t.presetKey] || TAX_PRESETS.other;
+    (t.installments||[]).forEach(ins=>{
+      if (!ins.dueDate) return;
+      const eff = t.walletId ? adjustPayDate(ins.dueDate,'after') : ins.dueDate;
+      const showDate = ins.paid && ins.paidDate ? ins.paidDate : eff;
+      if (+showDate.slice(0,4)!==y || +showDate.slice(5,7)-1!==m) return;
+      rows.push({ t, ins, pre, showDate, eff });
+    });
+  });
+  if (!rows.length) { el.innerHTML = '<div class="empty"><div class="empty-text">この月の納期限はありません</div></div>'; return; }
+  el.innerHTML = rows.sort((a,b)=>a.showDate.localeCompare(b.showDate)).map(r=>{
+    const w = r.ins.walletId ? walletById(r.ins.walletId) : null;
+    const p = r.ins.pointTypeId ? pointTypeById(r.ins.pointTypeId) : null;
+    const sub = r.ins.paid
+      ? `${r.showDate.slice(5).replace('-','/')}支払済 / 期限 ${(+r.eff.slice(5,7))}/${(+r.eff.slice(8,10))}${w?' / '+escapeHTML(w.name):''}`
+      : `納期限 ${r.eff.slice(5).replace('-','/')}${r.t.walletId?' / 口座振替':''}`;
+    return `<div class="job-sum-row">
+      <span style="width:26px;text-align:center;font-size:21px;flex-shrink:0">${r.pre.stamp}</span>
+      <div class="job-sum-name">${escapeHTML(r.t.name)}${r.t.mode==='lump'?'':` 第${r.ins.no}期`}
+        <div class="job-sum-sub">${sub}</div></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="text-align:right">
+          ${r.ins.amount
+            ? `<div class="mono" style="font-size:13px;color:${state.settings.colorExpense};font-weight:600;${r.ins.paid?'':'opacity:'+((state.settings.unfixedOpacity||55)/100)}">-${fmt(r.ins.amount).slice(1)}</div>`
+            : `<span style="font-size:11px;color:var(--text-secondary);border:1px dashed var(--border);padding:2px 8px;border-radius:8px">未定</span>`}
+          ${r.ins.point?`<div class="mono" style="font-size:10.5px;color:${state.settings.colorPoint}">+${Math.round(r.ins.point).toLocaleString()}${p?p.unit:'pt'}</div>`:''}
+        </div>
+        ${r.ins.paid
+          ? `<button class="btn btn-ghost btn-sm" onclick="openTaxModal('${r.t.id}')">編集</button>`
+          : `<button class="btn btn-primary btn-sm" onclick="openFixAmount('tax','${r.t.id}#${r.ins.no}','${r.showDate}','${escapeHTML(r.t.name)}')">支払う</button>`}
+      </div></div>`;
+  }).join('');
+}
+// クレカ利用額から還元ポイントの目安を計算
+function cardPointEstimate(p) {
+  if (!p.fixed || !p.amount || p.noPayment) return '';
+  const rate = parseFloat(p.wallet.baseRate)||0;
+  if (!rate) return '';
+  const pt = Math.floor(p.amount * rate / 100);
+  if (!pt) return '';
+  const ptType = p.wallet.pointTypeId ? pointTypeById(p.wallet.pointTypeId) : null;
+  return `+${pt.toLocaleString()}${ptType?ptType.unit:'pt'}（見込）`;
+}
 function renderCardPayments() {
   const el = document.getElementById('home-card-list');
   if (!el) return;
@@ -3615,6 +3759,7 @@ function renderCardPayments() {
           : (p.fixed
             ? `<span class="mono" style="font-size:13px;color:${state.settings.colorExpense};font-weight:600;${p.paid?'':'opacity:'+((state.settings.unfixedOpacity||55)/100)}">-${fmt(p.amount).slice(1)}</span>`
             : `<span style="font-size:11.5px;color:var(--text-secondary);border:1px dashed var(--border);padding:2px 8px;border-radius:8px">未定</span>`)}
+        ${(()=>{ const est = cardPointEstimate(p); return est ? `<div class="mono" style="font-size:10.5px;color:${state.settings.colorPoint}">${est}</div>` : ''; })()}
         <button class="btn btn-ghost btn-sm" onclick="openCardPayment('${p.wallet.id}','${p.date}')">${p.fixed?'編集':'金額入力'}</button>
       </div></div>`).join('');
 }
@@ -3705,18 +3850,32 @@ function renderTaxInstallments() {
   const el = document.getElementById('tax-installments');
   if (!el) return;
   if (!taxInstallments.length) { el.innerHTML = '<div class="field-note" style="margin:0 0 6px">「＋ 期」で追加してください</div>'; return; }
+  const walOpts = sel => '<option value="">なし</option>' + sortByOrder(state.wallets)
+    .map(w=>`<option value="${w.id}" ${w.id===sel?'selected':''}>${escapeHTML(w.name)}</option>`).join('');
+  const ptOpts = sel => '<option value="">種類</option>' + sortByOrder(state.pointTypes)
+    .map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${escapeHTML(p.name)}</option>`).join('');
   el.innerHTML = taxInstallments.map((ins,i)=>`
     <div class="pat-row" data-i="${i}">
       <div class="pat-row-head">
         <span style="font-size:12px;font-weight:700;min-width:38px">第${ins.no}期</span>
         ${ins.paid?'<span class="badge-sm bd-rate">支払済</span>':''}
         <span style="flex:1"></span>
+        ${ins.paid?`<button class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:11px" onclick="undoTaxPaymentInline(${i})">取消</button>`:''}
         <button class="pat-del" onclick="removeTaxInstallment(${i})">✕</button>
       </div>
       <div class="chg-grid">
         <div><label>納期限</label><input type="date" class="ti-due" value="${ins.dueDate||''}"></div>
         <div><label>金額（円）</label><input type="number" class="ti-amt" value="${ins.amount||''}" placeholder="30000"></div>
       </div>
+      ${ins.paid?`
+      <div class="chg-grid" style="margin-top:6px">
+        <div><label>支払日</label><input type="date" class="ti-paiddate" value="${ins.paidDate||''}"></div>
+        <div><label>決済方法</label><select class="ti-wallet">${walOpts(ins.walletId)}</select></div>
+      </div>
+      <div class="chg-grid" style="margin-top:6px">
+        <div><label>獲得ポイント</label><input type="number" class="ti-point" value="${ins.point||''}" placeholder="150"></div>
+        <div><label>種類</label><select class="ti-pt">${ptOpts(ins.pointTypeId)}</select></div>
+      </div>`:''}
     </div>`).join('');
   el.querySelectorAll('.pat-row').forEach(row=>{
     const i = +row.dataset.i;
@@ -3726,7 +3885,19 @@ function renderTaxInstallments() {
       taxInstallments[i]._manual = true;
       redistributeRemaining(i);
     };
+    const pd = row.querySelector('.ti-paiddate');
+    if (pd) pd.onchange = e=>taxInstallments[i].paidDate=e.target.value;
+    const wl = row.querySelector('.ti-wallet');
+    if (wl) wl.onchange = e=>taxInstallments[i].walletId=e.target.value;
+    const po = row.querySelector('.ti-point');
+    if (po) po.oninput = e=>taxInstallments[i].point=parseFloat(e.target.value)||0;
+    const pt = row.querySelector('.ti-pt');
+    if (pt) pt.onchange = e=>taxInstallments[i].pointTypeId=e.target.value;
   });
+}
+function undoTaxPaymentInline(i) {
+  Object.assign(taxInstallments[i], { paid:false, paidDate:'' });
+  renderTaxInstallments();
 }
 function openTaxModal(id) {
   taxEditing = id ? state.taxes.find(t=>t.id===id) : null;
@@ -3783,7 +3954,7 @@ function findTaxInstallment(key) {
 function payTaxInstallment(key, info) {
   const f = findTaxInstallment(key); if(!f) return;
   Object.assign(f.inst, { amount:info.amount, paid:true, paidDate:info.paidDate,
-    walletId:info.walletId, memo:info.memo });
+    walletId:info.walletId, memo:info.memo, point:info.point||0, pointTypeId:info.pointTypeId||'' });
 }
 // 各リストの見出しボタン（並べ替え＋追加）を描画
 function renderListHeaders() {
@@ -3815,7 +3986,12 @@ function renderTaxList() {
       ${orderBtnsHTML('moveTax', t.id, state.taxes.indexOf(t), state.taxes.length, 'taxes')}
       <span style="width:28px;text-align:center;font-size:22px;flex-shrink:0">${pre.stamp}</span>
       <div class="job-item-body"><div class="job-item-name">${escapeHTML(t.name)}</div>
-        <div class="job-item-sub">${t.year}年度 / ${t.mode==='lump'?'一括':n+'期分割'} / 計${fmt(total)} / ${paidCnt}件支払済${t.walletId?' / 口座振替':''}</div></div>
+        <div class="job-item-sub">${t.year}年度 / ${t.mode==='lump'?'一括':n+'期分割'} / 計${fmt(total)} / ${paidCnt}件支払済${t.walletId?' / 口座振替':''}</div>
+          ${(t.installments||[]).filter(i=>i.paid).map(i=>{
+            const w = i.walletId?walletById(i.walletId):null;
+            const p = i.pointTypeId?pointTypeById(i.pointTypeId):null;
+            return `<div style="font-size:10.5px;color:var(--text-secondary);margin-top:2px">第${i.no}期 ${fmt(i.amount)}${w?' / '+escapeHTML(w.name):''}${i.point?` / +${Math.round(i.point).toLocaleString()}${p?p.unit:'pt'}${p?`（${escapeHTML(p.name)}）`:''}`:''}</div>`;
+          }).join('')}</div>
       <button class="btn btn-ghost btn-sm" onclick="openTaxModal('${t.id}')">編集</button>
     </div>`;
   }).join('');
@@ -3906,16 +4082,20 @@ function saveFixAmount() {
         noPayment:false, pointTypeId:'', pointExpiry:'', skipDates:[] });
     }
   } else if (kind==='tax') {
-    payTaxInstallment(id, { amount, walletId, paidDate, memo });
+    payTaxInstallment(id, { amount, walletId, paidDate, memo, point, pointTypeId });
   }
-  // 獲得ポイントを記録
+  // 獲得ポイントを「獲得予定」として記録（付与日に確定する）
   if (point>0) {
     const ptCat = state.moneyCats.find(c=>c.type==='point');
+    const wal = walletId ? walletById(walletId) : null;
+    const grantDate = calcGrantDate(wal, paidDate || todayStr());
+    const ptType = pointTypeId || (wal ? (wal.pointTypeId||'') : '');
     if (ptCat) {
       state.moneyRecs.push({ id:'m'+(Date.now()+1), catId:ptCat.id, cardId:'',
-        name:'ポイント獲得', shortName:'', amount:point, fixed:true, memo:memo||'支払いで獲得',
-        repeat:'once', date:paidDate, dateMode:'exact', walletId, dueDate:'', dueHolidayRule:'none',
-        paid:false, paidDate:'', autoCheck:false, pointTypeId, pointExpiry:'', skipDates:[] });
+        name:'ポイント還元', shortName:'', amount:point, fixed:true, memo:memo||'支払いで獲得',
+        repeat:'once', date:grantDate, dateMode:'exact', walletId, dueDate:'', dueHolidayRule:'none',
+        paid:false, paidDate:'', autoCheck:false, pointTypeId:ptType, pointExpiry:'', skipDates:[],
+        ptStatus: (grantDate<=todayStr() ? 'granted' : 'pending'), ptGrantDate: grantDate, noPayment:false });
     }
   }
   save(); closeModal('modal-fixamount'); renderAll();
@@ -3938,6 +4118,18 @@ function markCardNoPayment() {
       pointTypeId:'', pointExpiry:'', skipDates:[] });
   }
   save(); closeModal('modal-fixamount'); renderAll(); showToast('支払なしにしました');
+}
+// 獲得予定ポイントを確定
+function grantPoint(id) {
+  const mr = state.moneyRecs.find(r=>r.id===id); if(!mr) return;
+  mr.ptStatus = 'granted';
+  save(); renderAll(); showToast('ポイントを受け取りました ✓');
+}
+// 未確定ポイントの合計（その月）
+function pendingPointsInMonth(y, m) {
+  let sum = 0;
+  moneyRecsInMonth(y,m).forEach(mr=>{ if (mr.ptStatus==='pending') sum += mr.amount||0; });
+  return sum;
 }
 // 引落日を過ぎたクレカ支払いを自動で支払済にする
 function autoSettleCardPayments() {
@@ -4988,6 +5180,7 @@ function renderAll() {
   renderTypeStampList();
   renderCardPayments();
   renderTaxList();
+  renderHomeTaxes();
   renderListHeaders();
   updateFilterBadge();
   renderExpiryAlert();
