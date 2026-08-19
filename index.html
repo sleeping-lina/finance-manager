@@ -311,7 +311,7 @@
   <header class="topbar">
     <div style="display:flex;align-items:center;">
       <span class="topbar-logo">Finance<span>Mgr</span></span>
-      <span class="version-badge" id="version-badge">v24</span>
+      <span class="version-badge" id="version-badge">v25</span>
     </div>
     <div class="topbar-total">
       <div class="topbar-total-label">今月合計</div>
@@ -335,6 +335,7 @@
           <div style="display:flex;gap:4px">
             <button class="btn btn-ghost btn-sm" id="filter-btn" onclick="openFilterModal()" style="padding:5px 11px">表示 <span id="filter-count"></span></button>
             <button class="btn btn-ghost btn-sm" onclick="openPresetMenu()" style="padding:5px 9px">★</button>
+            <button class="btn btn-primary btn-sm" onclick="openAddMenu(todayStr())" style="padding:5px 11px">＋</button>
           </div>
           <div class="cal-switch">
             <div class="cal-switch-btn active" onclick="setCalView('month',this)">月</div>
@@ -565,11 +566,15 @@
           <div id="tax-expense-list"></div>
         </div>
         <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div class="card-title" style="margin-bottom:0">勘定科目</div>
-            <div style="display:flex;gap:5px" id="accounts-head"></div>
+          <div class="grp-header" onclick="toggleGroup('accounts')" style="margin:0">
+            <span class="grp-title"><span class="grp-caret ${''}" id="acc-caret">▶</span> 勘定科目の設定</span>
+            <span class="grp-count" id="acc-count"></span>
           </div>
-          <div id="account-list"></div>
+          <div id="account-section" style="display:none;margin-top:10px">
+            <div style="display:flex;justify-content:flex-end;gap:5px;margin-bottom:8px" id="accounts-head"></div>
+            <div id="account-list"></div>
+            <div class="field-note">チェックを外した科目は選択肢に出ません。よく使うものだけ残せます。</div>
+          </div>
         </div>
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
@@ -678,7 +683,7 @@
           <div class="settings-row"><span>古いデータを書き出して削除</span><button class="btn btn-ghost btn-sm" onclick="openArchiveDialog()">アーカイブ</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v24</span> / schema <span id="schema-footer">22</span> / 祝日データ 2025–2027
+          FinanceManager <span id="ver-footer">v25</span> / schema <span id="schema-footer">23</span> / 祝日データ 2025–2027
         </div>
       </div>
     </div>
@@ -723,6 +728,13 @@
   <div class="form-grid">
     <div class="form-group"><label>タイトル</label><input type="text" id="ev-title" placeholder="例：請求書提出"></div>
     <div class="form-group"><label>月表示用の短縮名（任意）</label><input type="text" id="ev-short" placeholder="例：請求書"></div>
+    <div class="form-group member-row" id="ev-shared-row" style="display:none"><label>対象</label>
+      <div class="seg">
+        <div class="seg-btn active" data-evs="1" onclick="setEventShared(true,this)">家族で共有</div>
+        <div class="seg-btn" data-evs="0" onclick="setEventShared(false,this)">個人</div>
+      </div>
+      <div id="ev-member-wrap" style="margin-top:8px;display:none">
+        <label>メンバー</label><select id="ev-member"></select></div></div>
     <div class="form-row">
       <div class="form-group"><label>開始日</label><input type="date" id="ev-start"></div>
       <div class="form-group"><label>終了日（同日なら空欄）</label><input type="date" id="ev-end"></div>
@@ -831,6 +843,13 @@
   <div class="form-grid">
     <div class="form-group"><label>内容</label><input type="text" id="chk-text" placeholder="例：確定申告書類を準備"></div>
     <div class="form-group"><label>月表示用の短縮名（任意）</label><input type="text" id="chk-short" placeholder="例：確申準備"></div>
+    <div class="form-group member-row" id="chk-shared-row" style="display:none"><label>対象</label>
+      <div class="seg">
+        <div class="seg-btn active" data-cks="1" onclick="setCheckShared(true,this)">家族で共有</div>
+        <div class="seg-btn" data-cks="0" onclick="setCheckShared(false,this)">個人</div>
+      </div>
+      <div id="chk-member-wrap" style="margin-top:8px;display:none">
+        <label>メンバー</label><select id="chk-member"></select></div></div>
     <div class="form-group"><label>タイプ</label>
       <select id="chk-kind" onchange="onCheckKindChange()">
         <option value="month">今月限定（この月だけ）</option>
@@ -1473,11 +1492,18 @@
         <select id="sb-month"></select></div>
     </div>
     <div class="form-group"><label>通貨</label>
-      <select id="sb-currency">
+      <select id="sb-currency" onchange="onSbCurrencyChange()">
         <option value="JPY">円（JPY）</option>
         <option value="USD">ドル（USD）</option>
-      </select>
-      <div class="field-note">ドル建ては請求後に円で上書きできます。</div></div>
+      </select></div>
+    <div class="subsection" id="sb-actual-section" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="subsection-title" style="margin-bottom:0">実際の請求額（円）</div>
+        <button class="btn btn-ghost btn-sm" onclick="addSbActual()">＋ 月を追加</button>
+      </div>
+      <div id="sb-actuals"></div>
+      <div class="field-note">請求が確定したら、その月の実際の円額を入力します。カレンダーと集計に反映されます。</div>
+    </div>
     <div class="form-group"><label>支払方法</label><select id="sb-wallet"></select></div>
     <div class="form-group"><label>還元ポイント（任意）</label>
       <div class="form-row">
@@ -1774,8 +1800,8 @@
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '24';
-const SCHEMA_VERSION = 22;
+const APP_VERSION = '25';
+const SCHEMA_VERSION = 23;
 const STORAGE_KEY = 'financeManager';
 
 const C = { blue:['#5B8DEF','#3D6BD1','#EAF1FF'], teal:['#2DC5A4','#189A7E','#E4FAF4'], amber:['#F7B32B','#D3921A','#FFF6E0'], pink:['#F76D8E','#D94A6E','#FFEBF0'], violet:['#9B7EDE','#7A5CC4','#F1EBFF'], slate:['#6B7A99','#4D5B78','#EEF1F6'] };
@@ -2337,6 +2363,14 @@ function migrate(data) {
     (data.chargeRoutes||[]).forEach(r=>{ if(r.feeFree===undefined) r.feeFree=false; });
     (data.investments||[]).forEach(iv=>{ if(iv.shortName===undefined) iv.shortName=''; });
     v = 22;
+  }
+  if (v < 23) {
+    // v22 → v23 : 共有/個人フラグ・使用科目・ドル建て実額
+    (data.checks||[]).forEach(c=>{ if(c.shared===undefined) c.shared = true; });
+    (data.events||[]).forEach(e=>{ if(e.shared===undefined) e.shared = true; });
+    (data.accounts||[]).forEach(a=>{ if(a.enabled===undefined) a.enabled = true; });
+    (data.subscriptions||[]).forEach(sb=>{ if(!sb.actuals) sb.actuals = {}; });
+    v = 23;
   }
   data.schemaVersion = SCHEMA_VERSION;
   data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[]; data.checks=data.checks||[];
@@ -3584,6 +3618,9 @@ function openEventModal(ev, ds) {
   document.getElementById('event-title').textContent = ev?'予定を編集':'予定を追加';
   document.getElementById('ev-title').value = ev?ev.title:'';
   document.getElementById('ev-short').value = ev?(ev.shortName||''):'';
+  eventShared = ev ? (ev.shared!==false) : true;
+  const evsb = document.querySelector(`#modal-event .seg-btn[data-evs="${eventShared?1:0}"]`);
+  if (evsb) setEventShared(eventShared, evsb);
   document.getElementById('ev-start').value = ev?ev.startDate:(ds||todayStr());
   document.getElementById('ev-end').value = ev?(ev.endDate||''):'';
   document.getElementById('ev-memo').value = ev?(ev.memo||''):'';
@@ -3603,7 +3640,9 @@ function saveEvent() {
   if(e && e<s){ showToast('終了日は開始日以降にしてください'); return; }
   if(!e) e='';
   const evShort = document.getElementById('ev-short').value.trim();
-  if (evEditing) Object.assign(evEditing,{title,startDate:s,endDate:e,stamp:evStamp,color:evColor,shortName:evShort,memo:document.getElementById('ev-memo').value});
+  const evShared = eventShared;
+  const evMember = eventShared ? '' : ((document.getElementById('ev-member')||{}).value||'');
+  if (evEditing) Object.assign(evEditing,{title,startDate:s,endDate:e,stamp:evStamp,color:evColor,shortName:evShort,shared:evShared,memberId:evMember,memo:document.getElementById('ev-memo').value});
   else state.events.push({ id:'e'+Date.now(), title, startDate:s, endDate:e, stamp:evStamp, color:evColor, shortName:evShort, memo:document.getElementById('ev-memo').value });
   save(); closeModal('modal-event'); renderAll(); showToast('保存しました ✓');
 }
@@ -3795,13 +3834,14 @@ function renderHome() {
   document.getElementById('agg-note').textContent = state.settings.aggregation==='pay' ? '集計基準：支払日（入金月に計上）' : '集計基準：勤務日（働いた月に計上）';
   document.getElementById('home-total').textContent = fmt(monthTotal(y,m));
   const el = document.getElementById('home-jobs');
-  if (!state.jobs.length) el.innerHTML='<div class="empty"><div class="empty-text">設定から仕事を登録すると内訳が表示されます</div></div>';
-  else el.innerHTML = state.jobs.map(j=>{
+  const myJobs = state.jobs.filter(j=>inCurrentMember(j));
+  if (!myJobs.length) el.innerHTML='<div class="empty"><div class="empty-text">設定から仕事を登録すると内訳が表示されます</div></div>';
+  else el.innerHTML = myJobs.map(j=>{
     const amt = jobMonthAmount(j, y, m);
     let sub='';
     if (j.payType==='monthly') sub='毎月'+j.payday+'日';
     else {
-      const recs = state.records.filter(r=>r.jobId===j.id).filter(r=>{ const d=recAggDate(r); return +d.slice(0,4)===y && +d.slice(5,7)-1===m; });
+      const recs = state.records.filter(r=>r.jobId===j.id&&inCurrentMember(r)).filter(r=>{ const d=recAggDate(r); return +d.slice(0,4)===y && +d.slice(5,7)-1===m; });
       sub = j.payType==='hourly' ? (recs.length+'回 / 実働'+fmtH(recs.reduce((a,r)=>a+r.hours,0))) : (recs.length+'件');
     }
     return `<div class="job-sum-row">${stampHTML(j.stamp)}
@@ -3815,14 +3855,17 @@ function renderHome() {
   monthsArr.forEach(o=>{
     const grp=document.createElement('div'); grp.className='bar-group';
     const stack=document.createElement('div'); stack.className='bar-stack';
-    state.jobs.forEach(j=>{
+    state.jobs.filter(j=>inCurrentMember(j)).forEach(j=>{
       const v = jobMonthAmount(j, o.yy, o.mm);
-      if(v>0){ const seg=document.createElement('div'); seg.className='bar-seg'; seg.style.height=Math.round(v/maxV*80)+'px'; seg.style.background=j.color; stack.appendChild(seg); }
+      if(v>0){ const seg=document.createElement('div'); seg.className='bar-seg';
+        // 合計が最大値を超えないよう上限を設ける（レイアウト崩れ防止）
+        seg.style.height=Math.min(80, Math.round(v/maxV*80))+'px';
+        seg.style.background=j.color; stack.appendChild(seg); }
     });
     grp.appendChild(stack); bar.appendChild(grp);
     const lb=document.createElement('div'); lb.textContent=(o.mm+1)+'月'; labels.appendChild(lb);
   });
-  const recs = state.records.filter(r=>{ const d=recAggDate(r); return +d.slice(0,4)===y && +d.slice(5,7)-1===m; }).sort((a,b)=>recAggDate(b).localeCompare(recAggDate(a)));
+  const recs = state.records.filter(r=>inCurrentMember(r)).filter(r=>{ const d=recAggDate(r); return +d.slice(0,4)===y && +d.slice(5,7)-1===m; }).sort((a,b)=>recAggDate(b).localeCompare(recAggDate(a)));
   const rw = document.getElementById('home-records');
   if(!recs.length) rw.innerHTML='<div class="empty"><div class="empty-text">この月の記録はありません</div></div>';
   else rw.innerHTML = '<table><tbody>'+recs.map(r=>{
@@ -4020,11 +4063,11 @@ function effectiveDueDate(mr) {
 }
 // 勘定科目（カスタム対応）
 function accountList() {
-  if (state.accounts && state.accounts.length) return sortByOrder(state.accounts);
-  return EXPENSE_ACCOUNTS.map((a,i)=>({id:a.key, name:a.label, order:i+1, builtin:true}));
+  if (state.accounts && state.accounts.length) return sortByOrder(state.accounts).filter(a=>a.enabled!==false);
+  return EXPENSE_ACCOUNTS.map((a,i)=>({id:a.key, name:a.label, order:i+1, builtin:true, enabled:true}));
 }
 function accountName(id) {
-  const a = accountList().find(x=>x.id===id);
+  const a = accountListAll().find(x=>x.id===id);
   return a ? a.name : (EXPENSE_ACCOUNTS.find(x=>x.key===id)||{}).label || 'その他';
 }
 function setMoneyExpense(v, el) {
@@ -4505,7 +4548,15 @@ const WALLET_GROUPS_DEF = {
 };
 // 表示順は設定で変更可能
 function walletGroups() {
-  const order = (state.settings && state.settings.walletGroupOrder) || ['card','emoney','store','bank','securities','other'];
+  let order = (state.settings && state.settings.walletGroupOrder) || [];
+  // 定義済みグループで抜けているものを補う（既存データの救済）
+  Object.keys(WALLET_GROUPS_DEF).forEach(k=>{
+    if (!order.includes(k)) {
+      if (k==='other') order.push(k);
+      else order.splice(Math.max(0, order.length-1), 0, k);
+    }
+  });
+  if (state.settings) state.settings.walletGroupOrder = order;
   const groups = order.map(k=>WALLET_GROUPS_DEF[k]).filter(Boolean).map(g=>Object.assign({}, g));
   // どのグループにも入らない種別を「その他」に回収（消失防止）
   const covered = new Set();
@@ -4962,7 +5013,7 @@ function renderWalletList() {
   if (!el) return;
   if (!state.wallets.length) { el.innerHTML = '<div class="empty"><div class="empty-text">「＋」から登録してください</div></div>'; return; }
   el.innerHTML = walletGroups().map(g=>{
-    const members = sortByOrder(state.wallets.filter(w=>g.types.includes(w.type)));
+    const members = sortByOrder(state.wallets.filter(w=>g.types.includes(w.type)&&inCurrentMember(w)));
     const open = isGrpOpen('set-'+g.key);
     return `<div class="grp-header">
         <span class="grp-title" onclick="toggleGroup('set-${g.key}')"><span class="grp-caret ${open?'open':''}">▶</span>${g.label}
@@ -5385,8 +5436,8 @@ function renderListHeaders() {
 function renderTaxList() {
   const el = document.getElementById('tax-list');
   if (!el) return;
-  if (!state.taxes.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🧾</div><div class="empty-text">「＋ 追加」から登録してください</div></div>'; return; }
-  el.innerHTML = state.taxes.map(t=>{
+  if (!state.taxes.filter(t=>inCurrentMember(t)).length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🧾</div><div class="empty-text">「＋ 追加」から登録してください</div></div>'; return; }
+  el.innerHTML = state.taxes.filter(t=>inCurrentMember(t)).map(t=>{
     const pre = TAX_PRESETS[t.presetKey] || TAX_PRESETS.other;
     const total = (t.installments||[]).reduce((a,i)=>a+(i.amount||0),0);
     const paidCnt = (t.installments||[]).filter(i=>i.paid).length;
@@ -5696,6 +5747,7 @@ function openArchiveDialog() {
 }
 // 記録タブのお金・チャージ入口
 function renderInputAreas() {
+  // 仕事の入力欄もメンバーで絞り込む
   const mEl = document.getElementById('input-money-area');
   if (mEl) {
     mEl.innerHTML = sortByOrder(state.moneyCats.filter(c=>c.active!==false)).map(c=>`
@@ -5754,15 +5806,35 @@ function moveAccount(id,dir){
 function renderAccountList() {
   const el = document.getElementById('account-list');
   if (!el) return;
-  const list = accountList();
-  el.innerHTML = list.map((a,idx)=>`
-    <div class="job-item drag-item" data-item-id="${a.id}">
-      ${orderBtnsHTML('moveAccount', a.id, idx, list.length, 'accounts')}
-      <span style="width:24px;text-align:center;font-size:16px;flex-shrink:0">📗</span>
+  const open = isGrpOpen('accounts')===true && grpOpen['accounts']!==undefined;
+  const sec = document.getElementById('account-section');
+  if (sec) sec.style.display = grpOpen['accounts'] ? '' : 'none';
+  const caret = document.getElementById('acc-caret');
+  if (caret) caret.className = 'grp-caret' + (grpOpen['accounts']?' open':'');
+  const all = accountListAll();
+  const cnt = document.getElementById('acc-count');
+  if (cnt) cnt.textContent = `${all.filter(a=>a.enabled!==false).length}/${all.length}`;
+  el.innerHTML = all.map((a,idx)=>`
+    <div class="job-item drag-item" data-item-id="${a.id}" style="${a.enabled===false?'opacity:0.45':''}">
+      ${orderBtnsHTML('moveAccount', a.id, idx, all.length, 'accounts')}
+      <div onclick="toggleAccountEnabled('${a.id}')" style="width:22px;height:22px;border-radius:6px;border:2px solid ${a.enabled!==false?'var(--mint)':'var(--border)'};background:${a.enabled!==false?'var(--mint)':'#fff'};flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer">
+        ${a.enabled!==false?'<span style="color:#fff;font-size:13px">✓</span>':''}</div>
       <div class="job-item-body"><div class="job-item-name">${escapeHTML(a.name)}</div></div>
       <button class="btn btn-ghost btn-sm" onclick="openAccountModal('${a.id}')">編集</button>
     </div>`).join('');
   enableDrag('account-list', state.accounts, 'accounts');
+}
+// 全科目（無効も含む）
+function accountListAll() {
+  if (state.accounts && state.accounts.length) return sortByOrder(state.accounts);
+  return EXPENSE_ACCOUNTS.map((a,i)=>({id:a.key, name:a.label, order:i+1, builtin:true, enabled:true}));
+}
+function toggleAccountEnabled(id) {
+  if (!state.accounts.length) state.accounts = accountListAll().map(a=>Object.assign({},a));
+  const t = state.accounts.find(a=>a.id===id);
+  if (!t) return;
+  t.enabled = (t.enabled===false);
+  save(); renderAll();
 }
 // 確定申告タブから経費を直接追加
 function openExpenseQuickAdd() {
@@ -5799,20 +5871,30 @@ function renderDdItems() {
       <div style="margin-top:6px"><label>メモ</label><input type="text" class="di-note" value="${escapeHTML(it.note||'')}" placeholder="返礼品・病院名など"></div>
     </div>`).join('') +
     `<div style="display:flex;justify-content:space-between;padding:8px 2px 0;font-weight:700;font-size:12.5px">
-      <span>明細の小計</span><span class="mono">${fmt(total)}</span></div>`;
+      <span>明細の小計</span><span class="mono" id="dd-subtotal">${fmt(total)}</span></div>`;
   el.querySelectorAll('.pat-row').forEach(row=>{
     const i=+row.dataset.i;
     row.querySelector('.di-date').onchange = e=>ddItems[i].date=e.target.value;
-    row.querySelector('.di-amount').oninput = e=>{ ddItems[i].amount=parseFloat(e.target.value)||''; syncDdTotal(); };
+    row.querySelector('.di-amount').oninput = e=>{
+      ddItems[i].amount = parseFloat(e.target.value)||'';
+      // 再描画せず、小計と合計だけ更新（入力が途切れないように）
+      updateDdTotalOnly();
+    };
     row.querySelector('.di-name').oninput = e=>ddItems[i].name=e.target.value;
     row.querySelector('.di-note').oninput = e=>ddItems[i].note=e.target.value;
   });
 }
 // 明細の合計を金額欄に反映
 function syncDdTotal() {
+  updateDdTotalOnly();
+  renderDdItems();
+}
+// 入力中は再描画せず数値だけ更新
+function updateDdTotalOnly() {
   const total = ddItems.reduce((a,x)=>a+(parseFloat(x.amount)||0),0);
   if (total) document.getElementById('dd-amount').value = total;
-  renderDdItems();
+  const sub = document.getElementById('dd-subtotal');
+  if (sub) sub.textContent = fmt(total);
 }
 function setTaxYear(y){ state.settings.taxYear = parseInt(y)||new Date().getFullYear(); save(); renderTaxReport(); }
 function setDdCert(v, el){
@@ -5943,11 +6025,17 @@ function renderTaxReport() {
   const deducts = state.deductions.filter(d=>{
     if (d.year!==year) return false;
     if (cur==='all') return true;
-    // 「誰の控除にするか」で判定（未設定なら本人扱い）
-    const owner = d.forMemberId || d.memberId || selfMemberId();
-    return owner===cur;
+    // 支払った本人の欄にも、申告する人の欄にも表示する
+    const payer = d.memberId || selfMemberId();
+    const owner = d.forMemberId || payer;
+    return payer===cur || owner===cur;
   });
-  const ddTotal = deducts.reduce((a,d)=>a+(d.amount||0),0);
+  // 合計は「申告する人」の分だけ（他人が申告する分は除く）
+  const ddTotal = deducts.reduce((a,d)=>{
+    const ownerId = d.forMemberId || d.memberId || selfMemberId();
+    if (cur!=='all' && ownerId!==cur) return a;
+    return a + (d.amount||0);
+  },0);
   // サマリー
   const sum = document.getElementById('tax-summary');
   if (sum) {
@@ -5974,7 +6062,7 @@ function renderTaxReport() {
   // 経費一覧
   const el = document.getElementById('tax-expense-list');
   if (el) {
-    const keys = accountList().filter(a=>map[a.id]);
+    const keys = accountListAll().filter(a=>map[a.id]);
     el.innerHTML = keys.length ? keys.map(a=>{
       const g = map[a.id];
       return `<div style="padding:9px 2px;border-bottom:1px solid var(--border)">
@@ -6017,14 +6105,19 @@ function renderTaxReport() {
             ${list.map(d=>{
               const forMo = d.forMemberId?memberById(d.forMemberId):null;
               const ownMo = d.memberId?memberById(d.memberId):null;
-              // 本人以外の控除は薄く表示
+              // 支払った人と申告する人が違う場合
               const isOther = forMo && ownMo && forMo.id!==ownMo.id;
-              return `<div style="padding:6px 0 6px 14px;${isOther?'opacity:0.6':''}">
+              // 表示中のメンバーの控除でなければ薄く＋申告者の色で示す
+              const viewer = currentMemberId();
+              const ownerId = d.forMemberId || d.memberId || selfMemberId();
+              const notMine = (viewer!=='all' && ownerId!==viewer);
+              const barColor = forMo ? forMo.color : (ownMo?ownMo.color:'transparent');
+              return `<div style="padding:6px 0 6px 14px;${notMine?'opacity:0.5;':''}${isOther?`border-left:3px solid ${barColor};padding-left:11px;`:''}">
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
                   <div style="flex:1;min-width:0">
                     <div style="font-size:12.5px;font-weight:500">${escapeHTML(d.name)}
                       ${d.certified?'<span class="badge-sm bd-rate">証明書</span>':'<span class="badge-sm bd-limit">未着</span>'}</div>
-                    ${(ownMo||forMo)?`<div style="font-size:10.5px;color:var(--text-secondary)">${ownMo?escapeHTML(ownMo.name):''}${isOther?` → ${escapeHTML(forMo.name)}が申告`:''}</div>`:''}
+                    ${(ownMo||forMo)?`<div style="font-size:10.5px;color:${isOther&&forMo?forMo.color:'var(--text-secondary)'};font-weight:${isOther?'600':'400'}">${ownMo?escapeHTML(ownMo.name):''}${isOther?` → ${forMo.icon} ${escapeHTML(forMo.name)}が申告`:''}</div>`:''}
                   </div>
                   <span class="mono" style="font-size:12.5px;font-weight:600;flex-shrink:0">${fmt(d.amount)}</span>
                   <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px" onclick="openDeductionModal('${d.id}')">編集</button>
@@ -6043,6 +6136,23 @@ function renderTaxReport() {
   }
 }
 
+// 共有/個人の切替
+let checkShared = true, eventShared = true;
+function setCheckShared(v, el) {
+  checkShared = v;
+  document.querySelectorAll('#modal-check .seg-btn[data-cks]').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('chk-member-wrap').style.display = v?'none':'';
+  if (!v) fillMemberSelect('chk-member', (checkEditing&&checkEditing.memberId)||'');
+}
+function setEventShared(v, el) {
+  eventShared = v;
+  document.querySelectorAll('#modal-event .seg-btn[data-evs]').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('ev-member-wrap').style.display = v?'none':'';
+  if (!v) fillMemberSelect('ev-member', (evEditing&&evEditing.memberId)||'');
+}
+
 // ── 家族メンバー ──
 const MEMBER_ICONS = ['🙂','👩','👨','👦','👧','👶','👵','👴','🐱','🐶','⭐','🌸'];
 const RELATION_LABEL = { self:'本人', spouse:'配偶者', child:'子', parent:'親', other:'その他' };
@@ -6054,6 +6164,8 @@ function currentMemberId() { return state.settings.currentMember || 'all'; }
 function inCurrentMember(rec) {
   const cur = currentMemberId();
   if (cur==='all') return true;
+  // 「共有」の項目は誰を選んでも表示
+  if (rec && rec.shared) return true;
   const mid = rec && rec.memberId ? rec.memberId : selfMemberId();
   return mid === cur;
 }
@@ -6178,6 +6290,47 @@ function setSbExpense(v, el) {
     if (!r.value) r.value = 100;
   }
 }
+function onSbCurrencyChange() {
+  const v = document.getElementById('sb-currency').value;
+  document.getElementById('sb-actual-section').style.display = (v==='USD')?'':'none';
+  if (v==='USD') renderSbActuals();
+}
+let sbActuals = {};
+function addSbActual() {
+  const ym = todayStr().slice(0,7);
+  if (sbActuals[ym]===undefined) sbActuals[ym] = '';
+  renderSbActuals();
+}
+function renderSbActuals() {
+  const el = document.getElementById('sb-actuals');
+  if (!el) return;
+  const keys = Object.keys(sbActuals).sort().reverse();
+  if (!keys.length) { el.innerHTML='<div class="field-note" style="margin:0 0 6px">まだ入力がありません</div>'; return; }
+  el.innerHTML = keys.map(ym=>`
+    <div class="chg-grid" style="margin-bottom:6px" data-ym="${ym}">
+      <div><label>対象月</label><input type="month" class="sa-ym" value="${ym}"></div>
+      <div><label>実際の円額</label>
+        <div style="display:flex;gap:5px">
+          <input type="number" inputmode="numeric" class="sa-amt" value="${sbActuals[ym]||''}" placeholder="2200" style="flex:1">
+          <button class="pat-del" onclick="removeSbActual('${ym}')">✕</button>
+        </div></div>
+    </div>`).join('');
+  el.querySelectorAll('[data-ym]').forEach(row=>{
+    const ym = row.dataset.ym;
+    row.querySelector('.sa-amt').oninput = e=>{ sbActuals[ym] = parseFloat(e.target.value)||''; };
+    row.querySelector('.sa-ym').onchange = e=>{
+      const nv = e.target.value;
+      if (nv && nv!==ym) { sbActuals[nv] = sbActuals[ym]; delete sbActuals[ym]; renderSbActuals(); }
+    };
+  });
+}
+function removeSbActual(ym){ delete sbActuals[ym]; renderSbActuals(); }
+// その月の実額（なければ元の金額）
+function subActualAmount(sb, ym) {
+  const a = (sb.actuals||{})[ym];
+  if (a) return { amount: a, isActual: true };
+  return { amount: subAmountAt(sb, ym), isActual: false };
+}
 function onSbCycleChange() {
   const v = document.getElementById('sb-cycle').value;
   const row = document.getElementById('sb-month-row');
@@ -6239,6 +6392,8 @@ function openSubscriptionModal(id) {
   document.getElementById('sb-memo').value = sb?(sb.memo||''):'';
   document.getElementById('sb-cycle').value = sb?(sb.cycle||'monthly'):'monthly';
   document.getElementById('sb-currency').value = sb?(sb.currency||'JPY'):'JPY';
+  sbActuals = sb?JSON.parse(JSON.stringify(sb.actuals||{})):{};
+  onSbCurrencyChange();
   onSbCycleChange();
   document.getElementById('sb-month').value = sb?String(sb.month||1):'1';
   sbHistory = sb?JSON.parse(JSON.stringify(sb.history||[])):[];
@@ -6273,6 +6428,7 @@ function saveSubscription() {
     month: parseInt(document.getElementById('sb-month').value)||1,
     currency: document.getElementById('sb-currency').value,
     history: sbHistory.filter(h=>h.from&&h.amount),
+    actuals: Object.fromEntries(Object.entries(sbActuals).filter(([k,v])=>v)),
     isExpense: sbIsExpense,
     account: sbIsExpense ? ((document.getElementById('sb-account')||{}).value||'') : '',
     businessRatio: sbIsExpense ? (parseFloat(document.getElementById('sb-ratio').value)||100) : 100,
@@ -6317,8 +6473,9 @@ function subscriptionItemsOn(ds) {
     if (d===day) {
       const w = sb.walletId?walletById(sb.walletId):null;
       const pt = sb.pointTypeId?pointTypeById(sb.pointTypeId):null;
-      const amt = subAmountAt(sb, ym);
-      const isUSD = (sb.currency==='USD');
+      const act = subActualAmount(sb, ym);
+      const amt = act.amount;
+      const isUSD = (sb.currency==='USD') && !act.isActual;
       out.push({ kind:'subsc', stamp:'🔁', color:PALETTE[6]||PALETTE[1],
         label:`${sb.name}`, short:(sb.shortName||sb.name),
         sub:`${(sb.cycle||'monthly')==='yearly'?'年額':'サブスク'}${w?' / '+w.name:''}${isUSD?' / USD':''}`,
@@ -6331,8 +6488,8 @@ function subscriptionItemsOn(ds) {
 function renderSubscriptionList() {
   const el = document.getElementById('subscription-list');
   if (!el) return;
-  if (!state.subscriptions.length) { el.innerHTML='<div class="empty"><div class="empty-icon">🔁</div><div class="empty-text">「＋」からサブスクを登録できます</div></div>'; return; }
-  const list = sortByOrder(state.subscriptions);
+  if (!state.subscriptions.filter(sb=>inCurrentMember(sb)).length) { el.innerHTML='<div class="empty"><div class="empty-icon">🔁</div><div class="empty-text">「＋」からサブスクを登録できます</div></div>'; return; }
+  const list = sortByOrder(state.subscriptions.filter(sb=>inCurrentMember(sb)));
   const total = list.filter(sb=>(!sb.activeTo || sb.activeTo>=todayStr().slice(0,7)) && (sb.cycle||'monthly')==='monthly' && sb.currency!=='USD')
     .reduce((a,sb)=>a+subAmountAt(sb, todayStr().slice(0,7)),0);
   el.innerHTML = `<div style="text-align:right;font-size:12px;color:var(--text-secondary);margin-bottom:8px">月額合計 <b class="mono" style="font-size:14px;color:${state.settings.colorExpense}">${fmt(total)}</b></div>` +
@@ -6590,8 +6747,8 @@ const INV_KIND_LABEL = { nisa:'NISAつみたて', growth:'NISA成長投資', old
 function renderInvestmentList() {
   const el = document.getElementById('investment-list');
   if (!el) return;
-  if (!state.investments.length) { el.innerHTML='<div class="empty"><div class="empty-icon">📈</div><div class="empty-text">「＋」からNISA・iDeCoなどの積立を登録できます</div></div>'; return; }
-  const list = sortByOrder(state.investments);
+  if (!state.investments.filter(iv=>inCurrentMember(iv)).length) { el.innerHTML='<div class="empty"><div class="empty-icon">📈</div><div class="empty-text">「＋」からNISA・iDeCoなどの積立を登録できます</div></div>'; return; }
+  const list = sortByOrder(state.investments.filter(iv=>inCurrentMember(iv)));
   el.innerHTML = list.map((iv,idx)=>{
     const w = iv.walletId?walletById(iv.walletId):null;
     const cfg = invSettingAt(iv, todayStr().slice(0,7));
@@ -7268,9 +7425,9 @@ function isGrpOpen(key) { return grpOpen[key] !== false; } // 既定は開
 function renderPoiWalletList() {
   const el = document.getElementById('poi-wallet-list');
   if (!el) return;
-  if (!state.wallets.length) { el.innerHTML = '<div class="empty"><div class="empty-text">設定 → 資金・決済から登録してください</div></div>'; return; }
+  if (!state.wallets.filter(w=>inCurrentMember(w)).length) { el.innerHTML = '<div class="empty"><div class="empty-text">設定 → 資金・決済から登録してください</div></div>'; return; }
   el.innerHTML = walletGroups().map(g=>{
-    const members = sortByOrder(state.wallets.filter(w=>g.types.includes(w.type)));
+    const members = sortByOrder(state.wallets.filter(w=>g.types.includes(w.type)&&inCurrentMember(w)));
     if (!members.length) return '';
     const open = isGrpOpen('poi-'+g.key);
     return `<div class="grp-header" onclick="toggleGroup('poi-${g.key}')">
@@ -7825,7 +7982,7 @@ function renderHomeCharges() {
   const el = document.getElementById('home-charge-list');
   if (!el) return;
   const y=calYear, m=calMonth;
-  const list = state.charges.filter(c=>+c.date.slice(0,4)===y && +c.date.slice(5,7)-1===m)
+  const list = state.charges.filter(c=>inCurrentMember(c)).filter(c=>+c.date.slice(0,4)===y && +c.date.slice(5,7)-1===m)
     .sort((a,b)=>b.date.localeCompare(a.date));
   if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-text">この月のチャージ記録はありません</div></div>'; return; }
   let totalPt = 0;
@@ -7947,6 +8104,9 @@ function openCheckModal(id) {
   document.getElementById('check-modal-title').textContent = checkEditing?'チェック項目を編集':'チェック項目を追加';
   document.getElementById('chk-text').value = checkEditing?checkEditing.text:'';
   document.getElementById('chk-short').value = checkEditing?(checkEditing.shortName||''):'';
+  checkShared = checkEditing ? (checkEditing.shared!==false) : true;
+  const cksb = document.querySelector(`#modal-check .seg-btn[data-cks="${checkShared?1:0}"]`);
+  if (cksb) setCheckShared(checkShared, cksb);
   document.getElementById('chk-date').value = checkEditing?(checkEditing.date||''):'';
   document.getElementById('chk-due').value = checkEditing?(checkEditing.dueDate||''):'';
   document.getElementById('chk-kind').value = checkEditing?checkEditing.kind:'month';
@@ -7971,7 +8131,9 @@ function saveCheck() {
   const monthDay = parseInt(document.getElementById('chk-monthday').value)||0;
   const wdVal = document.getElementById('chk-weekday').value;
   const data = { text, kind, date, dueDate, month, monthDay, weekday: wdVal===''?'':(+wdVal),
-    shortName: document.getElementById('chk-short').value.trim() };
+    shortName: document.getElementById('chk-short').value.trim(),
+    shared: checkShared,
+    memberId: checkShared ? '' : ((document.getElementById('chk-member')||{}).value||'') };
   if (checkEditing) {
     // くり返し型を編集する場合は適用範囲を尋ねる
     if (isRepeatingCheck(checkEditing)) {
