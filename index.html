@@ -121,7 +121,11 @@
   svg { max-width:100%; max-height:100%; }
   .job-sum-row > svg, .wal-row > svg, .job-item > svg { width:26px; height:26px; flex-shrink:0; }
   .chg-route-view svg, .limit-line svg { width:13px; height:13px; vertical-align:-2px; }
-  .badge-sm { display:inline-block; padding:1px 6px; border-radius:8px; font-size:9.5px; font-weight:700; line-height:1.5; white-space:nowrap; }
+  .badge-sm { display:inline-block; padding:2px 7px; border-radius:8px; font-size:9.5px; font-weight:700; line-height:1.4; white-space:nowrap; vertical-align:middle; }
+  /* select が枠からはみ出さないように */
+  select, .inp-s, .pat-row select, .chg-step select { max-width:100%; text-overflow:ellipsis; }
+  .pat-row select, .chg-grid select { width:100%; min-width:0; }
+  .pat-row-head .badge-sm { flex-shrink:0; }
   .bd-visa { background:#E8EEFB; color:#1A4FA0; }
   .bd-master { background:#FFEDE3; color:#B5501A; }
   .bd-jcb { background:#E6F4EA; color:#1E7A3C; }
@@ -291,7 +295,7 @@
   <header class="topbar">
     <div style="display:flex;align-items:center;">
       <span class="topbar-logo">Finance<span>Mgr</span></span>
-      <span class="version-badge" id="version-badge">v20</span>
+      <span class="version-badge" id="version-badge">v21</span>
     </div>
     <div class="topbar-total">
       <div class="topbar-total-label">今月合計</div>
@@ -331,7 +335,7 @@
         <div id="cal-check-view" style="display:none">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
             <span id="check-month-label" style="font-size:11.5px;color:var(--text-secondary)"></span>
-            <button class="btn btn-primary btn-sm" style="padding:5px 11px" onclick="openCheckModal(null)">＋</button>
+            <div style="display:flex;gap:5px" id="checks-head"></div>
           </div>
           <div id="check-month-list"></div>
           <div id="check-always-section" style="display:none"><div id="check-always-list"></div></div>
@@ -349,6 +353,7 @@
       <div class="card"><div class="card-title">仕事別の内訳</div><div id="home-jobs"></div></div>
       <div class="card"><div class="card-title">お金・ポイントの記録</div><div id="home-money-list"></div></div>
       <div class="card"><div class="card-title">税金・保険料</div><div id="home-tax-list"></div></div>
+      <div class="card"><div class="card-title">積立</div><div id="home-invest-list"></div></div>
       <div class="card"><div class="card-title">クレジットカード支払い</div><div id="home-card-list"></div></div>
       <div class="card"><div class="card-title">チャージ（ポイ活）</div><div id="home-charge-list"></div></div>
       <div class="card"><div class="card-title">月別収入推移（6ヶ月）</div>
@@ -612,7 +617,7 @@
           <div class="settings-row"><span>古いデータを書き出して削除</span><button class="btn btn-ghost btn-sm" onclick="openArchiveDialog()">アーカイブ</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v20</span> / schema <span id="schema-footer">19</span> / 祝日データ 2025–2027
+          FinanceManager <span id="ver-footer">v21</span> / schema <span id="schema-footer">20</span> / 祝日データ 2025–2027
         </div>
       </div>
     </div>
@@ -687,9 +692,9 @@
     <div id="job-fields-hourly">
       <div class="subsection-title">基本（パターン未選択時の初期値）</div>
       <div class="pat-grid">
-        <div><label class="lbl-s">時給（円）</label><input type="number" class="inp-s" id="job-wage" placeholder="1100"></div>
-        <div><label class="lbl-s">交通費/日</label><input type="number" class="inp-s" id="job-transport" placeholder="500"></div>
-        <div><label class="lbl-s">休憩（分）</label><input type="number" class="inp-s" id="job-break" placeholder="60"></div>
+        <div><label class="lbl-s">時給（円）</label><input type="number" inputmode="numeric" class="inp-s" id="job-wage" placeholder="1100"></div>
+        <div><label class="lbl-s">交通費/日</label><input type="number" inputmode="numeric" class="inp-s" id="job-transport" placeholder="500"></div>
+        <div><label class="lbl-s">休憩（分）</label><input type="number" inputmode="numeric" class="inp-s" id="job-break" placeholder="60"></div>
       </div>
       <div class="pat-grid-2">
         <div><label class="lbl-s">定時 開始</label><input type="time" class="inp-s" id="job-defstart" value="09:00"></div>
@@ -706,8 +711,8 @@
     </div>
     <div id="job-fields-monthly" style="display:none">
       <div class="form-row">
-        <div class="form-group"><label>月額（円）</label><input type="number" id="job-salary" placeholder="300000"></div>
-        <div class="form-group"><label>支払日（毎月）</label><input type="number" id="job-payday" min="1" max="31" placeholder="25"></div>
+        <div class="form-group"><label>月額（円）</label><input type="number" inputmode="numeric" id="job-salary" placeholder="300000"></div>
+        <div class="form-group"><label>支払日（毎月）</label><input type="number" inputmode="numeric" id="job-payday" min="1" max="31" placeholder="25"></div>
       </div>
       <div class="form-group"><label>支払日が土日祝のとき</label>
         <select id="job-holrule-m"><option value="none">そのまま</option><option value="before">前営業日払い</option><option value="after">翌営業日払い</option></select></div>
@@ -819,7 +824,7 @@
         <div class="seg-btn" data-mfix="0" onclick="setMoneyFixed(false,this)">未定</div>
       </div>
       <div class="field-note">「未定」にすると金額なしで予定だけ表示され、後から金額を入れて確定できます。</div></div>
-    <div class="form-group" id="mny-amount-row"><label id="mny-amount-label">金額（円）</label><input type="number" id="mny-amount" placeholder="15000"></div>
+    <div class="form-group" id="mny-amount-row"><label id="mny-amount-label">金額（円）</label><input type="number" inputmode="numeric" id="mny-amount" placeholder="15000"></div>
     <div class="form-group" id="mny-period-row"><label>日付の指定方法</label>
       <select id="mny-datemode" onchange="onMoneyDateModeChange()">
         <option value="exact">日付を指定</option>
@@ -827,8 +832,8 @@
         <option value="rough">ざっくり（上旬・中旬・下旬）</option>
       </select></div>
     <div class="form-row" id="mny-range-row" style="display:none">
-      <div class="form-group"><label>開始日（毎月）</label><input type="number" id="mny-rangefrom" min="1" max="31" placeholder="12"></div>
-      <div class="form-group"><label>終了日（毎月）</label><input type="number" id="mny-rangeto" min="1" max="31" placeholder="24"></div>
+      <div class="form-group"><label>開始日（毎月）</label><input type="number" inputmode="numeric" id="mny-rangefrom" min="1" max="31" placeholder="12"></div>
+      <div class="form-group"><label>終了日（毎月）</label><input type="number" inputmode="numeric" id="mny-rangeto" min="1" max="31" placeholder="24"></div>
     </div>
     <div class="form-group" id="mny-rough-row" style="display:none"><label>時期</label>
       <select id="mny-rough">
@@ -843,7 +848,7 @@
       </div></div>
     <div class="form-group" id="mny-date-row"><label>日付</label><input type="date" id="mny-date"></div>
     <div id="mny-monthly-rows" style="display:none">
-      <div class="form-group"><label>毎月の日にち</label><input type="number" id="mny-day" min="1" max="31" placeholder="27"></div>
+      <div class="form-group"><label>毎月の日にち</label><input type="number" inputmode="numeric" id="mny-day" min="1" max="31" placeholder="27"></div>
       <div class="form-row">
         <div class="form-group"><label>開始（任意）</label><input type="date" id="mny-start"></div>
         <div class="form-group"><label>終了（任意）</label><input type="date" id="mny-end"></div>
@@ -971,7 +976,7 @@
         <option value="period">締め期間ごと</option>
       </select></div>
     <div class="form-group" id="pr-num-row" style="display:none"><label id="pr-num-label">日数</label>
-      <input type="number" id="pr-num" placeholder="15"></div>
+      <input type="number" inputmode="numeric" id="pr-num" placeholder="15"></div>
     <div class="form-group" id="pr-weekday-row" style="display:none"><label>曜日</label>
       <select id="pr-weekday">
         <option value="0">日曜</option><option value="1">月曜</option><option value="2">火曜</option>
@@ -1025,8 +1030,8 @@
     <div class="form-group"><label>名称</label><input type="text" id="dep-name" placeholder="例：楽天銀行 1年定期"></div>
     <div class="form-group"><label>銀行</label><select id="dep-bank"></select></div>
     <div class="form-row">
-      <div class="form-group"><label>預入額（円）</label><input type="number" id="dep-amount" placeholder="1000000"></div>
-      <div class="form-group"><label>年利（%）</label><input type="number" step="0.001" id="dep-rate" placeholder="0.35"></div>
+      <div class="form-group"><label>預入額（円）</label><input type="number" inputmode="numeric" id="dep-amount" placeholder="1000000"></div>
+      <div class="form-group"><label>年利（%）</label><input type="number" inputmode="decimal" step="0.001" id="dep-rate" placeholder="0.35"></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label>預入日</label><input type="date" id="dep-start"></div>
@@ -1065,27 +1070,27 @@
         <option value="per">◯円ごとに◯P</option>
       </select></div>
     <div class="form-row" id="rt-pct-row">
-      <div class="form-group"><label>還元率（%）</label><input type="number" step="0.01" id="rt-rate" placeholder="1.0"></div>
+      <div class="form-group"><label>還元率（%）</label><input type="number" inputmode="decimal" step="0.01" id="rt-rate" placeholder="1.0"></div>
       <div class="form-group"><label>貯まるポイント</label><select id="rt-pointtype"></select></div>
     </div>
     <div id="rt-per-row" style="display:none">
       <div class="form-row-3">
-        <div><label class="lbl-s">いくらごと</label><input type="number" class="inp-s" id="rt-rateunit" placeholder="10000"></div>
-        <div><label class="lbl-s">付与ポイント</label><input type="number" class="inp-s" id="rt-ratepoints" placeholder="15"></div>
-        <div><label class="lbl-s">上限額</label><input type="number" class="inp-s" id="rt-ratecap" placeholder="100000"></div>
+        <div><label class="lbl-s">いくらごと</label><input type="number" inputmode="numeric" class="inp-s" id="rt-rateunit" placeholder="10000"></div>
+        <div><label class="lbl-s">付与ポイント</label><input type="number" inputmode="numeric" class="inp-s" id="rt-ratepoints" placeholder="15"></div>
+        <div><label class="lbl-s">上限額</label><input type="number" inputmode="numeric" class="inp-s" id="rt-ratecap" placeholder="100000"></div>
       </div>
       <div class="field-note">例：1万円ごとに15P（10万円まで）→ 10万円チャージで150P</div>
     </div>
     <div class="subsection">
       <div class="subsection-title">上限（任意）</div>
       <div class="form-row-3">
-        <div><label class="lbl-s">1回の上限</label><input type="number" class="inp-s" id="rt-limit-once" placeholder="25000"></div>
-        <div><label class="lbl-s">1日の上限</label><input type="number" class="inp-s" id="rt-limit-day" placeholder="50000"></div>
-        <div><label class="lbl-s">月の上限</label><input type="number" class="inp-s" id="rt-limit-month" placeholder="20000"></div>
-        <div><label class="lbl-s">残高上限</label><input type="number" class="inp-s" id="rt-limit-balance" placeholder="50000"></div>
+        <div><label class="lbl-s">1回の上限</label><input type="number" inputmode="numeric" class="inp-s" id="rt-limit-once" placeholder="25000"></div>
+        <div><label class="lbl-s">1日の上限</label><input type="number" inputmode="numeric" class="inp-s" id="rt-limit-day" placeholder="50000"></div>
+        <div><label class="lbl-s">月の上限</label><input type="number" inputmode="numeric" class="inp-s" id="rt-limit-month" placeholder="20000"></div>
+        <div><label class="lbl-s">残高上限</label><input type="number" inputmode="numeric" class="inp-s" id="rt-limit-balance" placeholder="50000"></div>
       </div>
       <div class="form-row" style="margin-top:6px">
-        <div><label class="lbl-s">チャージ下限</label><input type="number" class="inp-s" id="rt-limit-min" placeholder="1000"></div>
+        <div><label class="lbl-s">チャージ下限</label><input type="number" inputmode="numeric" class="inp-s" id="rt-limit-min" placeholder="1000"></div>
         <div style="display:flex;align-items:flex-end">
           <button class="btn btn-ghost btn-sm" style="width:100%" onclick="applyWalletLimitsToRoute(true)">移動先から反映</button>
         </div>
@@ -1144,7 +1149,7 @@
             <option value="AMEX">AMEX</option>
             <option value="Diners">Diners</option>
           </select></div>
-        <div class="form-group"><label>基本還元率（%）</label><input type="number" step="0.01" id="wal-rate" placeholder="1.0"></div>
+        <div class="form-group"><label>基本還元率（%）</label><input type="number" inputmode="decimal" step="0.01" id="wal-rate" placeholder="1.0"></div>
       </div>
       <div class="form-group"><label>還元率の方式</label>
         <div class="seg">
@@ -1152,12 +1157,16 @@
           <div class="seg-btn" data-wru="per" onclick="setWalRateUnit('per',this)">◯円ごと</div>
         </div></div>
       <div class="form-row" id="wal-per-row" style="display:none">
-        <div class="form-group"><label>いくらごと（円）</label><input type="number" id="wal-rateunit" placeholder="200"></div>
-        <div class="form-group"><label>付与ポイント</label><input type="number" id="wal-ratepoints" placeholder="1"></div>
+        <div class="form-group"><label>いくらごと（円）</label><input type="number" inputmode="numeric" id="wal-rateunit" placeholder="200"></div>
+        <div class="form-group"><label>付与ポイント</label><input type="number" inputmode="numeric" id="wal-ratepoints" placeholder="1"></div>
       </div>
       <div class="form-group"><label>貯まるポイント</label><select id="wal-pointtype"></select></div>
-      <div class="form-group"><label>付与ルール</label><select id="wal-pointrule"></select>
-        <div class="field-note">ポイ活タブで登録したルールから選べます。</div></div>
+      <div class="form-group"><label>付与ルール（複数可）</label>
+        <div id="wal-rules-area"></div>
+        <div class="field-note">利用シーンごとに複数のルールを持てます（記録時に選択）。</div></div>
+      <div class="form-group"><label>利用方法</label>
+        <div id="wal-methods-area"></div>
+        <div class="field-note">Apple Payやバーチャルカードでも使える場合に選びます。</div></div>
       <div class="form-group" id="wal-legacy-timing" style="display:none"><label>ポイント付与のタイミング</label>
         <select id="wal-pttiming" onchange="onPtTimingChange()">
           <option value="immediate">即時</option>
@@ -1167,7 +1176,7 @@
           <option value="month2">翌々月◯日</option>
         </select></div>
       <div class="form-row" id="wal-pttiming-detail" style="display:none">
-        <div class="form-group"><label id="wal-pttiming-label">日数</label><input type="number" id="wal-pttiming-num" placeholder="7"></div>
+        <div class="form-group"><label id="wal-pttiming-label">日数</label><input type="number" inputmode="numeric" id="wal-pttiming-num" placeholder="7"></div>
         <div class="form-group"><div class="field-note" style="margin-top:22px">支払い記録時に付与予定日が自動計算されます。</div></div>
       </div>
     </div>
@@ -1223,7 +1232,7 @@
     </div>
 
     <div id="wal-bank-fields" style="display:none">
-      <div class="form-group"><label>普通預金 年利（%）</label><input type="number" step="0.001" id="wal-interest" placeholder="0.2"></div>
+      <div class="form-group"><label>普通預金 年利（%）</label><input type="number" inputmode="decimal" step="0.001" id="wal-interest" placeholder="0.2"></div>
       <div class="field-note">定期預金は「ポイ活」タブの預金セクションから登録できます。</div>
     </div>
 
@@ -1237,13 +1246,13 @@
           </div>
           <div class="field-note">本人確認の有無で上限が変わる場合、実際に適用される値を入力してください。</div></div>
         <div class="form-row-3">
-          <div><label class="lbl-s">残高上限</label><input type="number" class="inp-s" id="wal-limit-balance" placeholder="50000"></div>
-          <div><label class="lbl-s">1回チャージ上限</label><input type="number" class="inp-s" id="wal-limit-once" placeholder="25000"></div>
-          <div><label class="lbl-s">1日チャージ上限</label><input type="number" class="inp-s" id="wal-limit-day" placeholder="50000"></div>
+          <div><label class="lbl-s">残高上限</label><input type="number" inputmode="numeric" class="inp-s" id="wal-limit-balance" placeholder="50000"></div>
+          <div><label class="lbl-s">1回チャージ上限</label><input type="number" inputmode="numeric" class="inp-s" id="wal-limit-once" placeholder="25000"></div>
+          <div><label class="lbl-s">1日チャージ上限</label><input type="number" inputmode="numeric" class="inp-s" id="wal-limit-day" placeholder="50000"></div>
         </div>
         <div class="form-row" style="margin-top:6px">
-          <div><label class="lbl-s">月チャージ上限</label><input type="number" class="inp-s" id="wal-limit-month" placeholder="100000"></div>
-          <div><label class="lbl-s">チャージ下限</label><input type="number" class="inp-s" id="wal-limit-min" placeholder="1000"></div>
+          <div><label class="lbl-s">月チャージ上限</label><input type="number" inputmode="numeric" class="inp-s" id="wal-limit-month" placeholder="100000"></div>
+          <div><label class="lbl-s">チャージ下限</label><input type="number" inputmode="numeric" class="inp-s" id="wal-limit-min" placeholder="1000"></div>
         </div>
       </div>
     </div>
@@ -1322,14 +1331,14 @@
     <div class="form-group"><label>名称</label><input type="text" id="tax-name" placeholder="例：固定資産税 令和8年度"></div>
     <div class="form-group"><label>月表示用の短縮名（任意）</label><input type="text" id="tax-short" placeholder="例：固定資産税"></div>
     <div class="form-row">
-      <div class="form-group"><label>年度（開始年）</label><input type="number" id="tax-year" placeholder="2026"></div>
+      <div class="form-group"><label>年度（開始年）</label><input type="number" inputmode="numeric" id="tax-year" placeholder="2026"></div>
       <div class="form-group"><label>納付方法</label>
         <select id="tax-mode" onchange="onTaxModeChange()">
           <option value="split">分割</option>
           <option value="lump">一括</option>
         </select></div>
     </div>
-    <div class="form-group"><label>年間の総額（円）</label><input type="number" id="tax-total" placeholder="120000" oninput="distributeTaxAmount()">
+    <div class="form-group"><label>年間の総額（円）</label><input type="number" inputmode="numeric" id="tax-total" placeholder="120000" oninput="distributeTaxAmount()">
       <div class="field-note">入力すると各期に均等割りされます（端数は初回に加算）。個別に直せます。</div></div>
     <div class="form-group"><label>引落先（口座振替の場合）</label><select id="tax-wallet"></select>
       <div class="field-note">設定すると口座振替として扱われ、引落日に自動表示されます。</div></div>
@@ -1356,7 +1365,7 @@
     <div class="form-group"><label>サービス名</label><input type="text" id="sb-name" placeholder="例：Netflix"></div>
     <div class="form-group"><label>月表示用の短縮名（任意）</label><input type="text" id="sb-short" placeholder="例：NF"></div>
     <div class="form-row">
-      <div class="form-group"><label>月額（円）</label><input type="number" id="sb-amount" placeholder="1490"></div>
+      <div class="form-group"><label>月額（円）</label><input type="number" inputmode="numeric" id="sb-amount" placeholder="1490"></div>
       <div class="form-group"><label>請求日</label><select id="sb-day"></select></div>
     </div>
     <div class="form-row">
@@ -1377,7 +1386,7 @@
     <div class="form-group"><label>支払方法</label><select id="sb-wallet"></select></div>
     <div class="form-group"><label>還元ポイント（任意）</label>
       <div class="form-row">
-        <input type="number" id="sb-point" placeholder="150">
+        <input type="number" inputmode="numeric" id="sb-point" placeholder="150">
         <select id="sb-pointtype"></select>
       </div>
       <div class="field-note">例：UQ mobile経由のNetflixでPontaポイント還元</div></div>
@@ -1422,7 +1431,7 @@
     <div class="form-group"><label>相手</label><input type="text" id="ld-who" placeholder="例：母 / 田中さん"></div>
     <div class="form-group"><label>内容</label><input type="text" id="ld-name" placeholder="例：食事代"></div>
     <div class="form-row">
-      <div class="form-group"><label>金額（円）</label><input type="number" id="ld-amount" placeholder="3000"></div>
+      <div class="form-group"><label>金額（円）</label><input type="number" inputmode="numeric" id="ld-amount" placeholder="3000"></div>
       <div class="form-group"><label>日付</label><input type="date" id="ld-date"></div>
     </div>
     <div class="form-group"><label>精算状況</label>
@@ -1452,7 +1461,7 @@
         <option value="other">その他の積立</option>
       </select></div>
     <div class="form-row">
-      <div class="form-group"><label>毎月の積立額（円）</label><input type="number" id="inv-amount" placeholder="50000"></div>
+      <div class="form-group"><label>毎月の積立額（円）</label><input type="number" inputmode="numeric" id="inv-amount" placeholder="50000"></div>
       <div class="form-group"><label>積立日（毎月）</label><select id="inv-day"></select></div>
     </div>
     <div class="form-row">
@@ -1501,8 +1510,12 @@
   <div class="modal-title" id="cp-title">クレジットカード支払い</div>
   <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px" id="cp-sub"></div>
   <div class="form-grid">
-    <div class="form-group"><label>請求金額（円）</label><input type="number" id="cp-amount" oninput="updateCpPreview()"></div>
-    <div class="form-group"><label>ポイント充当（円）</label><input type="number" id="cp-redeem" placeholder="0" oninput="updateCpPreview()">
+    <div class="form-group"><label>請求金額（円）</label><input type="number" inputmode="numeric" id="cp-amount" oninput="updateCpPreview()"></div>
+    <div class="form-group"><label>ポイント充当（円）</label>
+      <div style="display:flex;gap:6px">
+        <input type="number" inputmode="numeric" id="cp-redeem" placeholder="0" oninput="updateCpPreview()" style="flex:1">
+        <button class="btn btn-ghost btn-sm" style="flex-shrink:0" onclick="subtractRedeem()">請求額から引く</button>
+      </div>
       <div class="field-note" id="cp-redeem-note"></div></div>
     <div class="form-group"><label>引落口座</label><select id="cp-wallet"></select></div>
     <div class="form-group"><label>引落日</label><input type="date" id="cp-date"></div>
@@ -1527,13 +1540,16 @@
   <div class="modal-title" id="fix-title">金額を入力</div>
   <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px" id="fix-sub"></div>
   <div class="form-grid">
-    <div class="form-group"><label id="fix-amount-label">金額（円）</label><input type="number" id="fix-amount" placeholder="15000" oninput="autoCalcFixPoint()"></div>
+    <div class="form-group"><label id="fix-amount-label">金額（円）</label><input type="number" inputmode="numeric" id="fix-amount" placeholder="15000" oninput="autoCalcFixPoint()"></div>
     <div class="form-group"><label>支払方法・引落先</label><select id="fix-wallet" onchange="autoCalcFixPoint()"></select></div>
     <div class="form-group" id="fix-point-row"><label>獲得ポイント（任意）</label>
       <div class="form-row">
-        <input type="number" id="fix-point" placeholder="150">
+        <input type="number" inputmode="numeric" id="fix-point" placeholder="150">
         <select id="fix-pointtype"></select>
       </div></div>
+    <div class="form-group" id="fix-rule-row" style="display:none"><label>付与ルール</label>
+      <select id="fix-rule"></select>
+      <div class="field-note">この支払いに適用するルールを選ぶと、付与予定日が決まります。</div></div>
     <div class="form-group" id="fix-date-row"><label>支払った日</label><input type="date" id="fix-date"></div>
     <div class="form-group"><label>メモ（任意）</label><input type="text" id="fix-memo"></div>
     <div class="field-note" id="fix-card-note" style="display:none">確定した金額は引落日に自動で支払済になります。</div>
@@ -1560,8 +1576,8 @@
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '20';
-const SCHEMA_VERSION = 19;
+const APP_VERSION = '21';
+const SCHEMA_VERSION = 20;
 const STORAGE_KEY = 'financeManager';
 
 const C = { blue:['#5B8DEF','#3D6BD1','#EAF1FF'], teal:['#2DC5A4','#189A7E','#E4FAF4'], amber:['#F7B32B','#D3921A','#FFF6E0'], pink:['#F76D8E','#D94A6E','#FFEBF0'], violet:['#9B7EDE','#7A5CC4','#F1EBFF'], slate:['#6B7A99','#4D5B78','#EEF1F6'] };
@@ -1638,14 +1654,14 @@ function defaultState() {
       colorIncomeEtc:'#2DC5A4', colorPointUse:'#7A5CC4', calTextLen:6,
       typeStamps: defaultTypeStamps(), unfixedOpacity:55, sortMethod:'button',
       limitLabelStyle:'slash', amountUnitStyle:'man', calSubTab:'month',
-      filterPresets:[], walletGroupOrder:['card','emoney','store','bank','other'],
+      filterPresets:[], walletGroupOrder:['card','emoney','store','bank','securities','other'],
     itemOrder:['work','tax','card','money','subsc','invest','charge','point','event'],
     badgeColors:{type:'#EEF1F6',rate:'#E9FBF4',limit:'#FFF6E0',pt:'#F1EBFF',link:'#E4F6F1'},
-    filterPresets:[], walletGroupOrder:['card','emoney','store','bank','other'],
+    filterPresets:[], walletGroupOrder:['card','emoney','store','bank','securities','other'],
     itemOrder:['work','tax','card','money','subsc','invest','charge','point','event'],
     badgeColors:{type:'#EEF1F6',rate:'#E9FBF4',limit:'#FFF6E0',pt:'#F1EBFF',link:'#E4F6F1'},
     limitLabelStyle:'slash', amountUnitStyle:'man', calSubTab:'month',
-    filterPresets:[], walletGroupOrder:['card','emoney','store','bank','other'],
+    filterPresets:[], walletGroupOrder:['card','emoney','store','bank','securities','other'],
     itemOrder:['work','tax','card','money','subsc','invest','charge','point','event'],
     badgeColors:{type:'#EEF1F6',rate:'#E9FBF4',limit:'#FFF6E0',pt:'#F1EBFF',link:'#E4F6F1'}, sortMethod:'button',
       calFilter:{work:true,money:true,charge:true,event:true,check:true,tax:true,card:true} },
@@ -2007,7 +2023,7 @@ function migrate(data) {
     data.subscriptions = data.subscriptions || [];
     data.settings = data.settings || {};
     if (!data.settings.filterPresets) data.settings.filterPresets = [];
-    if (!data.settings.walletGroupOrder) data.settings.walletGroupOrder = ['card','emoney','store','bank','other'];
+    if (!data.settings.walletGroupOrder) data.settings.walletGroupOrder = ['card','emoney','store','bank','securities','other'];
     v = 18;
   }
   if (v < 19) {
@@ -2032,6 +2048,14 @@ function migrate(data) {
     });
     v = 19;
   }
+  if (v < 20) {
+    // v19 → v20 : 付与ルール複数・利用方法の属性化
+    (data.wallets||[]).forEach(w=>{
+      if (!w.pointRuleIds) w.pointRuleIds = w.pointRuleId ? [w.pointRuleId] : [];
+      if (!w.methods) w.methods = [];  // ['card','applepay','virtual'] など利用方法
+    });
+    v = 20;
+  }
   data.schemaVersion = SCHEMA_VERSION;
   data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[]; data.checks=data.checks||[];
   data.moneyCats = (data.moneyCats&&data.moneyCats.length)?data.moneyCats:defaultMoneyCats();
@@ -2052,7 +2076,7 @@ function migrate(data) {
     colorIncomeEtc:'#2DC5A4', colorPointUse:'#7A5CC4', calTextLen:6,
     typeStamps: defaultTypeStamps(), unfixedOpacity:55, sortMethod:'button',
     limitLabelStyle:'slash', amountUnitStyle:'man', calSubTab:'month',
-    filterPresets:[], walletGroupOrder:['card','emoney','store','bank','other'],
+    filterPresets:[], walletGroupOrder:['card','emoney','store','bank','securities','other'],
     itemOrder:['work','tax','card','money','subsc','invest','charge','point','event'],
     badgeColors:{type:'#EEF1F6',rate:'#E9FBF4',limit:'#FFF6E0',pt:'#F1EBFF',link:'#E4F6F1'},
     calFilter:{work:true,money:true,charge:true,event:true,check:true,tax:true,card:true} }, data.settings||{});
@@ -3115,11 +3139,11 @@ function openRecordModal(jobId, ds, recId) {
       <div class="form-row-3">
         <div class="form-group"><label>開始</label><input type="time" id="rec-start" value="${recEditing?recEditing.start:(j.defStart||'09:00')}" oninput="updateRecPreview()"></div>
         <div class="form-group"><label>終了</label><input type="time" id="rec-end" value="${recEditing?recEditing.end:(j.defEnd||'17:00')}" oninput="updateRecPreview()"></div>
-        <div class="form-group"><label>休憩(分)</label><input type="number" id="rec-break" value="${recEditing?(recEditing.breakMin||0):(j.breakMin||0)}" oninput="updateRecPreview()"></div>
+        <div class="form-group"><label>休憩(分)</label><input type="number" inputmode="numeric" id="rec-break" value="${recEditing?(recEditing.breakMin||0):(j.breakMin||0)}" oninput="updateRecPreview()"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>時給（円）</label><input type="number" id="rec-wage" value="${recEditing?recEditing.wageUsed||j.wage:j.wage}" oninput="updateRecPreview()"></div>
-        <div class="form-group"><label>交通費（円）</label><input type="number" id="rec-transport" value="${recEditing?(recEditing.transport||0):(j.transport||0)}" oninput="updateRecPreview()"></div>
+        <div class="form-group"><label>時給（円）</label><input type="number" inputmode="numeric" id="rec-wage" value="${recEditing?recEditing.wageUsed||j.wage:j.wage}" oninput="updateRecPreview()"></div>
+        <div class="form-group"><label>交通費（円）</label><input type="number" inputmode="numeric" id="rec-transport" value="${recEditing?(recEditing.transport||0):(j.transport||0)}" oninput="updateRecPreview()"></div>
       </div>
       <div class="form-group"><label>メモ</label><input type="text" id="rec-memo" value="${recEditing?(recEditing.memo||''):''}"></div>
       <div class="calc-preview" id="rec-preview"></div>`;
@@ -3148,7 +3172,7 @@ function openRecordModal(jobId, ds, recId) {
         <div class="form-group"><label>開始日</label><input type="date" id="rec-date" value="${ds}"></div>
         <div class="form-group"><label>終了日（単日なら空欄）</label><input type="date" id="rec-enddate" value="${recEditing?(recEditing.endDate||''):''}"></div>
       </div>
-      <div class="form-group"><label>金額（円）</label><input type="number" id="rec-amount" value="${recEditing?recEditing.amount:''}" placeholder="50000"></div>
+      <div class="form-group"><label>金額（円）</label><input type="number" inputmode="numeric" id="rec-amount" value="${recEditing?recEditing.amount:''}" placeholder="50000"></div>
       <div class="form-group"><label>メモ</label><input type="text" id="rec-memo" value="${recEditing?(recEditing.memo||''):''}"></div>
       <div class="field-note">期間を設定するとカレンダーに帯で表示されます。収入は終了日（納品日）基準で計上します。</div>`;
   }
@@ -3370,9 +3394,9 @@ function renderPatternEditor() {
         <button class="pat-del" onclick="removePattern('${p.id}')">✕</button>
       </div>
       <div class="pat-grid">
-        <div><label>時給（円）</label><input type="number" class="p-wage" value="${p.wage||''}" placeholder="1100"></div>
-        <div><label>交通費/日</label><input type="number" class="p-transport" value="${p.transport||''}" placeholder="500"></div>
-        <div><label>休憩（分）</label><input type="number" class="p-break" value="${p.breakMin||''}" placeholder="60"></div>
+        <div><label>時給（円）</label><input type="number" inputmode="numeric" class="p-wage" value="${p.wage||''}" placeholder="1100"></div>
+        <div><label>交通費/日</label><input type="number" inputmode="numeric" class="p-transport" value="${p.transport||''}" placeholder="500"></div>
+        <div><label>休憩（分）</label><input type="number" inputmode="numeric" class="p-break" value="${p.breakMin||''}" placeholder="60"></div>
       </div>
       <div class="pat-grid-2">
         <div><label>定時 開始</label><input type="time" class="p-start" value="${p.start||'09:00'}"></div>
@@ -3957,15 +3981,60 @@ function renderItemOrderList() {
   const el = document.getElementById('itemorder-list');
   if (!el) return;
   const order = state.settings.itemOrder || ITEM_ORDER_DEFS.map(d=>d.key);
+  const drag = (state.settings.sortMethod||'button')==='drag';
   el.innerHTML = order.map((k,idx)=>{
     const d = ITEM_ORDER_DEFS.find(x=>x.key===k); if(!d) return '';
-    return `<div class="settings-row">
-      <span>${d.label}</span>
-      <div style="display:flex;flex-direction:column;gap:2px">
+    const handle = drag
+      ? `<span class="drag-handle" data-drag-id="${k}">≡</span>`
+      : `<div style="display:flex;flex-direction:column;gap:2px">
         <button onclick="moveItemOrder(${idx},-1)" ${idx===0?'disabled':''} style="border:1px solid var(--border);background:#fff;border-radius:5px;width:26px;height:20px;font-size:10px;cursor:pointer;opacity:${idx===0?0.3:1}">▲</button>
         <button onclick="moveItemOrder(${idx},1)" ${idx===order.length-1?'disabled':''} style="border:1px solid var(--border);background:#fff;border-radius:5px;width:26px;height:20px;font-size:10px;cursor:pointer;opacity:${idx===order.length-1?0.3:1}">▼</button>
-      </div></div>`;
+      </div>`;
+    return `<div class="settings-row drag-item" data-item-id="${k}">
+      <span>${d.label}</span>${handle}</div>`;
   }).join('');
+  enableDragOrder('itemorder-list', order, ()=>{ save(); renderAll(); });
+}
+// 配列そのものを並べ替えるドラッグ（キー配列用）
+function enableDragOrder(containerId, arr, afterFn) {
+  if ((state.settings.sortMethod||'button')!=='drag') return;
+  const box = document.getElementById(containerId);
+  if (!box) return;
+  let dragId=null, dragEl=null;
+  box.querySelectorAll('.drag-handle').forEach(h=>{
+    const start = e=>{ dragId=h.dataset.dragId; dragEl=h.closest('.drag-item');
+      if(dragEl) dragEl.classList.add('dragging'); e.preventDefault(); };
+    h.addEventListener('touchstart', start, {passive:false});
+    h.addEventListener('mousedown', start);
+  });
+  const move = e=>{
+    if(!dragId) return;
+    const pt = e.touches?e.touches[0]:e;
+    const el = document.elementFromPoint(pt.clientX, pt.clientY);
+    const row = el && el.closest ? el.closest('.drag-item') : null;
+    box.querySelectorAll('.drag-item').forEach(r=>r.classList.remove('drop-target'));
+    if (row && row!==dragEl) row.classList.add('drop-target');
+    if (e.cancelable) e.preventDefault();
+  };
+  const end = ()=>{
+    if(!dragId) return;
+    const target = box.querySelector('.drag-item.drop-target');
+    box.querySelectorAll('.drag-item').forEach(r=>r.classList.remove('drop-target','dragging'));
+    if (target) {
+      const from = arr.indexOf(dragId);
+      const to = arr.indexOf(target.dataset.itemId);
+      if (from>=0 && to>=0 && from!==to) {
+        const [mv] = arr.splice(from,1);
+        arr.splice(to,0,mv);
+        if (afterFn) afterFn();
+      }
+    }
+    dragId=null; dragEl=null;
+  };
+  document.addEventListener('touchmove', move, {passive:false});
+  document.addEventListener('touchend', end);
+  document.addEventListener('mousemove', move);
+  document.addEventListener('mouseup', end);
 }
 function moveItemOrder(idx, dir) {
   const order = state.settings.itemOrder;
@@ -4082,7 +4151,8 @@ const WALLET_GROUPS_DEF = {
   emoney: { key:'emoney', label:'📱 電子マネー・コード決済', types:['emoney','codepay','applepay'] },
   store:  { key:'store',  label:'🎁 ストア残高',        types:['store'] },
   bank:   { key:'bank',   label:'🏦 銀行',              types:['bank'] },
-  other:  { key:'other',  label:'📦 その他',            types:['securities','other','point'] },
+  securities: { key:'securities', label:'📈 証券・投資',  types:['securities'] },
+  other:  { key:'other',  label:'📦 その他',            types:['other','point'] },
 };
 // 表示順は設定で変更可能
 function walletGroups() {
@@ -4102,6 +4172,39 @@ function setWalRedeemEarns(v, el) {
   walRedeemEarns = v;
   document.querySelectorAll('#modal-wallet .seg-btn[data-wrp]').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
+}
+// 付与ルールの複数選択
+let walRules = [], walMethods = [];
+function renderWalRules() {
+  const el = document.getElementById('wal-rules-area');
+  if (!el) return;
+  const rules = sortByOrder(state.pointRules);
+  if (!rules.length) { el.innerHTML='<div class="field-note">ポイ活タブで付与ルールを登録してください</div>'; return; }
+  el.innerHTML = '<div style="display:flex;gap:5px;flex-wrap:wrap">' + rules.map(r=>`
+    <div class="pat-chip ${walRules.includes(r.id)?'sel':''}" onclick="toggleWalRule('${r.id}')">${escapeHTML(r.name)}</div>`).join('') + '</div>';
+}
+function toggleWalRule(id) {
+  const i = walRules.indexOf(id);
+  if (i>=0) walRules.splice(i,1); else walRules.push(id);
+  renderWalRules();
+}
+const WALLET_METHODS = [
+  { key:'real',     label:'実カード' },
+  { key:'applepay', label:'Apple Pay' },
+  { key:'googlepay',label:'Google Pay' },
+  { key:'virtual',  label:'バーチャル' },
+  { key:'qr',       label:'QR・コード' },
+];
+function renderWalMethods() {
+  const el = document.getElementById('wal-methods-area');
+  if (!el) return;
+  el.innerHTML = '<div style="display:flex;gap:5px;flex-wrap:wrap">' + WALLET_METHODS.map(mth=>`
+    <div class="pat-chip ${walMethods.includes(mth.key)?'sel':''}" onclick="toggleWalMethod('${mth.key}')">${mth.label}</div>`).join('') + '</div>';
+}
+function toggleWalMethod(key) {
+  const i = walMethods.indexOf(key);
+  if (i>=0) walMethods.splice(i,1); else walMethods.push(key);
+  renderWalMethods();
 }
 function renderWalLinked() {
   const el = document.getElementById('wal-linked-area');
@@ -4185,7 +4288,14 @@ function limitBadge(kind, n) {
 function setLimitLabel(v, el){ state.settings.limitLabelStyle=v; save(); syncSettingsUI(); renderAll(); }
 function setAmountUnit(v, el){ state.settings.amountUnitStyle=v; save(); syncSettingsUI(); renderAll(); }
 function rateText(obj) {
-  if (obj.rateUnit && obj.ratePoints) return `${Math.round(obj.rateUnit).toLocaleString()}円で${obj.ratePoints}P`;
+  if (obj.rateUnit && obj.ratePoints) {
+    if (obj.rateCap) {
+      const maxP = Math.floor(obj.rateCap / obj.rateUnit) * obj.ratePoints;
+      const pct = Math.round(maxP / obj.rateCap * 1000) / 10;
+      return `最大${maxP.toLocaleString()}P（${limitAmountText(obj.rateCap)}まで・実質${pct}%）`;
+    }
+    return `${limitAmountText(obj.rateUnit)}円で${obj.ratePoints}P`;
+  }
   const rate = parseFloat(obj.baseRate ?? obj.rate) || 0;
   return rate ? rate+'%' : '';
 }
@@ -4291,7 +4401,7 @@ function renderWalletBonuses() {
         <input type="text" class="b-cond" placeholder="例：毎月10日 / 20,001円以上" value="${escapeHTML(b.cond||'')}">
         <button class="pat-del" onclick="removeWalletBonus(${i})">✕</button>
       </div>
-      <div><label>還元率（%）</label><input type="number" step="0.01" class="b-rate" value="${b.rate||''}" placeholder="2.0"></div>
+      <div><label>還元率（%）</label><input type="number" inputmode="decimal" step="0.01" class="b-rate" value="${b.rate||''}" placeholder="2.0"></div>
     </div>`).join('');
   el.querySelectorAll('.pat-row').forEach(row=>{
     const i = +row.dataset.i;
@@ -4319,8 +4429,6 @@ function openWalletModal(id, presetType) {
   walRateUnitMode = (w && w.rateUnit) ? 'per' : 'pct';
   const ruBtn = document.querySelector(`#modal-wallet .seg-btn[data-wru="${walRateUnitMode}"]`);
   if (ruBtn) setWalRateUnit(walRateUnitMode, ruBtn);
-  document.getElementById('wal-pointrule').innerHTML = '<option value="">指定なし</option>' +
-    sortByOrder(state.pointRules).map(r=>`<option value="${r.id}" ${w&&r.id===w.pointRuleId?'selected':''}>${escapeHTML(r.name)}</option>`).join('');
   document.getElementById('wal-pttiming').value = w?(w.ptTiming||'immediate'):'immediate';
   document.getElementById('wal-pttiming-num').value = w?((w.ptTiming==='days')?(w.ptTimingDays||''):(w.ptTimingDay||'')):'';
   onPtTimingChange();
@@ -4344,7 +4452,9 @@ function openWalletModal(id, presetType) {
   const rpb=document.querySelector(`#modal-wallet .seg-btn[data-wrp="${walRedeemEarns?1:0}"]`);
   if(rpb) setWalRedeemEarns(walRedeemEarns,rpb);
   walLinked = w?JSON.parse(JSON.stringify(w.linkedIds||[])):[];
-  renderWalLinked();
+  walRules = w?JSON.parse(JSON.stringify(w.pointRuleIds||(w.pointRuleId?[w.pointRuleId]:[]))):[];
+  walMethods = w?JSON.parse(JSON.stringify(w.methods||[])):[];
+  renderWalLinked(); renderWalRules(); renderWalMethods();
   const vb = document.querySelector(`#modal-wallet .seg-btn[data-wv="${walVerified?1:0}"]`);
   if (vb) setWalVerified(walVerified, vb);
   document.getElementById('wal-limit-month').value = w?(w.limitChargeMonth||''):'';
@@ -4383,7 +4493,6 @@ function saveWallet() {
     interestRate: parseFloat(document.getElementById('wal-interest').value)||'',
     rateUnit: (walRateUnitMode==='per') ? (parseFloat(document.getElementById('wal-rateunit').value)||0) : 0,
     ratePoints: (walRateUnitMode==='per') ? (parseFloat(document.getElementById('wal-ratepoints').value)||0) : 0,
-    pointRuleId: document.getElementById('wal-pointrule').value||'',
     ptTiming: document.getElementById('wal-pttiming').value,
     ptTimingDays: (document.getElementById('wal-pttiming').value==='days') ? (parseInt(document.getElementById('wal-pttiming-num').value)||0) : 0,
     ptTimingDay: (['nextmonth','month2'].includes(document.getElementById('wal-pttiming').value)) ? (parseInt(document.getElementById('wal-pttiming-num').value)||0) : 0,
@@ -4399,6 +4508,9 @@ function saveWallet() {
     redeemOffset: parseInt(document.getElementById('wal-redeem-offset').value)||0,
     redeemEarnsPoint: walRedeemEarns,
     linkedIds: walLinked.slice(),
+    pointRuleIds: walRules.slice(),
+    pointRuleId: walRules[0]||'',
+    methods: walMethods.slice(),
     limitChargeMonth: parseFloat(document.getElementById('wal-limit-month').value)||'',
     closingDay: document.getElementById('wal-closing').value||'',
     payDay: document.getElementById('wal-payday').value||'',
@@ -4590,6 +4702,38 @@ function cardPointEstimate(p) {
   const ptType = p.wallet.pointTypeId ? pointTypeById(p.wallet.pointTypeId) : null;
   return `+${pt.toLocaleString()}${ptType?ptType.unit:'pt'}（見込）`;
 }
+// ホームの積立一覧
+function renderHomeInvestments() {
+  const el = document.getElementById('home-invest-list');
+  if (!el) return;
+  const y=calYear, m=calMonth, ym=y+'-'+pad(m+1), dim=daysIn(y,m);
+  const rows = state.investments.filter(iv=>{
+    if (iv.activeFrom && ym < iv.activeFrom) return false;
+    if (iv.activeTo && ym > iv.activeTo) return false;
+    return true;
+  });
+  if (!rows.length) { el.innerHTML='<div class="empty"><div class="empty-text">この月の積立はありません</div></div>'; return; }
+  let total = 0;
+  const html = rows.map(iv=>{
+    const cfg = invSettingAt(iv, ym);
+    total += cfg.amount;
+    const br = cfg.brokerId?walletById(cfg.brokerId):null;
+    const w = iv.walletId?walletById(iv.walletId):null;
+    const card = iv.cardId?walletById(iv.cardId):null;
+    const day = iv.day>=99?dim:Math.min(iv.day,dim);
+    const payTxt = iv.payMode==='before' ? `前月${iv.beforeDay}日引落`
+      : (iv.payMode==='card' ? `${card?card.name:'カード'}引落` : '積立日に引落');
+    return `<div class="job-sum-row">
+      <span style="width:26px;text-align:center;font-size:20px;flex-shrink:0">📈</span>
+      <div class="job-sum-name">${escapeHTML(iv.name)}
+        <div class="job-sum-sub">${day}日 / ${INV_KIND_LABEL[iv.kind]}${br?' / '+escapeHTML(br.name):''}<br>${payTxt}${w?' / '+escapeHTML(w.name):''}</div></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="mono" style="font-size:13px;color:${state.settings.colorExpense};font-weight:600">-${fmt(cfg.amount).slice(1)}</span>
+        <button class="btn btn-ghost btn-sm" onclick="openInvestmentModal('${iv.id}')">編集</button>
+      </div></div>`;
+  }).join('');
+  el.innerHTML = `<div style="text-align:right;font-size:12px;color:var(--text-secondary);margin-bottom:8px">合計 <b class="mono" style="font-size:14px;color:${state.settings.colorExpense}">${fmt(total)}</b></div>` + html;
+}
 function renderCardPayments() {
   const el = document.getElementById('home-card-list');
   if (!el) return;
@@ -4714,7 +4858,7 @@ function renderTaxInstallments() {
       </div>
       <div class="chg-grid">
         <div><label>納期限</label><input type="date" class="ti-due" value="${ins.dueDate||''}"></div>
-        <div><label>金額（円）</label><input type="number" class="ti-amt" value="${ins.amount||''}" placeholder="30000"></div>
+        <div><label>金額（円）</label><input type="number" inputmode="numeric" class="ti-amt" value="${ins.amount||''}" placeholder="30000"></div>
       </div>
       ${ins.paid?`
       <div class="chg-grid" style="margin-top:6px">
@@ -4722,7 +4866,7 @@ function renderTaxInstallments() {
         <div><label>決済方法</label><select class="ti-wallet">${walOpts(ins.walletId)}</select></div>
       </div>
       <div class="chg-grid" style="margin-top:6px">
-        <div><label>獲得ポイント</label><input type="number" class="ti-point" value="${ins.point||''}" placeholder="150"></div>
+        <div><label>獲得ポイント</label><input type="number" inputmode="numeric" class="ti-point" value="${ins.point||''}" placeholder="150"></div>
         <div><label>種類</label><select class="ti-pt">${ptOpts(ins.pointTypeId)}</select></div>
       </div>`:''}
     </div>`).join('');
@@ -4816,6 +4960,7 @@ function renderListHeaders() {
     ['prules-head','prules','openPointRuleModal()'],
     ['inv-head','invs','openInvestmentModal()'],
     ['subs-head','subs','openSubscriptionModal()'],
+    ['checks-head','checks','openCheckModal(null)'],
     ['routes-head','routes','openRouteModal()'],
   ];
   defs.forEach(([elId,key,addFn])=>{
@@ -4899,6 +5044,20 @@ function openFixAmount(kind, id, ds, label) {
 function autoCalcFixPoint() {
   const wId = document.getElementById('fix-wallet').value;
   const amt = parseFloat(document.getElementById('fix-amount').value)||0;
+  // 付与ルールの選択肢を更新
+  const w0 = wId ? walletById(wId) : null;
+  const ruleRow = document.getElementById('fix-rule-row');
+  const ruleIds = w0 ? ((w0.pointRuleIds&&w0.pointRuleIds.length)?w0.pointRuleIds:(w0.pointRuleId?[w0.pointRuleId]:[])) : [];
+  if (ruleIds.length) {
+    ruleRow.style.display = '';
+    const sel = document.getElementById('fix-rule');
+    const cur = sel.value;
+    sel.innerHTML = ruleIds.map(rid=>{
+      const r = pointRuleById(rid); if(!r) return '';
+      return `<option value="${rid}">${escapeHTML(r.name)}（${escapeHTML(ruleSummary(r))}）</option>`;
+    }).join('');
+    if (cur && ruleIds.includes(cur)) sel.value = cur;
+  } else ruleRow.style.display = 'none';
   if (!wId || !amt) return;
   const w = walletById(wId);
   const pt = calcPointsFor(w, amt);
@@ -4953,7 +5112,10 @@ function saveFixAmount() {
   if (point>0 && kind!=='tax' && kind!=='card') {
     const ptCat = state.moneyCats.find(c=>c.type==='point');
     const wal = walletId ? walletById(walletId) : null;
-    const grantDate = calcGrantDate(wal, paidDate || todayStr());
+    const chosenRuleId = document.getElementById('fix-rule').value || '';
+    const chosenRule = chosenRuleId ? pointRuleById(chosenRuleId) : null;
+    const grantDate = chosenRule ? grantDateByRule(chosenRule, paidDate || todayStr())
+      : calcGrantDate(wal, paidDate || todayStr());
     const ptType = pointTypeId || (wal ? (wal.pointTypeId||'') : '');
     if (ptCat) {
       const srcName = (kind==='card' && walletById(id)) ? walletById(id).name
@@ -5167,7 +5329,7 @@ function renderSbHistory() {
       </div>
       <div class="chg-grid">
         <div><label>この月から</label><input type="month" class="sh-from" value="${h.from||''}"></div>
-        <div><label>金額</label><input type="number" class="sh-amount" value="${h.amount||''}" placeholder="1490"></div>
+        <div><label>金額</label><input type="number" inputmode="numeric" class="sh-amount" value="${h.amount||''}" placeholder="1490"></div>
       </div>
       <div style="margin-top:6px"><label>メモ</label><input type="text" class="sh-note" value="${escapeHTML(h.note||'')}" placeholder="値上げ / プラン変更など"></div>
     </div>`).join('');
@@ -5404,7 +5566,7 @@ function removeInvHistory(i){ invHistory.splice(i,1); renderInvHistory(); }
 function renderInvHistory() {
   const el = document.getElementById('inv-history');
   if (!el) return;
-  const brokerOpts = sel => '<option value="">変更なし</option>' + sortByOrder(state.wallets)
+  const brokerOpts = sel => '<option value="">変更なし</option>' + sortByOrder(state.wallets.filter(w=>w.type==='securities'))
     .map(w=>`<option value="${w.id}" ${w.id===sel?'selected':''}>${escapeHTML(w.name)}</option>`).join('');
   if (!invHistory.length) { el.innerHTML='<div class="field-note" style="margin:0 0 6px">変更履歴なし</div>'; return; }
   el.innerHTML = invHistory.map((h,i)=>`
@@ -5416,7 +5578,7 @@ function renderInvHistory() {
       </div>
       <div class="chg-grid">
         <div><label>この月から</label><input type="month" class="ih-from" value="${h.from||''}"></div>
-        <div><label>積立額</label><input type="number" class="ih-amount" value="${h.amount||''}" placeholder="50000"></div>
+        <div><label>積立額</label><input type="number" inputmode="numeric" class="ih-amount" value="${h.amount||''}" placeholder="50000"></div>
       </div>
       <div style="margin-top:6px"><label>証券口座（移管時）</label><select class="ih-broker">${brokerOpts(h.brokerId)}</select></div>
       <div style="margin-top:6px"><label>メモ</label><input type="text" class="ih-note" value="${escapeHTML(h.note||'')}" placeholder="楽天証券へ移管など"></div>
@@ -5457,8 +5619,10 @@ function openInvestmentModal(id) {
   document.getElementById('inv-memo').value = iv?(iv.memo||''):'';
   document.getElementById('inv-from').value = iv?(iv.activeFrom||''):'';
   document.getElementById('inv-to').value = iv?(iv.activeTo||''):'';
+  const brokers = sortByOrder(state.wallets.filter(w=>w.type==='securities'));
   document.getElementById('inv-broker').innerHTML = '<option value="">指定なし</option>' +
-    sortByOrder(state.wallets).map(w=>`<option value="${w.id}" ${iv&&w.id===iv.brokerId?'selected':''}>${escapeHTML(w.name)}</option>`).join('');
+    (brokers.length ? brokers.map(w=>`<option value="${w.id}" ${iv&&w.id===iv.brokerId?'selected':''}>${escapeHTML(w.name)}</option>`).join('')
+      : '<option value="" disabled>証券口座を先に登録してください</option>');
   document.getElementById('inv-card').innerHTML = '<option value="">指定なし</option>' +
     sortByOrder(state.wallets.filter(w=>w.type==='card')).map(w=>`<option value="${w.id}" ${iv&&w.id===iv.cardId?'selected':''}>${escapeHTML(w.name)}</option>`).join('');
   invHistory = iv?JSON.parse(JSON.stringify(iv.history||[])):[];
@@ -5605,8 +5769,9 @@ function updateCpPreview() {
   const ptType = w && w.pointTypeId ? pointTypeById(w.pointTypeId) : null;
   const rule = w && w.pointRuleId ? pointRuleById(w.pointRuleId) : null;
   const gd = rule ? grantDateByRule(rule, cpDate) : (w ? calcGrantDate(w, cpDate) : cpDate);
-  el.innerHTML = `引落 <b>${fmt(amt)}</b>` +
-    (redeem?`<br>ポイント充当 <b style="color:${state.settings.colorPointUse}">-${fmt(redeem).slice(1)}</b>（実質 ${fmt(Math.max(0,amt))}）`:'') +
+  el.innerHTML = `請求額 <b>${fmt(amt)}</b>` +
+    (redeem?`<br>ポイント充当 <b style="color:${state.settings.colorPointUse}">-${fmt(redeem).slice(1)}</b>`
+      + `<br>実際の引落 <b>${fmt(Math.max(0, amt))}</b>`:'') +
     (pt?`<br>獲得見込み <b style="color:${state.settings.colorPoint}">+${pt.toLocaleString()}${ptType?ptType.unit:'pt'}</b>${gd?`（${gd.slice(5).replace('-','/')}頃）`:''}`
        + ((w&&w.redeemEarnsPoint!==false&&redeem)?`<br><span style="font-size:11px">※充当分${fmt(redeem)}も還元対象として計算</span>`:''):'');
 }
@@ -5630,6 +5795,17 @@ function openCardPayment(walletId, ds) {
   const btn = document.querySelector(`#modal-cardpay .seg-btn[data-cps="${cpStatus}"]`);
   if (btn) setCpStatus(cpStatus, btn);
   openModal('modal-cardpay');
+}
+// 請求額からポイント充当分を差し引く
+function subtractRedeem() {
+  const amtEl = document.getElementById('cp-amount');
+  const redEl = document.getElementById('cp-redeem');
+  const amt = parseFloat(amtEl.value)||0;
+  const red = parseFloat(redEl.value)||0;
+  if (!amt || !red) { showToast('請求額と充当額を入力してください'); return; }
+  amtEl.value = Math.max(0, amt - red);
+  updateCpPreview();
+  showToast('請求額から充当分を引きました');
 }
 function saveCardPayment() {
   const w = walletById(cpCardId); if(!w) return;
@@ -6096,8 +6272,15 @@ function walletBadges(w) {
   if (w.brand) parts.push(`<span class="badge-sm ${brandClass(w.brand)}">${w.brand}</span>`);
   const rt = rateText(w);
   if (rt) parts.push(`<span class="badge-sm bd-rate">${rt}</span>`);
-  if (w.pointRuleId && pointRuleById(w.pointRuleId)) {
-    const r = pointRuleById(w.pointRuleId);
+  // 利用方法
+  (w.methods||[]).forEach(mk=>{
+    const mth = WALLET_METHODS.find(x=>x.key===mk);
+    if (mth && mk!=='real') parts.push(`<span class="badge-sm bd-type">${mth.label}</span>`);
+  });
+  // 付与ルール（複数）
+  const ruleIds = (w.pointRuleIds && w.pointRuleIds.length) ? w.pointRuleIds : (w.pointRuleId?[w.pointRuleId]:[]);
+  ruleIds.forEach(rid=>{
+    const r = pointRuleById(rid); if(!r) return;
     if (r.type==='period' && (r.periods||[]).length) {
       // 区間ごとに分けて表示（長すぎて切れるのを防ぐ）
       r.periods.forEach(p=>{
@@ -6108,7 +6291,7 @@ function walletBadges(w) {
     } else {
       parts.push(`<span class="badge-sm bd-pt">🪙 ${escapeHTML(ruleSummary(r))}</span>`);
     }
-  }
+  });
   (w.bonusRates||[]).forEach(b=>{
     if (b.rate) parts.push(`<span class="badge-sm bd-rate">${b.rate}%${b.cond?` ${escapeHTML(b.cond)}`:''}</span>`);
   });
@@ -6204,7 +6387,7 @@ function renderRouteBonuses() {
         <input type="text" class="rb-cond" placeholder="例：20,001円以上" value="${escapeHTML(b.cond||'')}">
         <button class="pat-del" onclick="removeRouteBonus(${i})">✕</button>
       </div>
-      <div><label>還元率（%）</label><input type="number" step="0.01" class="rb-rate" value="${b.rate||''}" placeholder="0.1"></div>
+      <div><label>還元率（%）</label><input type="number" inputmode="decimal" step="0.01" class="rb-rate" value="${b.rate||''}" placeholder="0.1"></div>
     </div>`).join('');
   el.querySelectorAll('.pat-row').forEach(row=>{
     const i = +row.dataset.i;
@@ -6305,7 +6488,8 @@ function renderRouteList() {
     const pt = r.pointTypeId ? pointTypeById(r.pointTypeId) : null;
     const badges = [];
     const rrt = rateText(r);
-    badges.push(rrt?`<span class="badge-sm bd-rate">${rrt}</span>`:rateBadge(r.rate));
+    if (rrt) badges.push(`<span class="badge-sm bd-rate">${rrt}</span>`);
+    else if (r.rate) badges.push(rateBadge(r.rate));
     (r.bonusRates||[]).forEach(b=>{
       if (b.rate) badges.push(`<span class="badge-sm bd-rate">${b.rate}%${b.cond?` ${escapeHTML(b.cond)}`:''}</span>`);
     });
@@ -6354,6 +6538,13 @@ function renderChargeSteps() {
   const ws = sortByOrder(state.wallets.filter(w=>w.active));
   const opts = sel => '<option value="">選択</option>' + ws.map(w=>`<option value="${w.id}" ${w.id===sel?'selected':''}>${escapeHTML(w.name)}</option>`).join('');
   const ptOpts = sel => '<option value="">ポイント種類</option>' + sortByOrder(state.pointTypes).map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${escapeHTML(p.name)}</option>`).join('');
+  const routeOpts = st => {
+    const cur = state.chargeRoutes.find(r=>r.from===st.from && r.to===st.to);
+    return '<option value="">手動で入力</option>' + sortByOrder(state.chargeRoutes).filter(r=>routeActiveNow(r)).map(r=>{
+      const f = walletById(r.from), t = walletById(r.to);
+      return `<option value="${r.id}" ${cur&&cur.id===r.id?'selected':''}>${escapeHTML(f?f.name:'?')} → ${escapeHTML(t?t.name:'?')}</option>`;
+    }).join('');
+  };
   if (!chargeSteps.length) { el.innerHTML = '<div class="field-note" style="margin:0 0 6px">「＋ステップ」で追加してください</div>'; updateChargePreview(); return; }
   el.innerHTML = chargeSteps.map((st,i)=>`
     ${i>0?'<div class="chg-step-arrow">↓</div>':''}
@@ -6363,21 +6554,37 @@ function renderChargeSteps() {
         <span style="flex:1;font-size:11.5px;color:var(--text-secondary)">ステップ ${i+1}</span>
         <button class="pat-del" onclick="removeChargeStep(${i})">✕</button>
       </div>
+      <div style="margin-bottom:6px"><label>登録済みの経路から選ぶ</label>
+        <select class="s-route">${routeOpts(st)}</select></div>
       <div class="chg-grid">
         <div><label>移動元</label><select class="s-from">${opts(st.from)}</select></div>
         <div><label>移動先</label><select class="s-to">${opts(st.to)}</select></div>
       </div>
       <div class="chg-grid" style="margin-top:6px">
-        <div><label>移動額（円）</label><input type="number" class="s-amount" value="${st.amount||''}" placeholder="50000"></div>
-        <div><label>還元率（%）</label><input type="number" step="0.01" class="s-rate" value="${st.rate||''}" placeholder="0.5"></div>
+        <div><label>移動額（円）</label><input type="number" inputmode="numeric" class="s-amount" value="${st.amount||''}" placeholder="50000"></div>
+        <div><label>還元率（%）</label><input type="number" inputmode="decimal" step="0.01" class="s-rate" value="${st.rate||''}" placeholder="0.5"></div>
       </div>
       <div class="chg-grid" style="margin-top:6px">
-        <div><label>獲得ポイント</label><input type="number" class="s-point" value="${st.point||''}" placeholder="自動計算"></div>
+        <div><label>獲得ポイント</label><input type="number" inputmode="numeric" class="s-point" value="${st.point||''}" placeholder="自動計算"></div>
         <div><label>種類</label><select class="s-pt">${ptOpts(st.pointTypeId)}</select></div>
       </div>
     </div>`).join('');
   el.querySelectorAll('.chg-step').forEach(row=>{
     const i = +row.dataset.i;
+    const rsel = row.querySelector('.s-route');
+    if (rsel) rsel.onchange = e=>{
+      const r = state.chargeRoutes.find(x=>x.id===e.target.value);
+      if (!r) return;
+      chargeSteps[i].from = r.from; chargeSteps[i].to = r.to;
+      chargeSteps[i].rate = r.rate || '';
+      chargeSteps[i].pointTypeId = r.pointTypeId || '';
+      chargeSteps[i]._routeId = r.id;
+      // 固定ポイント方式なら金額から計算
+      const amt = parseFloat(chargeSteps[i].amount)||0;
+      if (amt) chargeSteps[i].point = calcPointsFor(r, amt);
+      renderChargeSteps();
+      showToast('経路の設定を反映しました');
+    };
     row.querySelector('.s-from').onchange = e=>{
       chargeSteps[i].from=e.target.value;
       applyRouteDefaults(i, row);
@@ -6442,6 +6649,14 @@ function checkStepLimits(st) {
 function autoCalcPoint(i, row) {
   const st = chargeSteps[i];
   const amt = parseFloat(st.amount)||0;
+  // 登録済み経路が固定ポイント方式ならそちらを優先
+  const route = state.chargeRoutes.find(r=>r.from===st.from && r.to===st.to && routeActiveNow(r));
+  if (route && route.rateUnit && route.ratePoints && amt>0) {
+    st.point = calcPointsFor(route, amt);
+    const inp = row.querySelector('.s-point');
+    if (inp) inp.value = st.point;
+    return;
+  }
   const rate = parseFloat(st.rate)||0;
   if (amt>0 && rate>0) {
     st.point = Math.floor(amt * rate / 100);
@@ -6878,7 +7093,7 @@ function dueBadgeHTML(c, done) {
 }
 function checkRowHTML(c, idx, total) {
   const done = isCheckDone(c);
-  return `<div style="display:flex;align-items:center;gap:8px;padding:9px 2px;border-bottom:1px solid var(--border)">
+  return `<div class="drag-item" data-item-id="${c.id}" style="display:flex;align-items:center;gap:8px;padding:9px 2px;border-bottom:1px solid var(--border)">
     <div onclick="toggleCheck('${c.id}')" style="width:22px;height:22px;border-radius:6px;border:2px solid ${done?'var(--mint)':'var(--border)'};background:${done?'var(--mint)':'#fff'};flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer">
       ${done?'<span style="color:#fff;font-size:13px">✓</span>':''}</div>
     <div style="flex:1;min-width:0;cursor:pointer" onclick="openCheckModal('${c.id}')">
@@ -6891,10 +7106,12 @@ function checkRowHTML(c, idx, total) {
         ${dueBadgeHTML(c, done)}
       </div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+    ${(state.settings.sortMethod||'button')==='drag'
+      ? `<span class="drag-handle" data-drag-id="${c.id}">≡</span>`
+      : `<div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
       <button onclick="moveCheck('${c.id}',-1)" ${idx===0?'disabled':''} style="border:1px solid var(--border);background:#fff;border-radius:5px;width:26px;height:20px;font-size:10px;cursor:pointer;opacity:${idx===0?0.3:1}">▲</button>
       <button onclick="moveCheck('${c.id}',1)" ${idx===total-1?'disabled':''} style="border:1px solid var(--border);background:#fff;border-radius:5px;width:26px;height:20px;font-size:10px;cursor:pointer;opacity:${idx===total-1?0.3:1}">▼</button>
-    </div></div>`;
+    </div>`}</div>`;
 }
 // 自動生成：期限付き＋autoCheckのお金記録を、その月の仮想チェック項目にする
 function autoCheckItems() {
@@ -7000,6 +7217,7 @@ function renderChecklist() {
   const ml = document.getElementById('check-month-list');
   ml.innerHTML = list.length ? list.map((c,i)=>c._auto?autoCheckRowHTML(c):checkRowHTML(c,i-autos.length,manual.length)).join('')
     : '<div style="font-size:11.5px;color:var(--text-secondary);padding:6px 2px">この月に表示される項目はありません</div>';
+  enableDrag('check-month-list', state.checks, 'checks');
   // 常設セクションは統合したので非表示に
   const alwaysSection = document.getElementById('check-always-section');
   if (alwaysSection) alwaysSection.style.display = 'none';
@@ -7029,6 +7247,7 @@ function renderAll() {
   renderCardPayments();
   renderTaxList();
   renderHomeTaxes();
+  renderHomeInvestments();
   renderPointRuleList();
   renderHomeSummary();
   renderQuickAdd();
