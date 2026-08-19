@@ -311,7 +311,7 @@
   <header class="topbar">
     <div style="display:flex;align-items:center;">
       <span class="topbar-logo">Finance<span>Mgr</span></span>
-      <span class="version-badge" id="version-badge">v23</span>
+      <span class="version-badge" id="version-badge">v24</span>
     </div>
     <div class="topbar-total">
       <div class="topbar-total-label">今月合計</div>
@@ -558,9 +558,18 @@
           <div id="tax-summary"></div>
         </div>
         <div class="card">
-          <div class="card-title">経費（科目別）</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="card-title" style="margin-bottom:0">経費（科目別）</div>
+            <button class="btn btn-primary btn-sm" style="padding:5px 11px" onclick="openExpenseQuickAdd()">＋ 経費</button>
+          </div>
           <div id="tax-expense-list"></div>
-          <div class="field-note">お金の記録で「経費にする」を選んだものが集計されます。</div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="card-title" style="margin-bottom:0">勘定科目</div>
+            <div style="display:flex;gap:5px" id="accounts-head"></div>
+          </div>
+          <div id="account-list"></div>
         </div>
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
@@ -669,7 +678,7 @@
           <div class="settings-row"><span>古いデータを書き出して削除</span><button class="btn btn-ghost btn-sm" onclick="openArchiveDialog()">アーカイブ</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v23</span> / schema <span id="schema-footer">21</span> / 祝日データ 2025–2027
+          FinanceManager <span id="ver-footer">v24</span> / schema <span id="schema-footer">22</span> / 祝日データ 2025–2027
         </div>
       </div>
     </div>
@@ -1171,8 +1180,14 @@
     </div>
     <div class="form-group"><label>決済の属性（任意）</label>
       <div id="rt-methods-area"></div>
+      <div class="calc-preview" id="rt-preview" style="margin-top:8px"></div>
       <div class="field-note">Apple Pay経由など、同じカードでも経路が違う場合に選びます。</div></div>
-    <div class="form-group"><label>条件・注意点</label><input type="text" id="rt-note" placeholder="例：ファミマカード以外からのチャージ / 20,001円以上"></div>
+    <div class="form-group"><label>手数料</label>
+      <div class="seg" style="margin-bottom:10px">
+        <div class="seg-btn active" data-rtf="0" onclick="setRouteFree(false,this)">記載なし</div>
+        <div class="seg-btn" data-rtf="1" onclick="setRouteFree(true,this)">手数料無料</div>
+      </div>
+      <label>条件・注意点・メモ</label><input type="text" id="rt-note" placeholder="例：ファミマカード以外 / 手数料無料"></div>
     <div class="form-row">
       <div class="form-group"><label>適用開始（任意）</label><input type="month" id="rt-start"></div>
       <div class="form-group"><label>適用終了（任意）</label><input type="month" id="rt-end"></div>
@@ -1201,7 +1216,7 @@
         <option value="virtual">バーチャルカード</option>
         <option value="prepaid">プリペイドカード</option>
         <option value="applepay">Apple Pay</option>
-        <option value="emoney">電子マネー（Suica・楽天Edyなど）</option>
+        <option value="emoney">電子マネー（nanaco・楽天Edyなど）</option>
         <option value="codepay">コード決済（PayPay・楽天ペイなど）</option>
         <option value="store">ストア残高（Apple・Google・Amazonなど）</option>
         <option value="transit">交通系IC（Suica・PASMOなど）</option>
@@ -1441,6 +1456,7 @@
   <div class="modal-handle-zone"><div class="modal-handle"></div></div>
   <div class="modal-title" id="sub-title">サブスクを登録</div>
   <div class="form-grid">
+    <div class="form-group member-row" id="sb-member-row" style="display:none"><label>メンバー</label><select id="sb-member"></select></div>
     <div class="form-group"><label>サービス名</label><input type="text" id="sb-name" placeholder="例：Netflix"></div>
     <div class="form-group"><label>月表示用の短縮名（任意）</label><input type="text" id="sb-short" placeholder="例：NF"></div>
     <div class="form-row">
@@ -1489,12 +1505,36 @@
       <div id="sb-history"></div>
       <div class="field-note">値上げ・プラン変更・割引があった月と金額を登録すると、その月以降に反映されます。</div>
     </div>
+    <div class="form-group"><label>確定申告</label>
+      <div class="seg">
+        <div class="seg-btn active" data-sbe="0" onclick="setSbExpense(false,this)">対象外</div>
+        <div class="seg-btn" data-sbe="1" onclick="setSbExpense(true,this)">経費にする</div>
+      </div></div>
+    <div id="sb-account-area" style="display:none">
+      <div class="form-row">
+        <div class="form-group"><label>勘定科目</label><select id="sb-account"></select></div>
+        <div class="form-group"><label>家事按分（%）</label><input type="number" inputmode="numeric" id="sb-ratio" placeholder="100"></div>
+      </div>
+    </div>
     <div class="form-group"><label>メモ</label><input type="text" id="sb-memo"></div>
   </div>
   <div class="form-actions">
     <button class="btn btn-danger" id="sb-delete-btn" style="margin-right:auto;display:none" onclick="deleteSubscription()">削除</button>
     <button class="btn btn-ghost" onclick="closeModal('modal-subscription')">キャンセル</button>
     <button class="btn btn-primary" onclick="saveSubscription()">保存</button>
+  </div>
+</div></div>
+
+<div class="modal-overlay" id="modal-account"><div class="modal" style="max-width:400px">
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div>
+  <div class="modal-title" id="ac-title">勘定科目を追加</div>
+  <div class="form-grid">
+    <div class="form-group"><label>科目名</label><input type="text" id="ac-name" placeholder="例：研修費"></div>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-danger" id="ac-delete-btn" style="margin-right:auto;display:none" onclick="deleteAccount()">削除</button>
+    <button class="btn btn-ghost" onclick="closeModal('modal-account')">キャンセル</button>
+    <button class="btn btn-primary" onclick="saveAccount()">保存</button>
   </div>
 </div></div>
 
@@ -1515,6 +1555,17 @@
         <div class="seg-btn active" data-ddc="0" onclick="setDdCert(false,this)">未着</div>
         <div class="seg-btn" data-ddc="1" onclick="setDdCert(true,this)">受領済</div>
       </div></div>
+    <div class="form-group member-row" id="dd-for-row" style="display:none"><label>誰の控除にするか</label>
+      <select id="dd-for"></select>
+      <div class="field-note">医療費など家族分をまとめる場合、申告する人を選びます。</div></div>
+    <div class="subsection">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="subsection-title" style="margin-bottom:0">明細（任意）</div>
+        <button class="btn btn-ghost btn-sm" onclick="addDdItem()">＋ 明細</button>
+      </div>
+      <div id="dd-items"></div>
+      <div class="field-note">ふるさと納税の寄附先や医療費の内訳などを記録できます。明細を入れると合計が金額に反映されます。</div>
+    </div>
     <div class="form-group"><label>メモ</label><input type="text" id="dd-memo" placeholder="控除証明書の保管場所など"></div>
   </div>
   <div class="form-actions">
@@ -1560,6 +1611,7 @@
         <div class="seg-btn active" data-ld="lent" onclick="setLendDir('lent',this)">立て替えた</div>
         <div class="seg-btn" data-ld="borrowed" onclick="setLendDir('borrowed',this)">立て替えてもらった</div>
       </div></div>
+    <div class="form-group member-row" id="ld-member-row" style="display:none"><label>メンバー</label><select id="ld-member"></select></div>
     <div class="form-group"><label>相手</label>
       <input type="text" id="ld-who" placeholder="例：母 / 田中さん" list="ld-who-list">
       <datalist id="ld-who-list"></datalist>
@@ -1591,10 +1643,19 @@
   <div class="modal-handle-zone"><div class="modal-handle"></div></div>
   <div class="modal-title" id="inv-title">投資・積立を登録</div>
   <div class="form-grid">
+    <div class="form-group member-row" id="inv-member-row" style="display:none"><label>メンバー</label><select id="inv-member"></select></div>
     <div class="form-group"><label>名称</label><input type="text" id="inv-name" placeholder="例：楽天証券 つみたてNISA"></div>
+    <div class="form-group"><label>月表示用の短縮名（任意）</label><input type="text" id="inv-short" placeholder="例：NISA"></div>
     <div class="form-group"><label>種類</label>
       <select id="inv-kind">
-        <option value="nisa">つみたてNISA</option>
+        <option value="nisa">NISA つみたて投資枠</option>
+        <option value="growth">NISA 成長投資枠</option>
+        <option value="oldnisa">旧NISA（一般・つみたて）</option>
+        <option value="junior">ジュニアNISA</option>
+        <option value="tokutei">特定口座</option>
+        <option value="ippan">一般口座</option>
+        <option value="zaikei">財形貯蓄</option>
+        <option value="dc">企業型DC</option>
         <option value="ideco">iDeCo</option>
         <option value="growth">成長投資枠（NISA）</option>
         <option value="spot">スポット購入</option>
@@ -1713,8 +1774,8 @@
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '23';
-const SCHEMA_VERSION = 21;
+const APP_VERSION = '24';
+const SCHEMA_VERSION = 22;
 const STORAGE_KEY = 'financeManager';
 
 const C = { blue:['#5B8DEF','#3D6BD1','#EAF1FF'], teal:['#2DC5A4','#189A7E','#E4FAF4'], amber:['#F7B32B','#D3921A','#FFF6E0'], pink:['#F76D8E','#D94A6E','#FFEBF0'], violet:['#9B7EDE','#7A5CC4','#F1EBFF'], slate:['#6B7A99','#4D5B78','#EEF1F6'] };
@@ -1785,7 +1846,7 @@ function defaultState() {
     moneyCats: defaultMoneyCats(), moneyRecs: [],
     wallets: defaultWallets(), charges: [], chargeTemplates: [], pointTypes: defaultPointTypes(),
     chargeRoutes: [], deposits: [], taxes: [], pointRules: [], lends: [], investments: [], subscriptions: [],
-    members: [], deductions: [],
+    members: [], deductions: [], accounts: [], lendPresets: {whos:[],names:[]},
     settings: { hoursFormat:'decimal', aggregation:'work', amountShow:'on', amountFormat:'k',
       colorIncome:'#1DB882', colorPayday:'#5B8DEF', colorExpense:'#E5544B', colorPoint:'#9B7EDE',
       colorCharge:'#F7B32B', calDisplay:'stamp', weekShowText:'on',
@@ -2258,6 +2319,25 @@ function migrate(data) {
     if (data.settings.taxYear===undefined) data.settings.taxYear = new Date().getFullYear();
     v = 21;
   }
+  if (v < 22) {
+    // v21 → v22 : 勘定科目のカスタム化・控除の明細・立替候補
+    if (!data.accounts || !data.accounts.length) {
+      data.accounts = EXPENSE_ACCOUNTS.map((a,i)=>({ id:a.key, name:a.label, order:i+1, builtin:true }));
+    }
+    (data.deductions||[]).forEach(d=>{
+      if (!d.items) d.items = [];
+      if (d.forMemberId===undefined) d.forMemberId = d.memberId||''; // 誰の控除にするか
+    });
+    data.lendPresets = data.lendPresets || { whos:[], names:[] };
+    (data.subscriptions||[]).forEach(sb=>{
+      if (sb.isExpense===undefined) sb.isExpense = false;
+      if (sb.account===undefined) sb.account = '';
+      if (sb.businessRatio===undefined) sb.businessRatio = 100;
+    });
+    (data.chargeRoutes||[]).forEach(r=>{ if(r.feeFree===undefined) r.feeFree=false; });
+    (data.investments||[]).forEach(iv=>{ if(iv.shortName===undefined) iv.shortName=''; });
+    v = 22;
+  }
   data.schemaVersion = SCHEMA_VERSION;
   data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[]; data.checks=data.checks||[];
   data.moneyCats = (data.moneyCats&&data.moneyCats.length)?data.moneyCats:defaultMoneyCats();
@@ -2273,6 +2353,8 @@ function migrate(data) {
   data.subscriptions = data.subscriptions||[];
   data.members = data.members||[];
   data.deductions = data.deductions||[];
+  data.accounts = data.accounts||[];
+  data.lendPresets = data.lendPresets||{whos:[],names:[]};
   data.charges = data.charges||[]; data.chargeTemplates = data.chargeTemplates||[];
   data.settings = Object.assign({ hoursFormat:'decimal', aggregation:'work', amountShow:'on', amountFormat:'k',
     colorIncome:'#1DB882', colorPayday:'#5B8DEF', colorExpense:'#E5544B', colorPoint:'#9B7EDE',
@@ -2341,7 +2423,7 @@ function recAggDate(r) {
 }
 function monthTotal(y,m) {
   let t = state.records.filter(r=>{ const d=recAggDate(r); return +d.slice(0,4)===y && +d.slice(5,7)-1===m; }).reduce((a,r)=>a+r.amount,0);
-  state.jobs.filter(j=>j.payType==='monthly'&&j.active).forEach(j=>t+=j.salary||0);
+  state.jobs.filter(j=>j.payType==='monthly'&&j.active&&inCurrentMember(j)).forEach(j=>t+=j.salary||0);
   return t;
 }
 let payMap = {};
@@ -2522,7 +2604,7 @@ function dayItems(ds) {
       sub: r.start ? (r.start+'〜'+r.end+(r.hours?('（実働'+fmtH(r.hours)+'）'):'')) : (isSpan?(r.date.slice(5).replace('-','/')+'〜'+r.endDate.slice(5).replace('-','/')):(j?j.name:'')),
       amount:r.amount, memo:r.memo||'', ref:r, span:isSpan });
   });
-  state.jobs.filter(j=>j.payType==='monthly'&&j.active&&j.salary>0).forEach(j=>{
+  state.jobs.filter(j=>j.payType==='monthly'&&j.active&&j.salary>0&&inCurrentMember(j)).forEach(j=>{
     const y=+ds.slice(0,4), m=+ds.slice(5,7)-1;
     const rawPd = Math.min(j.payday||25, daysIn(y,m));
     const adj = adjustPayDate(dstr(y,m,rawPd), j.holidayRule||'none');
@@ -2597,6 +2679,7 @@ function dayItems(ds) {
   subscriptionItemsOn(ds).forEach(x=>items.push(x));
   // 税金で獲得したポイント（付与予定日に表示）
   state.taxes.forEach(t=>{
+    if (!inCurrentMember(t)) return;
     (t.installments||[]).forEach(ins=>{
       if (!ins.paid || !ins.point) return;
       const w = ins.walletId ? walletById(ins.walletId) : null;
@@ -2783,7 +2866,7 @@ function dayTotal(ds) {
     state.records.forEach(r=>{ if(!inCurrentMember(r)) return; if(recBaseDate(r)===ds) t+=r.amount; });
   }
   const y=+ds.slice(0,4), m=+ds.slice(5,7)-1;
-  state.jobs.filter(j=>j.payType==='monthly'&&j.active&&j.salary>0).forEach(j=>{
+  state.jobs.filter(j=>j.payType==='monthly'&&j.active&&j.salary>0&&inCurrentMember(j)).forEach(j=>{
     const rawPd = Math.min(j.payday||25, daysIn(y,m));
     if (adjustPayDate(dstr(y,m,rawPd), j.holidayRule||'none')===ds) t+=j.salary;
   });
@@ -3538,7 +3621,7 @@ function payTypeLabel(t){ return t==='hourly'?'時給制':t==='piece'?'案件ご
 function renderJobList() {
   const el=document.getElementById('job-list');
   if(!state.jobs.length){ el.innerHTML='<div class="empty"><div class="empty-icon">💼</div><div class="empty-text">「＋ 追加」から仕事を登録してください<br>（バイト・業務委託・役員報酬なんでもOK）</div></div>'; return; }
-  const jobsSorted = sortByOrder(state.jobs);
+  const jobsSorted = sortByOrder(state.jobs.filter(j=>inCurrentMember(j)));
   el.innerHTML = jobsSorted.map((j,idx)=>{
     let sub = payTypeLabel(j.payType);
     if (j.payType==='hourly') sub += ' / 時給'+fmt(j.wage)+((j.patterns&&j.patterns.length)?(' / パターン'+j.patterns.length+'件'):'');
@@ -3935,6 +4018,15 @@ function effectiveDueDate(mr) {
   if (!mr.dueDate) return '';
   return adjustPayDate(mr.dueDate, mr.dueHolidayRule||'none');
 }
+// 勘定科目（カスタム対応）
+function accountList() {
+  if (state.accounts && state.accounts.length) return sortByOrder(state.accounts);
+  return EXPENSE_ACCOUNTS.map((a,i)=>({id:a.key, name:a.label, order:i+1, builtin:true}));
+}
+function accountName(id) {
+  const a = accountList().find(x=>x.id===id);
+  return a ? a.name : (EXPENSE_ACCOUNTS.find(x=>x.key===id)||{}).label || 'その他';
+}
 function setMoneyExpense(v, el) {
   moneyIsExpense = v;
   document.querySelectorAll('#modal-money .seg-btn[data-mex]').forEach(b=>b.classList.remove('active'));
@@ -3943,7 +4035,7 @@ function setMoneyExpense(v, el) {
   area.style.display = v?'':'none';
   if (v) {
     const sel = document.getElementById('mny-account');
-    if (!sel.options.length) sel.innerHTML = EXPENSE_ACCOUNTS.map(a=>`<option value="${a.key}">${a.label}</option>`).join('');
+    sel.innerHTML = accountList().map(a=>`<option value="${a.id}">${escapeHTML(a.name)}</option>`).join('');
     const r = document.getElementById('mny-ratio');
     if (!r.value) r.value = 100;
     updateExpensePreview();
@@ -4331,6 +4423,8 @@ function renderColorSettings() {
 function taxPointRecords(y, m) {
   const out = [];
   state.taxes.forEach(t=>{
+    if (!inCurrentMember(t)) return;
+    if (!inCurrentMember(t)) return;
     (t.installments||[]).forEach(ins=>{
       if (!ins.paid || !ins.point) return;
       const w = ins.walletId ? walletById(ins.walletId) : null;
@@ -4811,12 +4905,26 @@ function saveWallet() {
     closingDay: document.getElementById('wal-closing').value||'',
     payDay: document.getElementById('wal-payday').value||'',
     payAccountId: document.getElementById('wal-payaccount').value||'' };
-  if (walEditing) Object.assign(walEditing, data);
+  let target;
+  if (walEditing) { Object.assign(walEditing, data); target = walEditing; }
   else {
     const maxO = state.wallets.length?Math.max(...state.wallets.map(w=>w.order||0)):0;
-    state.wallets.push(Object.assign({id:'w'+Date.now(), order:maxO+1}, data));
+    target = Object.assign({id:'w'+Date.now(), order:maxO+1}, data);
+    state.wallets.push(target);
   }
+  syncLinkedWallets(target);
   save(); closeModal('modal-wallet'); renderAll(); showToast('保存しました ✓');
+}
+// 連携を双方向に保つ（AがBを連携→BもAを連携）
+function syncLinkedWallets(target) {
+  const ids = target.linkedIds || [];
+  state.wallets.forEach(w=>{
+    if (w.id===target.id) return;
+    w.linkedIds = w.linkedIds || [];
+    const has = w.linkedIds.includes(target.id);
+    if (ids.includes(w.id) && !has) w.linkedIds.push(target.id);
+    if (!ids.includes(w.id) && has) w.linkedIds = w.linkedIds.filter(x=>x!==target.id);
+  });
 }
 function deleteWallet() {
   if (!walEditing) return;
@@ -4959,6 +5067,7 @@ function renderHomeTaxes() {
   const y=calYear, m=calMonth;
   const rows = [];
   state.taxes.forEach(t=>{
+    if (!inCurrentMember(t)) return;
     const pre = TAX_PRESETS[t.presetKey] || TAX_PRESETS.other;
     (t.installments||[]).forEach(ins=>{
       if (!ins.dueDate) return;
@@ -5006,6 +5115,7 @@ function renderHomeInvestments() {
   if (!el) return;
   const y=calYear, m=calMonth, ym=y+'-'+pad(m+1), dim=daysIn(y,m);
   const rows = state.investments.filter(iv=>{
+    if (!inCurrentMember(iv)) return false;
     if (iv.activeFrom && ym < iv.activeFrom) return false;
     if (iv.activeTo && ym > iv.activeTo) return false;
     return true;
@@ -5262,6 +5372,7 @@ function renderListHeaders() {
     ['checks-head','checks','openCheckModal(null)'],
     ['members-head','members','openMemberModal()'],
     ['deduct-head','deducts','openDeductionModal()'],
+    ['accounts-head','accounts','openAccountModal()'],
     ['routes-head','routes','openRouteModal()'],
   ];
   defs.forEach(([elId,key,addFn])=>{
@@ -5604,8 +5715,105 @@ function renderInputAreas() {
   }
 }
 
+// ── 勘定科目の管理 ──
+let acEditing=null;
+function openAccountModal(id) {
+  acEditing = id ? accountList().find(a=>a.id===id) : null;
+  document.getElementById('ac-title').textContent = acEditing?'勘定科目を編集':'勘定科目を追加';
+  document.getElementById('ac-name').value = acEditing?acEditing.name:'';
+  document.getElementById('ac-delete-btn').style.display = (acEditing&&!acEditing.builtin)?'':'none';
+  openModal('modal-account');
+}
+function saveAccount() {
+  const name = document.getElementById('ac-name').value.trim();
+  if (!name) { showToast('科目名を入力してください'); return; }
+  if (!state.accounts.length) state.accounts = accountList().map(a=>Object.assign({},a));
+  if (acEditing) {
+    const t = state.accounts.find(a=>a.id===acEditing.id);
+    if (t) t.name = name;
+  } else {
+    const maxO = state.accounts.length?Math.max(...state.accounts.map(a=>a.order||0)):0;
+    state.accounts.push({ id:'ac'+Date.now(), name, order:maxO+1, builtin:false });
+  }
+  save(); closeModal('modal-account'); renderAll(); showToast('保存しました ✓');
+}
+function deleteAccount() {
+  if (!acEditing || acEditing.builtin) return;
+  const t = acEditing;
+  const used = state.moneyRecs.some(r=>r.account===t.id) || state.subscriptions.some(sb=>sb.account===t.id);
+  if (used) { showToast('使用中のため削除できません'); return; }
+  confirmDelete('科目を削除', `「${t.name}」を削除します。よろしいですか？`, ()=>{
+    state.accounts = state.accounts.filter(a=>a.id!==t.id);
+    save(); closeModal('modal-account'); renderAll(); showToast('削除しました');
+  });
+}
+function moveAccount(id,dir){
+  if (!state.accounts.length) state.accounts = accountList().map(a=>Object.assign({},a));
+  moveItem(state.accounts, id, dir, renderAll);
+}
+function renderAccountList() {
+  const el = document.getElementById('account-list');
+  if (!el) return;
+  const list = accountList();
+  el.innerHTML = list.map((a,idx)=>`
+    <div class="job-item drag-item" data-item-id="${a.id}">
+      ${orderBtnsHTML('moveAccount', a.id, idx, list.length, 'accounts')}
+      <span style="width:24px;text-align:center;font-size:16px;flex-shrink:0">📗</span>
+      <div class="job-item-body"><div class="job-item-name">${escapeHTML(a.name)}</div></div>
+      <button class="btn btn-ghost btn-sm" onclick="openAccountModal('${a.id}')">編集</button>
+    </div>`).join('');
+  enableDrag('account-list', state.accounts, 'accounts');
+}
+// 確定申告タブから経費を直接追加
+function openExpenseQuickAdd() {
+  const cat = state.moneyCats.find(c=>c.type==='expense');
+  if (!cat) { showToast('先に支出カテゴリを作成してください'); return; }
+  openMoneyModal(cat.id, todayStr());
+  setTimeout(()=>{
+    const b = document.querySelector('#modal-money .seg-btn[data-mex="1"]');
+    if (b) setMoneyExpense(true, b);
+  }, 60);
+}
+
 // ── 確定申告：経費と控除 ──
-let ddEditing=null, ddCert=false;
+let ddEditing=null, ddCert=false, ddItems=[];
+function addDdItem(){ ddItems.push({date:todayStr(), name:'', amount:'', note:''}); renderDdItems(); }
+function removeDdItem(i){ ddItems.splice(i,1); renderDdItems(); }
+function renderDdItems() {
+  const el = document.getElementById('dd-items');
+  if (!el) return;
+  if (!ddItems.length) { el.innerHTML='<div class="field-note" style="margin:0 0 6px">明細なし</div>'; return; }
+  const total = ddItems.reduce((a,x)=>a+(parseFloat(x.amount)||0),0);
+  el.innerHTML = ddItems.map((it,i)=>`
+    <div class="pat-row" data-i="${i}">
+      <div class="pat-row-head">
+        <span style="font-size:11.5px;color:var(--text-secondary)">${i+1}</span>
+        <span style="flex:1"></span>
+        <button class="pat-del" onclick="removeDdItem(${i})">✕</button>
+      </div>
+      <div class="chg-grid">
+        <div><label>日付</label><input type="date" class="di-date" value="${it.date||''}"></div>
+        <div><label>金額</label><input type="number" inputmode="numeric" class="di-amount" value="${it.amount||''}" placeholder="10000"></div>
+      </div>
+      <div style="margin-top:6px"><label>内容</label><input type="text" class="di-name" value="${escapeHTML(it.name||'')}" placeholder="例：〇〇県〇〇市"></div>
+      <div style="margin-top:6px"><label>メモ</label><input type="text" class="di-note" value="${escapeHTML(it.note||'')}" placeholder="返礼品・病院名など"></div>
+    </div>`).join('') +
+    `<div style="display:flex;justify-content:space-between;padding:8px 2px 0;font-weight:700;font-size:12.5px">
+      <span>明細の小計</span><span class="mono">${fmt(total)}</span></div>`;
+  el.querySelectorAll('.pat-row').forEach(row=>{
+    const i=+row.dataset.i;
+    row.querySelector('.di-date').onchange = e=>ddItems[i].date=e.target.value;
+    row.querySelector('.di-amount').oninput = e=>{ ddItems[i].amount=parseFloat(e.target.value)||''; syncDdTotal(); };
+    row.querySelector('.di-name').oninput = e=>ddItems[i].name=e.target.value;
+    row.querySelector('.di-note').oninput = e=>ddItems[i].note=e.target.value;
+  });
+}
+// 明細の合計を金額欄に反映
+function syncDdTotal() {
+  const total = ddItems.reduce((a,x)=>a+(parseFloat(x.amount)||0),0);
+  if (total) document.getElementById('dd-amount').value = total;
+  renderDdItems();
+}
 function setTaxYear(y){ state.settings.taxYear = parseInt(y)||new Date().getFullYear(); save(); renderTaxReport(); }
 function setDdCert(v, el){
   ddCert = v;
@@ -5634,6 +5842,9 @@ function openDeductionModal(id) {
   ddCert = d?!!d.certified:false;
   const cb = document.querySelector(`#modal-deduction .seg-btn[data-ddc="${ddCert?1:0}"]`);
   if (cb) setDdCert(ddCert, cb);
+  ddItems = d?JSON.parse(JSON.stringify(d.items||[])):[];
+  renderDdItems();
+  fillMemberSelect('dd-for', d?(d.forMemberId||d.memberId):'');
   onDdTypeChange();
   openModal('modal-deduction');
 }
@@ -5646,6 +5857,8 @@ function saveDeduction() {
   const data = { type, name, amount,
     year: parseInt(document.getElementById('dd-year').value)||new Date().getFullYear(),
     certified: ddCert, memberId: (document.getElementById('dd-member')||{}).value||'',
+    forMemberId: (document.getElementById('dd-for')||{}).value||'',
+    items: ddItems.filter(x=>x.amount||x.name),
     memo: document.getElementById('dd-memo').value };
   if (ddEditing) Object.assign(ddEditing, data);
   else state.deductions.push(Object.assign({id:'dd'+Date.now()}, data));
@@ -5662,6 +5875,33 @@ function deleteDeduction() {
 // 年間の経費を科目別に集計
 function expensesByAccount(year) {
   const map = {};
+  // サブスク（毎月/毎年の請求を年間で集計）
+  state.subscriptions.forEach(sb=>{
+    if (!sb.isExpense) return;
+    if (!inCurrentMember(sb)) return;
+    const ratio = (sb.businessRatio===undefined?100:sb.businessRatio)/100;
+    const cyc = sb.cycle||'monthly';
+    let months = [];
+    for (let mo=0; mo<12; mo++) {
+      const ym = year+'-'+pad(mo+1);
+      if (sb.activeFrom && ym < sb.activeFrom) continue;
+      if (sb.activeTo && ym > sb.activeTo) continue;
+      if (cyc==='yearly' && (mo+1)!==(sb.month||1)) continue;
+      const dim = daysIn(year,mo);
+      const d = dstr(year,mo,sb.day>=99?dim:Math.min(sb.day,dim));
+      if (sb.trialTo && d <= sb.trialTo) continue;
+      months.push({ ym, d, amount: subAmountAt(sb, ym) });
+    }
+    months.forEach(x=>{
+      const amt = Math.round(x.amount*ratio);
+      if (!amt) return;
+      const key = sb.account || 'misc';
+      if (!map[key]) map[key] = { total:0, items:[] };
+      map[key].total += amt;
+      map[key].items.push({ name:sb.name+'（サブスク）', date:x.d, amount:amt,
+        gross:x.amount, ratio:sb.businessRatio||100, id:sb.id, isSub:true });
+    });
+  });
   state.moneyRecs.forEach(mr=>{
     if (!mr.isExpense) return;
     if (!inCurrentMember(mr)) return;
@@ -5699,7 +5939,14 @@ function renderTaxReport() {
   const map = expensesByAccount(year);
   const expTotal = Object.values(map).reduce((a,x)=>a+x.total,0);
   const income = incomeInYear(year);
-  const deducts = state.deductions.filter(d=>d.year===year && inCurrentMember(d));
+  const cur = currentMemberId();
+  const deducts = state.deductions.filter(d=>{
+    if (d.year!==year) return false;
+    if (cur==='all') return true;
+    // 「誰の控除にするか」で判定（未設定なら本人扱い）
+    const owner = d.forMemberId || d.memberId || selfMemberId();
+    return owner===cur;
+  });
   const ddTotal = deducts.reduce((a,d)=>a+(d.amount||0),0);
   // サマリー
   const sum = document.getElementById('tax-summary');
@@ -5727,21 +5974,21 @@ function renderTaxReport() {
   // 経費一覧
   const el = document.getElementById('tax-expense-list');
   if (el) {
-    const keys = EXPENSE_ACCOUNTS.filter(a=>map[a.key]);
+    const keys = accountList().filter(a=>map[a.id]);
     el.innerHTML = keys.length ? keys.map(a=>{
-      const g = map[a.key];
+      const g = map[a.id];
       return `<div style="padding:9px 2px;border-bottom:1px solid var(--border)">
-        <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleGroup('exp-${a.key}')">
-          <span style="font-size:13px;font-weight:600"><span class="grp-caret ${isGrpOpen('exp-'+a.key)?'open':''}">▶</span> ${a.label}
+        <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleGroup('exp-${a.id}')">
+          <span style="font-size:13px;font-weight:600"><span class="grp-caret ${isGrpOpen('exp-'+a.id)?'open':''}">▶</span> ${escapeHTML(a.name)}
             <span class="grp-count">${g.items.length}</span></span>
           <span class="mono" style="font-size:14px;font-weight:600;color:${state.settings.colorExpense}">${fmt(g.total)}</span>
         </div>
-        <div style="display:${isGrpOpen('exp-'+a.key)?'block':'none'};margin-top:6px">
+        <div style="display:${isGrpOpen('exp-'+a.id)?'block':'none'};margin-top:6px">
           ${g.items.sort((x,y)=>x.date.localeCompare(y.date)).map(it=>`
             <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0 5px 14px;font-size:11.5px;color:var(--text-secondary)">
               <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.date.slice(5).replace('-','/')} ${escapeHTML(it.name)}${it.ratio<100?`<span style="font-size:10px"> (${it.ratio}%)</span>`:''}</span>
               <span class="mono" style="flex-shrink:0">${fmt(it.amount)}</span>
-              <button class="btn btn-ghost btn-sm" style="padding:2px 7px;font-size:10px;margin-left:6px" onclick="openMoneyModal(null,null,'${it.id}')">編集</button>
+              <button class="btn btn-ghost btn-sm" style="padding:2px 7px;font-size:10px;margin-left:6px" onclick="${it.isSub?`openSubscriptionModal('${it.id}')`:`openMoneyModal(null,null,'${it.id}')`}">編集</button>
             </div>`).join('')}
         </div></div>`;
     }).join('') + `<div style="display:flex;justify-content:space-between;padding:11px 2px 2px;font-weight:700">
@@ -5751,21 +5998,48 @@ function renderTaxReport() {
   // 控除一覧
   const dl = document.getElementById('tax-deduction-list');
   if (dl) {
-    dl.innerHTML = deducts.length ? deducts.map(d=>{
-      const def = DEDUCTION_TYPES.find(t=>t.key===d.type);
-      const mo = d.memberId?memberById(d.memberId):null;
-      return `<div class="job-item">
-        <span style="width:26px;text-align:center;font-size:19px;flex-shrink:0">📑</span>
-        <div class="job-item-body"><div class="job-item-name">${escapeHTML(d.name)}
-          ${d.certified?'<span class="badge-sm bd-rate">証明書あり</span>':'<span class="badge-sm bd-limit">証明書未着</span>'}</div>
-          <div class="job-item-sub">${def?def.label:''}${mo?' / '+escapeHTML(mo.name):''}</div></div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span class="mono" style="font-size:13px;font-weight:600">${fmt(d.amount)}</span>
-          <button class="btn btn-ghost btn-sm" onclick="openDeductionModal('${d.id}')">編集</button>
-        </div></div>`;
-    }).join('') + `<div style="display:flex;justify-content:space-between;padding:11px 2px 2px;font-weight:700">
-        <span>控除合計</span><span class="mono" style="color:${state.settings.colorIncomeEtc}">${fmt(ddTotal)}</span></div>`
-      : '<div class="empty"><div class="empty-text">「＋」から社会保険料・生命保険料などを登録できます</div></div>';
+    if (!deducts.length) {
+      dl.innerHTML = '<div class="empty"><div class="empty-text">「＋」から社会保険料・生命保険料などを登録できます</div></div>';
+    } else {
+      // 種類ごとにグループ化して小計を出す
+      const byType = {};
+      deducts.forEach(d=>{ (byType[d.type] = byType[d.type]||[]).push(d); });
+      dl.innerHTML = DEDUCTION_TYPES.filter(t=>byType[t.key]).map(t=>{
+        const list = byType[t.key];
+        const sub = list.reduce((a,d)=>a+(d.amount||0),0);
+        return `<div style="padding:9px 2px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleGroup('dd-${t.key}')">
+            <span style="font-size:13px;font-weight:600"><span class="grp-caret ${isGrpOpen('dd-'+t.key)?'open':''}">▶</span> ${t.label}
+              <span class="grp-count">${list.length}</span></span>
+            <span class="mono" style="font-size:14px;font-weight:600">${fmt(sub)}</span>
+          </div>
+          <div style="display:${isGrpOpen('dd-'+t.key)?'block':'none'};margin-top:6px">
+            ${list.map(d=>{
+              const forMo = d.forMemberId?memberById(d.forMemberId):null;
+              const ownMo = d.memberId?memberById(d.memberId):null;
+              // 本人以外の控除は薄く表示
+              const isOther = forMo && ownMo && forMo.id!==ownMo.id;
+              return `<div style="padding:6px 0 6px 14px;${isOther?'opacity:0.6':''}">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:12.5px;font-weight:500">${escapeHTML(d.name)}
+                      ${d.certified?'<span class="badge-sm bd-rate">証明書</span>':'<span class="badge-sm bd-limit">未着</span>'}</div>
+                    ${(ownMo||forMo)?`<div style="font-size:10.5px;color:var(--text-secondary)">${ownMo?escapeHTML(ownMo.name):''}${isOther?` → ${escapeHTML(forMo.name)}が申告`:''}</div>`:''}
+                  </div>
+                  <span class="mono" style="font-size:12.5px;font-weight:600;flex-shrink:0">${fmt(d.amount)}</span>
+                  <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px" onclick="openDeductionModal('${d.id}')">編集</button>
+                </div>
+                ${(d.items||[]).length?`<div style="margin-top:4px;padding-left:6px">
+                  ${d.items.map(it=>`<div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-secondary);padding:2px 0">
+                    <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.date?it.date.slice(5).replace('-','/'):''} ${escapeHTML(it.name||'')}${it.note?`（${escapeHTML(it.note)}）`:''}</span>
+                    <span class="mono">${fmt(it.amount||0)}</span></div>`).join('')}
+                </div>`:''}
+              </div>`;
+            }).join('')}
+          </div></div>`;
+      }).join('') + `<div style="display:flex;justify-content:space-between;padding:11px 2px 2px;font-weight:700">
+        <span>控除合計</span><span class="mono" style="color:${state.settings.colorIncomeEtc}">${fmt(ddTotal)}</span></div>`;
+    }
   }
 }
 
@@ -5890,7 +6164,20 @@ function renderMemberList() {
 }
 
 // ── サブスク ──
-let subEditing=null, sbHistory=[];
+let subEditing=null, sbHistory=[], sbIsExpense=false;
+function setSbExpense(v, el) {
+  sbIsExpense = v;
+  document.querySelectorAll('#modal-subscription .seg-btn[data-sbe]').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  const area = document.getElementById('sb-account-area');
+  area.style.display = v?'':'none';
+  if (v) {
+    const sel = document.getElementById('sb-account');
+    sel.innerHTML = accountList().map(a=>`<option value="${a.id}">${escapeHTML(a.name)}</option>`).join('');
+    const r = document.getElementById('sb-ratio');
+    if (!r.value) r.value = 100;
+  }
+}
 function onSbCycleChange() {
   const v = document.getElementById('sb-cycle').value;
   const row = document.getElementById('sb-month-row');
@@ -5956,6 +6243,12 @@ function openSubscriptionModal(id) {
   document.getElementById('sb-month').value = sb?String(sb.month||1):'1';
   sbHistory = sb?JSON.parse(JSON.stringify(sb.history||[])):[];
   renderSbHistory();
+  sbIsExpense = sb?!!sb.isExpense:false;
+  const sbe = document.querySelector(`#modal-subscription .seg-btn[data-sbe="${sbIsExpense?1:0}"]`);
+  if (sbe) setSbExpense(sbIsExpense, sbe);
+  if (sb && sb.account) document.getElementById('sb-account').value = sb.account;
+  document.getElementById('sb-ratio').value = sb?(sb.businessRatio||100):100;
+  fillMemberSelect('sb-member', sb?sb.memberId:'');
   document.getElementById('sb-wallet').innerHTML = '<option value="">指定なし</option>' +
     sortByOrder(state.wallets).map(w=>`<option value="${w.id}" ${sb&&w.id===sb.walletId?'selected':''}>${escapeHTML(w.name)}</option>`).join('');
   document.getElementById('sb-pointtype').innerHTML = '<option value="">種類</option>' +
@@ -5980,6 +6273,10 @@ function saveSubscription() {
     month: parseInt(document.getElementById('sb-month').value)||1,
     currency: document.getElementById('sb-currency').value,
     history: sbHistory.filter(h=>h.from&&h.amount),
+    isExpense: sbIsExpense,
+    account: sbIsExpense ? ((document.getElementById('sb-account')||{}).value||'') : '',
+    businessRatio: sbIsExpense ? (parseFloat(document.getElementById('sb-ratio').value)||100) : 100,
+    memberId: (document.getElementById('sb-member')||{}).value || '',
     memo: document.getElementById('sb-memo').value };
   if (subEditing) Object.assign(subEditing, data);
   else {
@@ -6069,14 +6366,32 @@ function setLendSettled(v,el){ lendSettled=v;
 }
 // 過去の入力から候補を作る
 function renderLendSuggestions() {
-  const whos = [...new Set(state.lends.map(l=>l.who).filter(Boolean))].slice(0,12);
-  const names = [...new Set(state.lends.map(l=>l.name).filter(Boolean))].slice(0,12);
+  const lp = state.lendPresets || {whos:[],names:[]};
+  const whos = [...new Set([...(lp.whos||[]), ...state.lends.map(l=>l.who).filter(Boolean)])].slice(0,12);
+  const names = [...new Set([...(lp.names||[]), ...state.lends.map(l=>l.name).filter(Boolean)])].slice(0,12);
   document.getElementById('ld-who-list').innerHTML = whos.map(w=>`<option value="${escapeHTML(w)}">`).join('');
   document.getElementById('ld-name-list').innerHTML = names.map(n=>`<option value="${escapeHTML(n)}">`).join('');
-  document.getElementById('ld-who-chips').innerHTML = whos.slice(0,6).map(w=>
-    `<div class="pat-chip" onclick="document.getElementById('ld-who').value='${escapeHTML(w)}'">${escapeHTML(w)}</div>`).join('');
-  document.getElementById('ld-name-chips').innerHTML = names.slice(0,6).map(n=>
-    `<div class="pat-chip" onclick="document.getElementById('ld-name').value='${escapeHTML(n)}'">${escapeHTML(n)}</div>`).join('');
+  document.getElementById('ld-who-chips').innerHTML = whos.slice(0,8).map(w=>
+    `<div class="pat-chip" onclick="document.getElementById('ld-who').value='${escapeHTML(w)}'">${escapeHTML(w)}
+      <span onclick="event.stopPropagation();removeLendPreset('whos','${escapeHTML(w)}')" style="margin-left:4px;opacity:.5">✕</span></div>`).join('')
+    + `<div class="pat-chip" onclick="addLendPreset('whos')" style="border-style:dashed">＋ 登録</div>`;
+  document.getElementById('ld-name-chips').innerHTML = names.slice(0,8).map(n=>
+    `<div class="pat-chip" onclick="document.getElementById('ld-name').value='${escapeHTML(n)}'">${escapeHTML(n)}
+      <span onclick="event.stopPropagation();removeLendPreset('names','${escapeHTML(n)}')" style="margin-left:4px;opacity:.5">✕</span></div>`).join('')
+    + `<div class="pat-chip" onclick="addLendPreset('names')" style="border-style:dashed">＋ 登録</div>`;
+}
+function addLendPreset(kind) {
+  const cur = document.getElementById(kind==='whos'?'ld-who':'ld-name').value.trim();
+  if (!cur) { showToast('入力してから「＋ 登録」を押してください'); return; }
+  state.lendPresets = state.lendPresets || {whos:[],names:[]};
+  const arr = state.lendPresets[kind] = state.lendPresets[kind] || [];
+  if (!arr.includes(cur)) arr.push(cur);
+  save(); renderLendSuggestions(); showToast('候補に追加しました');
+}
+function removeLendPreset(kind, val) {
+  state.lendPresets = state.lendPresets || {whos:[],names:[]};
+  state.lendPresets[kind] = (state.lendPresets[kind]||[]).filter(x=>x!==val);
+  save(); renderLendSuggestions();
 }
 function openLendModal(id) {
   lendEditing = id ? state.lends.find(l=>l.id===id) : null;
@@ -6094,6 +6409,7 @@ function openLendModal(id) {
   const db=document.querySelector(`#modal-lend .seg-btn[data-ld="${lendDir}"]`); if(db) setLendDir(lendDir,db);
   const sb=document.querySelector(`#modal-lend .seg-btn[data-ls="${lendSettled?1:0}"]`); if(sb) setLendSettled(lendSettled,sb);
   renderLendSuggestions();
+  fillMemberSelect('ld-member', l?l.memberId:'');
   openModal('modal-lend');
 }
 function saveLend() {
@@ -6103,6 +6419,7 @@ function saveLend() {
   const data = { who, dir:lendDir, name:document.getElementById('ld-name').value.trim(),
     amount, date:document.getElementById('ld-date').value||todayStr(),
     settled:lendSettled, settledDate: lendSettled?(document.getElementById('ld-settledate').value||todayStr()):'',
+    memberId: (document.getElementById('ld-member')||{}).value || '',
     memo:document.getElementById('ld-memo').value };
   if (lendEditing) Object.assign(lendEditing, data);
   else state.lends.push(Object.assign({id:'ld'+Date.now()}, data));
@@ -6125,7 +6442,7 @@ function toggleLendSettled(id) {
 function renderLendList() {
   const el = document.getElementById('input-lend-area');
   if (!el) return;
-  const unsettled = state.lends.filter(l=>!l.settled);
+  const unsettled = state.lends.filter(l=>!l.settled && inCurrentMember(l));
   const lentSum = unsettled.filter(l=>l.dir==='lent').reduce((a,l)=>a+l.amount,0);
   const borSum = unsettled.filter(l=>l.dir==='borrowed').reduce((a,l)=>a+l.amount,0);
   let html = `<div style="display:flex;gap:8px;margin-bottom:10px">
@@ -6137,7 +6454,7 @@ function renderLendList() {
       <div class="mono" style="font-size:15px;font-weight:600;color:${state.settings.colorExpense}">${fmt(borSum)}</div></div>
   </div>
   <button class="btn btn-primary btn-block" onclick="openLendModal()">＋ 立て替えを記録</button>`;
-  const list = [...state.lends].sort((a,b)=>(a.settled?1:0)-(b.settled?1:0) || b.date.localeCompare(a.date)).slice(0,20);
+  const list = [...state.lends].filter(l=>inCurrentMember(l)).sort((a,b)=>(a.settled?1:0)-(b.settled?1:0) || b.date.localeCompare(a.date)).slice(0,20);
   if (list.length) {
     html += '<div style="margin-top:10px">' + list.map(l=>`
       <div class="job-sum-row" style="${l.settled?'opacity:0.5':''}">
@@ -6216,6 +6533,8 @@ function openInvestmentModal(id) {
   document.getElementById('inv-beforeday').value = iv?String(iv.beforeDay||''):'';
   document.getElementById('inv-beforeday2').value = iv?String(iv.beforeDay2||''):'';
   document.getElementById('inv-memo').value = iv?(iv.memo||''):'';
+  document.getElementById('inv-short').value = iv?(iv.shortName||''):'';
+  fillMemberSelect('inv-member', iv?iv.memberId:'');
   document.getElementById('inv-from').value = iv?(iv.activeFrom||''):'';
   document.getElementById('inv-to').value = iv?(iv.activeTo||''):'';
   const brokers = sortByOrder(state.wallets.filter(w=>w.type==='securities'));
@@ -6247,6 +6566,8 @@ function saveInvestment() {
     activeFrom: document.getElementById('inv-from').value||'',
     activeTo: document.getElementById('inv-to').value||'',
     history: invHistory.filter(h=>h.from&&(h.amount||h.brokerId)),
+    shortName: document.getElementById('inv-short').value.trim(),
+    memberId: (document.getElementById('inv-member')||{}).value || '',
     memo: document.getElementById('inv-memo').value };
   if (invEditing) Object.assign(invEditing, data);
   else {
@@ -6264,7 +6585,8 @@ function deleteInvestment() {
   });
 }
 function moveInvestment(id,dir){ moveItem(state.investments, id, dir, renderAll); }
-const INV_KIND_LABEL = { nisa:'つみたてNISA', growth:'成長投資枠', ideco:'iDeCo', spot:'スポット購入', other:'その他の投資' };
+const INV_KIND_LABEL = { nisa:'NISAつみたて', growth:'NISA成長投資', oldnisa:'旧NISA', junior:'ジュニアNISA',
+  ideco:'iDeCo', tokutei:'特定口座', ippan:'一般口座', zaikei:'財形貯蓄', dc:'企業型DC', spot:'スポット', other:'その他の投資' };
 function renderInvestmentList() {
   const el = document.getElementById('investment-list');
   if (!el) return;
@@ -6304,7 +6626,7 @@ function investmentItemsOn(ds) {
       const w = iv.walletId?walletById(iv.walletId):null;
       const br = cfg.brokerId?walletById(cfg.brokerId):null;
       out.push({ kind:'invest', stamp:'📈', color:PALETTE[4],
-        label:`${iv.name} 積立`, short:(iv.name||'').slice(0,6),
+        label:`${iv.name} 積立`, short:(iv.shortName||iv.name||''),
         sub:`${INV_KIND_LABEL[iv.kind]}${br?' / '+br.name:''}${w?' / '+w.name:''}`,
         amount:0, investAmount:cfg.amount, memo:iv.memo||'', ref:iv });
     }
@@ -6317,7 +6639,7 @@ function investmentItemsOn(ds) {
         const raw = dstr(y,m,pd);
         if (adjustPayDate(raw,'after')===ds) {
           out.push({ kind:'invest', stamp:'💳', color:PALETTE[5],
-            label:`${iv.name} カード引落`, short:(iv.name||'').slice(0,6),
+            label:`${iv.name} カード引落`, short:(iv.shortName||iv.name||''),
             sub:`${card.name}の請求に合算`,
             amount:0, investAmount:cfg.amount, memo:'', ref:iv });
         }
@@ -6997,7 +7319,7 @@ function renderRouteBonuses() {
     row.querySelector('.rb-rate').oninput = e=>routeBonuses[i].rate=parseFloat(e.target.value)||'';
   });
 }
-let routeMethods = [];
+let routeMethods = [], routeFree = false;
 function renderRouteMethods() {
   const el = document.getElementById('rt-methods-area');
   if (!el) return;
@@ -7005,9 +7327,23 @@ function renderRouteMethods() {
     <div class="pat-chip ${routeMethods.includes(mth.key)?'sel':''}" onclick="toggleRouteMethod('${mth.key}')">${mth.label}</div>`).join('') + '</div>';
 }
 function toggleRouteMethod(key) {
-  const i = routeMethods.indexOf(key);
-  if (i>=0) routeMethods.splice(i,1); else routeMethods.push(key);
+  // 経路の属性は1つだけ（同じものを押すと解除）
+  routeMethods = (routeMethods[0]===key) ? [] : [key];
   renderRouteMethods();
+  updateRoutePreview();
+}
+function updateRoutePreview() {
+  const el = document.getElementById('rt-preview');
+  if (!el) return;
+  const f = walletById(document.getElementById('rt-from').value);
+  const t = walletById(document.getElementById('rt-to').value);
+  if (!f || !t) { el.textContent=''; return; }
+  el.innerHTML = `${escapeHTML(routeWalletLabel(f, routeMethods))} → ${escapeHTML(t.name)}`;
+}
+function setRouteFree(v, el) {
+  routeFree = v;
+  document.querySelectorAll('#modal-route .seg-btn[data-rtf]').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
 }
 // 経路名に属性を添える（コジマイオンカード（Apple Pay））
 function routeWalletLabel(w, methods) {
@@ -7043,6 +7379,11 @@ function openRouteModal(id) {
   onRtRateModeChange();
   routeMethods = r?JSON.parse(JSON.stringify(r.methods||[])):[];
   renderRouteMethods();
+  routeFree = r?!!r.feeFree:false;
+  const rfb = document.querySelector(`#modal-route .seg-btn[data-rtf="${routeFree?1:0}"]`);
+  if (rfb) setRouteFree(routeFree, rfb);
+  document.getElementById('rt-from').onchange = ()=>updateRoutePreview();
+  updateRoutePreview();
   document.getElementById('rt-limit-once').value = r?(r.limitOnce||''):'';
   document.getElementById('rt-limit-day').value = r?(r.limitDay||''):'';
   document.getElementById('rt-limit-month').value = r?(r.limitMonth||''):'';
@@ -7079,6 +7420,7 @@ function saveRoute() {
     ratePoints: (mode==='per') ? (parseFloat(document.getElementById('rt-ratepoints').value)||0) : 0,
     rateCap: (mode==='per') ? (parseFloat(document.getElementById('rt-ratecap').value)||0) : 0,
     methods: routeMethods.slice(),
+    feeFree: routeFree,
     pointTypeId: document.getElementById('rt-pointtype').value||'',
     limitMin: parseFloat(document.getElementById('rt-limit-min').value)||0,
     limitOnce: parseFloat(document.getElementById('rt-limit-once').value)||0,
@@ -7129,6 +7471,7 @@ function renderRouteList() {
     (r.bonusRates||[]).forEach(b=>{
       if (b.rate) badges.push(`<span class="badge-sm bd-rate">${b.rate}%${b.cond?` ${escapeHTML(b.cond)}`:''}</span>`);
     });
+    if (r.feeFree) badges.push('<span class="badge-sm bd-link">手数料無料</span>');
     if (pt) badges.push(`<span class="badge-sm bd-pt">${escapeHTML(pt.name)}${pt.limited?'(限定)':''}</span>`);
     badges.push(limitBadge('once', r.limitOnce));
     badges.push(limitBadge('day', r.limitDay));
@@ -7140,7 +7483,7 @@ function renderRouteList() {
       ${orderBtnsHTML('moveRoute', r.id, list.indexOf(r), list.length, 'routes')}
       <div style="flex:1;min-width:0">
       <div class="route-head">
-        <span style="width:18px;height:18px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center">${f?stampHTML(walletStamp(f)):''}</span><span>${escapeHTML(f?f.name:'?')}</span>
+        <span style="width:18px;height:18px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center">${f?stampHTML(walletStamp(f)):''}</span><span>${escapeHTML(f?routeWalletLabel(f, r.methods):'?')}</span>
         <span class="route-arrow">→</span>
         <span style="width:18px;height:18px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center">${t?stampHTML(walletStamp(t)):''}</span><span>${escapeHTML(t?t.name:'?')}</span>
       </div>
@@ -7896,6 +8239,7 @@ function renderAll() {
   renderMemberBar();
   renderMemberList();
   renderTaxReport();
+  renderAccountList();
   renderStorageUsage();
   renderListHeaders();
   updateFilterBadge();
