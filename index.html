@@ -311,7 +311,7 @@
   <header class="topbar">
     <div style="display:flex;align-items:center;">
       <span class="topbar-logo">Finance<span>Mgr</span></span>
-      <span class="version-badge" id="version-badge">v27</span>
+      <span class="version-badge" id="version-badge">v28</span>
     </div>
     <div class="topbar-total">
       <div class="topbar-total-label">今月合計</div>
@@ -690,7 +690,7 @@
           <div class="settings-row"><span>古いデータを書き出して削除</span><button class="btn btn-ghost btn-sm" onclick="openArchiveDialog()">アーカイブ</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v27</span> / schema <span id="schema-footer">25</span> / 祝日データ 2025–2027
+          FinanceManager <span id="ver-footer">v28</span> / schema <span id="schema-footer">26</span> / 祝日データ 2025–2027
         </div>
       </div>
     </div>
@@ -1471,6 +1471,19 @@
       </div>
       <div id="tax-installments"></div>
     </div>
+    <div class="form-group member-row" id="tax-payer-row" style="display:none"><label>支払う人</label>
+      <select id="tax-payer"></select>
+      <div class="field-note">家族分をまとめて払う場合、実際に支払う人を選びます。</div></div>
+    <div class="form-group member-row" id="tax-for-row" style="display:none"><label>控除を受ける人</label>
+      <select id="tax-for"></select></div>
+    <div class="form-group" id="tax-prepay-row"><label>前納（国民年金など）</label>
+      <select id="tax-prepay" onchange="onTaxPrepayChange()">
+        <option value="">なし（通常納付）</option>
+        <option value="6m">6か月前納</option>
+        <option value="1y">1年前納</option>
+        <option value="2y">2年前納</option>
+      </select>
+      <div class="field-note" id="tax-prepay-note"></div></div>
     <div class="form-group"><label>確定申告での扱い</label>
       <select id="tax-mode-tax" onchange="onTaxModeSelChange()">
         <option value="none">対象外</option>
@@ -1646,7 +1659,7 @@
     <div class="subsection">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <div class="subsection-title" style="margin-bottom:0">明細</div>
-        <button class="btn btn-ghost btn-sm" onclick="addExItem()">＋ 明細</button>
+        <button class="btn btn-ghost btn-sm" id="ex-additem-btn" onclick="addExItem()">＋ 明細</button>
       </div>
       <div id="ex-items"></div>
       <div class="field-note">同じ支払先・日付の買い物をまとめて登録できます。</div>
@@ -1655,8 +1668,9 @@
     <div class="form-group"><label>メモ</label><input type="text" id="ex-memo"></div>
   </div>
   <div class="form-actions">
+    <button class="btn btn-danger" id="ex-delete-btn" style="margin-right:auto;display:none" onclick="deleteExpense()">削除</button>
     <button class="btn btn-ghost" onclick="closeModal('modal-expense')">キャンセル</button>
-    <button class="btn btn-primary" onclick="saveExpenses()">まとめて保存</button>
+    <button class="btn btn-primary" onclick="saveExpenses()">保存</button>
   </div>
 </div></div>
 
@@ -1905,8 +1919,8 @@
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '27';
-const SCHEMA_VERSION = 25;
+const APP_VERSION = '28';
+const SCHEMA_VERSION = 26;
 const STORAGE_KEY = 'financeManager';
 
 const C = { blue:['#5B8DEF','#3D6BD1','#EAF1FF'], teal:['#2DC5A4','#189A7E','#E4FAF4'], amber:['#F7B32B','#D3921A','#FFF6E0'], pink:['#F76D8E','#D94A6E','#FFEBF0'], violet:['#9B7EDE','#7A5CC4','#F1EBFF'], slate:['#6B7A99','#4D5B78','#EEF1F6'] };
@@ -2054,6 +2068,8 @@ const TAX_PRESETS = {
   pension:    { name:'国民年金保険料', stamp:'👴', months:[4,5,6,7,8,9,10,11,12,1,2,3], color:'#C6F3E4' },
   income:     { name:'所得税',       stamp:'📋', months:[3],                        color:'#E3D9FF' },
   car:        { name:'自動車税',     stamp:'🚗', months:[5],                        color:'#BFE3FF' },
+  nhk:        { name:'NHK受信料',    stamp:'📺', months:[],                         color:'#E8E3F5' },
+  care:       { name:'介護保険料',   stamp:'🏥', months:[7,8,9,10,11,12,1,2,3],     color:'#FFD3DE' },
   other:      { name:'その他',       stamp:'🧾', months:[],                         color:'#EEF1F6' },
 };
 // 種別ごとのデフォルトスタンプ
@@ -2087,6 +2103,7 @@ function defaultMoneyCats() {
     { id:'mc_pt',    name:'ポイント還元', type:'point',  stamp:'coin', color:'#E3D9FF', active:true },
     { id:'mc_inc',   name:'入金・受取',  type:'income', stamp:'🏦', color:'#C6F3E4', active:true },
     { id:'mc_ptuse', name:'ポイント利用', type:'pointuse', stamp:'🎫', color:'#F1EBFF', active:true },
+    { id:'mc_pension', name:'年金受取', type:'income', stamp:'👴', color:'#D6F0E0', active:true },
   ];
 }
 function migrate(data) {
@@ -2502,6 +2519,20 @@ function migrate(data) {
     (data.moneyRecs||[]).forEach(r=>{ if(r.payee===undefined) r.payee = ''; });
     v = 25;
   }
+  if (v < 26) {
+    // v25 → v26 : 税金の支払者/控除者の分離、前納、経費専用フラグ
+    (data.taxes||[]).forEach(t=>{
+      if (t.payerId===undefined) t.payerId = t.memberId||'';       // 実際に払う人
+      if (t.forMemberId===undefined) t.forMemberId = t.memberId||''; // 控除を受ける人
+      if (t.prepay===undefined) t.prepay = '';  // '' | '6m' | '1y' | '2y'
+    });
+    (data.moneyRecs||[]).forEach(r=>{ if(r.expenseOnly===undefined) r.expenseOnly=false; });
+    if (!(data.moneyCats||[]).some(c=>c.id==='mc_pension')) {
+      data.moneyCats.push({ id:'mc_pension', name:'年金受取', type:'income', stamp:'👴',
+        color:'#D6F0E0', active:true, order:(data.moneyCats.length+1), shortName:'年金' });
+    }
+    v = 26;
+  }
   data.schemaVersion = SCHEMA_VERSION;
   data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[]; data.checks=data.checks||[];
   data.moneyCats = (data.moneyCats&&data.moneyCats.length)?data.moneyCats:defaultMoneyCats();
@@ -2805,11 +2836,13 @@ function dayItems(ds) {
   // お金・ポイント記録（単発 + 毎月くり返し）
   state.moneyRecs.forEach(mr=>{
     if (!inCurrentMember(mr)) return;
+    if (mr.expenseOnly) return; // 経費専用の記録はカレンダーに出さない
     if (mr.noPayment) return; // 支払なしの月は表示しない
     if (!moneyHitsDate(mr, ds)) return;
     // クレカ支払いはカテゴリを持たず、専用の見た目で出す
     if (mr.cardId) {
       const cw = walletById(mr.cardId);
+      if (cw && cw.familyCard) return; // 家族カードはカレンダーに出さない
       const net = cardNetAmount(mr);
       const base = (cw && cw.redeemEarnsPoint!==false) ? (mr.amount||0) : net;
       const estPt = cw ? calcPointsFor(cw, base) : 0;
@@ -2893,6 +2926,7 @@ function dayItems(ds) {
     cardPaymentsInMonth(y,m).forEach(p=>{
       if (p.date!==ds) return;
       if (p.noPayment) return; // 支払なしの月はカレンダーに出さない
+      if (p.wallet.familyCard) return; // 家族カードは本会員側で引き落とされるので出さない
       if (p.rec) return; // 実績登録済みなら money として表示されるので重複回避
       const acc = p.wallet.payAccountId ? walletById(p.wallet.payAccountId) : null;
       items.push({ kind:'cardpay', stamp: walletStamp(p.wallet), color: p.wallet.color||PALETTE[3],
@@ -2979,6 +3013,7 @@ function moneyRecsInMonth(y, m) {
   const dim = daysIn(y,m);
   state.moneyRecs.forEach(mr=>{
     if (!inCurrentMember(mr)) return;
+    if (mr.expenseOnly) return; // 経費専用はホーム・集計に出さない
     // 支払済は「支払った日」でその月に含める
     if (mr.paid && mr.paidDate) {
       if (+mr.paidDate.slice(0,4)===y && +mr.paidDate.slice(5,7)-1===m) {
@@ -4097,7 +4132,10 @@ function orderBtnsHTML(fnName, id, idx, total, listKey) {
   </div>`;
 }
 // ドラッグ並べ替えを有効化（コンテナ内の .drag-item を対象）
+const _dragCleanups = {};
 function enableDrag(containerId, arr, listKey, afterFn) {
+  // 以前のリスナーを解除（多重登録でボタンが反応しなくなるのを防ぐ）
+  if (_dragCleanups[containerId]) { _dragCleanups[containerId](); delete _dragCleanups[containerId]; }
   if ((state.settings.sortMethod||'button')!=='drag' || !isSortMode(listKey)) return;
   const box = document.getElementById(containerId);
   if (!box) return;
@@ -4143,6 +4181,12 @@ function enableDrag(containerId, arr, listKey, afterFn) {
   document.addEventListener('touchend', end);
   document.addEventListener('mousemove', move);
   document.addEventListener('mouseup', end);
+  _dragCleanups[containerId] = ()=>{
+    document.removeEventListener('touchmove', move);
+    document.removeEventListener('touchend', end);
+    document.removeEventListener('mousemove', move);
+    document.removeEventListener('mouseup', end);
+  };
 }
 function moveJob(id, dir){ moveItem(state.jobs, id, dir, renderAll); }
 function moveMoneyCat(id, dir){ moveItem(state.moneyCats, id, dir, renderAll); }
@@ -5341,7 +5385,7 @@ function renderCardPayments() {
       <div class="job-sum-name">${escapeHTML(p.wallet.name)}
         <div class="job-sum-sub">${p.date.slice(5).replace('-','/')} 引落${p.offset===2?'（翌々月払い）':''}${p.date!==p.rawDate?'（翌営業日）':''}${p.wallet.payAccountId&&walletById(p.wallet.payAccountId)?'／'+escapeHTML(walletById(p.wallet.payAccountId).name):''}</div></div>
       <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-        <div style="text-align:right">
+        <div style="text-align:right;${p.wallet.familyCard?'opacity:0.55':''}">
           ${p.noPayment
             ? `<div style="font-size:11.5px;color:var(--text-secondary)">支払なし</div>`
             : (p.fixed
@@ -5358,6 +5402,18 @@ function renderCardPayments() {
 // tax: {id, presetKey, name, shortName, year, mode, total, walletId, memo,
 //       installments:[{no, dueDate, amount, paid, paidDate, walletId, memo, point, pointTypeId}]}
 let taxEditing = null, taxInstallments = [];
+function onTaxPrepayChange() {
+  const v = document.getElementById('tax-prepay').value;
+  const note = document.getElementById('tax-prepay-note');
+  const labels = { '':'', '6m':'4月〜9月分 または 10月〜翌3月分をまとめて納付します',
+    '1y':'4月〜翌3月分をまとめて納付します（4月末に1回）',
+    '2y':'2年分をまとめて納付します（4月末に1回）' };
+  note.textContent = labels[v]||'';
+  // 前納なら期を1つにまとめる提案
+  if (v && taxInstallments.length>1) {
+    note.textContent += ' ／「＋期」で1回にまとめてください';
+  }
+}
 function onTaxModeSelChange() {
   const v = document.getElementById('tax-mode-tax').value;
   document.getElementById('tax-account-row').style.display = (v==='expense')?'':'none';
@@ -5519,6 +5575,10 @@ function openTaxModal(id) {
   if (t && t.account) document.getElementById('tax-account').value = t.account;
   if (t && t.deductionType) document.getElementById('tax-deducttype').value = t.deductionType;
   fillMemberSelect('tax-member', t?t.memberId:'');
+  fillMemberSelect('tax-payer', t?(t.payerId||t.memberId):'');
+  fillMemberSelect('tax-for', t?(t.forMemberId||t.memberId):'');
+  document.getElementById('tax-prepay').value = t?(t.prepay||''):'';
+  onTaxPrepayChange();
   document.getElementById('tax-wallet').innerHTML = '<option value="">なし（都度払い）</option>' +
     sortByOrder(state.wallets.filter(w=>w.type==='bank')).map(w=>`<option value="${w.id}" ${t&&w.id===t.walletId?'selected':''}>${escapeHTML(w.name)}</option>`).join('');
   document.getElementById('tax-delete-btn').style.display = t?'':'none';
@@ -5541,6 +5601,9 @@ function saveTax() {
     account: (document.getElementById('tax-account')||{}).value||'',
     deductionType: (document.getElementById('tax-deducttype')||{}).value||'social',
     memberId: (document.getElementById('tax-member')||{}).value||'',
+    payerId: (document.getElementById('tax-payer')||{}).value||'',
+    forMemberId: (document.getElementById('tax-for')||{}).value||'',
+    prepay: document.getElementById('tax-prepay').value||'',
     installments: taxInstallments.filter(x=>x.dueDate) };
   if (taxEditing) Object.assign(taxEditing, data);
   else state.taxes.push(Object.assign({id:'tx'+Date.now()}, data));
@@ -5997,36 +6060,51 @@ function toggleAccountEnabled(id) {
 }
 // 確定申告タブから経費を直接追加（専用画面・一括入力）
 let exItems = [];
-function openExpenseQuickAdd() {
-  exItems = [{name:'', amount:''}];
-  document.getElementById('ex-date').value = todayStr();
-  document.getElementById('ex-payee').value = '';
-  document.getElementById('ex-ratio').value = 100;
-  document.getElementById('ex-memo').value = '';
+let exEditingId = null;
+function openExpenseQuickAdd(editId) {
+  exEditingId = editId || null;
+  const r = editId ? state.moneyRecs.find(x=>x.id===editId) : null;
+  exItems = r ? [{name:r.name||'', amount:r.amount||''}] : [{name:'', amount:''}];
+  document.getElementById('ex-title').textContent = r?'経費を編集':'経費を追加';
+  document.getElementById('ex-date').value = r?(r.date||todayStr()):todayStr();
+  document.getElementById('ex-payee').value = r?(r.payee||''):'';
+  document.getElementById('ex-ratio').value = r?(r.businessRatio||100):100;
+  document.getElementById('ex-memo').value = r?(r.memo||''):'';
+  document.getElementById('ex-delete-btn').style.display = r?'':'none';
+  document.getElementById('ex-additem-btn').style.display = r?'none':'';
   document.getElementById('ex-account').innerHTML = accountList().map(a=>`<option value="${a.id}">${escapeHTML(a.name)}</option>`).join('');
   document.getElementById('ex-wallet').innerHTML = '<option value="">指定なし</option>' +
     sortByOrder(state.wallets.filter(w=>inCurrentMember(w))).map(w=>`<option value="${w.id}">${escapeHTML(w.name)}</option>`).join('');
   // 支払先の候補
   const payees = [...new Set(state.moneyRecs.map(r=>r.payee).filter(Boolean))].slice(0,20);
   document.getElementById('ex-payee-list').innerHTML = payees.map(p=>`<option value="${escapeHTML(p)}">`).join('');
-  fillMemberSelect('ex-member', '');
+  fillMemberSelect('ex-member', r?r.memberId:'');
+  if (r && r.account) document.getElementById('ex-account').value = r.account;
+  if (r && r.walletId) document.getElementById('ex-wallet').value = r.walletId;
   renderExItems();
   openModal('modal-expense');
 }
 function addExItem(){ exItems.push({name:'', amount:''}); renderExItems(); }
+function deleteExpense() {
+  if (!exEditingId) return;
+  const r = state.moneyRecs.find(x=>x.id===exEditingId);
+  confirmDelete('経費を削除', `「${r?r.name:''}」を削除します。よろしいですか？`, ()=>{
+    state.moneyRecs = state.moneyRecs.filter(x=>x.id!==exEditingId);
+    save(); closeModal('modal-expense'); renderAll(); showToast('削除しました');
+  });
+}
 function removeExItem(i){ exItems.splice(i,1); if(!exItems.length) exItems=[{name:'',amount:''}]; renderExItems(); }
 function renderExItems() {
   const el = document.getElementById('ex-items');
   if (!el) return;
   const total = exItems.reduce((a,x)=>a+(parseFloat(x.amount)||0),0);
   el.innerHTML = exItems.map((it,i)=>`
-    <div class="chg-grid" style="margin-bottom:6px" data-i="${i}">
-      <div><label>内容</label><input type="text" class="ei-name" value="${escapeHTML(it.name||'')}" placeholder="例：コピー用紙"></div>
-      <div><label>金額</label>
-        <div style="display:flex;gap:5px">
-          <input type="number" inputmode="numeric" class="ei-amount" value="${it.amount||''}" placeholder="1200" style="flex:1">
-          <button class="pat-del" onclick="removeExItem(${i})">✕</button>
-        </div></div>
+    <div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:6px" data-i="${i}">
+      <div style="flex:1.4;min-width:0"><label class="lbl-s">内容</label>
+        <input type="text" class="ei-name inp-s" value="${escapeHTML(it.name||'')}" placeholder="例：コピー用紙" style="width:100%"></div>
+      <div style="flex:1;min-width:0"><label class="lbl-s">金額</label>
+        <input type="number" inputmode="numeric" class="ei-amount inp-s" value="${it.amount||''}" placeholder="1200" style="width:100%"></div>
+      <button class="pat-del" onclick="removeExItem(${i})" style="flex-shrink:0;margin-bottom:2px">✕</button>
     </div>`).join('') +
     `<div style="display:flex;justify-content:space-between;padding:8px 2px 0;font-weight:700;font-size:12.5px">
       <span>合計（${exItems.filter(x=>x.amount).length}件）</span><span class="mono" id="ex-total">${fmt(total)}</span></div>`;
@@ -6052,6 +6130,15 @@ function saveExpenses() {
   const valid = exItems.filter(x=>x.amount);
   if (!valid.length) { showToast('金額を入力してください'); return; }
   const cat = state.moneyCats.find(c=>c.type==='expense');
+  // 編集モード
+  if (exEditingId) {
+    const r = state.moneyRecs.find(x=>x.id===exEditingId);
+    if (r) Object.assign(r, { name: valid[0].name || payee || '経費',
+      amount: parseFloat(valid[0].amount)||0, date, paidDate:date, payee,
+      account, businessRatio:ratio, walletId, memo, memberId });
+    save(); closeModal('modal-expense'); renderAll(); showToast('保存しました ✓');
+    return;
+  }
   valid.forEach((it,i)=>{
     state.moneyRecs.push({
       id:'m'+Date.now()+i, catId: cat?cat.id:'', cardId:'',
@@ -6060,7 +6147,7 @@ function saveExpenses() {
       repeat:'once', date, dateMode:'exact', walletId,
       dueDate:'', dueHolidayRule:'none', paid:true, paidDate:date,
       autoCheck:false, pointTypeId:'', pointExpiry:'', skipDates:[],
-      isExpense:true, account, businessRatio:ratio, memberId, noPayment:false,
+      isExpense:true, expenseOnly:true, account, businessRatio:ratio, memberId, noPayment:false,
     });
   });
   save(); closeModal('modal-expense'); renderAll();
@@ -6284,8 +6371,9 @@ function renderTaxReport() {
     }).reduce((a,i)=>a+i.amount,0);
     if (!sum) return;
     taxDeducts.push({ id:'tax:'+t.id, _isTax:true, type:t.deductionType||'social',
-      name:t.name, amount:sum, year, certified:true, memberId:t.memberId||'',
-      forMemberId:t.memberId||'', items:paid.map(i=>({
+      name:t.name, amount:sum, year, certified:true,
+      memberId:t.payerId||t.memberId||'',
+      forMemberId:t.forMemberId||t.payerId||t.memberId||'', items:paid.map(i=>({
         date:i.paidDate||i.dueDate, name:`第${i.no}期`, amount:i.amount, note:'' })) });
   });
   const deducts = [...taxDeducts, ...state.deductions].filter(d=>{
@@ -6344,7 +6432,7 @@ function renderTaxReport() {
               <span class="mono" style="flex-shrink:0">${it.pending
                 ? `<span style="color:var(--text-secondary)">${it.pendingUSD?'$'+it.usdAmount:fmt(it.gross)} ${it.pendingLabel||'未確定'}</span>`
                 : fmt(it.amount)}</span>
-              <button class="btn btn-ghost btn-sm" style="padding:2px 7px;font-size:10px;margin-left:6px" onclick="${it.isSub?`openSubscriptionModal('${it.id}')`:(it.isTax?`openTaxModal('${it.id}')`:`openMoneyModal(null,null,'${it.id}')`)}">編集</button>
+              <button class="btn btn-ghost btn-sm" style="padding:2px 7px;font-size:10px;margin-left:6px" onclick="${it.isSub?`openSubscriptionModal('${it.id}')`:(it.isTax?`openTaxModal('${it.id}')`:(it.expenseOnly?`openExpenseQuickAdd('${it.id}')`:`openMoneyModal(null,null,'${it.id}')`))}">編集</button>
             </div>`).join('')}
         </div></div>`;
     }).join('') + `<div style="display:flex;justify-content:space-between;padding:11px 2px 2px;font-weight:700">
@@ -6367,7 +6455,14 @@ function renderTaxReport() {
           <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleGroup('dd-${t.key}')">
             <span style="font-size:13px;font-weight:600"><span class="grp-caret ${isGrpOpen('dd-'+t.key)?'open':''}">▶</span> ${t.label}
               <span class="grp-count">${list.length}</span></span>
-            <span class="mono" style="font-size:14px;font-weight:600">${fmt(sub)}</span>
+            <span class="mono" style="font-size:14px;font-weight:600;${(()=>{
+              // 表示中メンバーが申告しない分だけの小計なら薄く
+              const mine = list.filter(d=>{
+                const o = d.forMemberId || d.memberId || selfMemberId();
+                return cur==='all' || o===cur;
+              });
+              return mine.length ? '' : 'opacity:0.45';
+            })()}">${fmt(sub)}</span>
           </div>
           <div style="display:${isGrpOpen('dd-'+t.key)?'block':'none'};margin-top:6px">
             ${list.map(d=>{
@@ -6379,7 +6474,11 @@ function renderTaxReport() {
               const viewer = currentMemberId();
               const ownerId = d.forMemberId || d.memberId || selfMemberId();
               const notMine = (viewer!=='all' && ownerId!==viewer);
-              const barColor = forMo ? forMo.color : (ownMo?ownMo.color:'transparent');
+              // 申告者から見たら「支払った人」の色、支払った人から見たら「申告者」の色
+              const viewerIsOwner = (viewer==='all') ? true : (ownerId===viewer);
+              const barColor = viewerIsOwner
+                ? (ownMo ? ownMo.color : 'transparent')   // 誰の分の医療費か
+                : (forMo ? forMo.color : 'transparent');  // 誰が申告するか
               return `<div style="padding:6px 0 6px 14px;${notMine?'opacity:0.5;':''}${isOther?`border-left:3px solid ${barColor};padding-left:11px;`:''}">
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
                   <div style="flex:1;min-width:0">
@@ -6670,23 +6769,25 @@ function renderMemberBar() {
   const curMo = cur==='all' ? null : memberById(cur);
   el.innerHTML = `<div class="mem-chip ${cur==='all'?'active':''}" onclick="setCurrentMember('all')">全員</div>` +
     sortByOrder(state.members).map(m=>`
-      <div class="mem-chip ${cur===m.id?'active':''}" style="${cur===m.id?`background:${m.color};border-color:${m.color};color:#1a2340`:''}"
+      <div class="mem-chip ${cur===m.id?'active':''}"
         onclick="setCurrentMember('${m.id}')">${m.icon} ${escapeHTML(m.name)}</div>`).join('');
   applyMemberTheme(curMo);
 }
 // 選択中メンバーの色を上下バーに反映（切り替えミス防止）
 function applyMemberTheme(mo) {
+  // メンバーバーとタブバーだけ着色（ヘッダー・月ナビは元の色のまま）
   const bar = document.getElementById('member-bar');
-  const top = document.querySelector('.topbar');
   const tabs = document.querySelector('.tabbar');
-  const mbar = document.getElementById('month-bar');
   const color = mo ? mo.color : '';
-  [bar, top, tabs, mbar].forEach(el=>{
+  [bar, tabs].forEach(el=>{
     if (!el) return;
     el.style.background = color ? color : '';
     el.style.transition = 'background .2s';
   });
-  // メンバー名を上部に表示
+  // ヘッダー・月ナビは念のため明示的にリセット
+  const top = document.querySelector('.topbar');
+  const mbar = document.getElementById('month-bar');
+  [top, mbar].forEach(el=>{ if (el) el.style.background = ''; });
 }
 function renderMemberList() {
   const el = document.getElementById('member-list');
