@@ -311,7 +311,7 @@
   <header class="topbar">
     <div style="display:flex;align-items:center;">
       <span class="topbar-logo">Finance<span>Mgr</span></span>
-      <span class="version-badge" id="version-badge">v26</span>
+      <span class="version-badge" id="version-badge">v27</span>
     </div>
     <div class="topbar-total">
       <div class="topbar-total-label">今月合計</div>
@@ -320,7 +320,6 @@
   </header>
 
   <div class="member-bar" id="member-bar"></div>
-  <span id="member-indicator" style="display:none;position:fixed;top:11px;right:52px;z-index:60;font-size:11px;font-weight:600;background:rgba(255,255,255,0.85);padding:2px 9px;border-radius:10px"></span>
   <div class="month-bar" id="month-bar">
     <button onclick="changeMonthGlobal(-1)">‹</button>
     <span class="month-bar-label" id="month-bar-label" onclick="openYmPicker()">—</span>
@@ -691,7 +690,7 @@
           <div class="settings-row"><span>古いデータを書き出して削除</span><button class="btn btn-ghost btn-sm" onclick="openArchiveDialog()">アーカイブ</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v26</span> / schema <span id="schema-footer">24</span> / 祝日データ 2025–2027
+          FinanceManager <span id="ver-footer">v27</span> / schema <span id="schema-footer">25</span> / 祝日データ 2025–2027
         </div>
       </div>
     </div>
@@ -1450,6 +1449,7 @@
   <div class="form-grid">
     <div class="form-group"><label>種類</label>
       <select id="tax-preset" onchange="onTaxPresetChange()"></select></div>
+    <div class="form-group member-row" id="tax-member-row" style="display:none"><label>メンバー</label><select id="tax-member"></select></div>
     <div class="form-group"><label>名称</label><input type="text" id="tax-name" placeholder="例：固定資産税 令和8年度"></div>
     <div class="form-group"><label>月表示用の短縮名（任意）</label><input type="text" id="tax-short" placeholder="例：固定資産税"></div>
     <div class="form-row">
@@ -1471,6 +1471,16 @@
       </div>
       <div id="tax-installments"></div>
     </div>
+    <div class="form-group"><label>確定申告での扱い</label>
+      <select id="tax-mode-tax" onchange="onTaxModeSelChange()">
+        <option value="none">対象外</option>
+        <option value="expense">経費（租税公課など）</option>
+        <option value="deduction">所得控除（社会保険料など）</option>
+      </select></div>
+    <div class="form-group" id="tax-account-row" style="display:none"><label>勘定科目</label>
+      <select id="tax-account"></select></div>
+    <div class="form-group" id="tax-deducttype-row" style="display:none"><label>控除の種類</label>
+      <select id="tax-deducttype"></select></div>
     <div class="form-group"><label>メモ</label><input type="text" id="tax-memo" placeholder="通知書番号など"></div>
   </div>
   <div class="form-actions">
@@ -1535,9 +1545,13 @@
       </div>
       <div class="field-note">終了日がカレンダーとチェックリストに表示されます。</div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label>開始（任意）</label><input type="month" id="sb-from"></div>
-      <div class="form-group"><label>解約（任意）</label><input type="month" id="sb-to"></div>
+    <div class="subsection">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="subsection-title" style="margin-bottom:0">利用期間</div>
+        <button class="btn btn-ghost btn-sm" onclick="addSbPeriod()">＋ 期間</button>
+      </div>
+      <div id="sb-periods"></div>
+      <div class="field-note">退会して再加入した場合は期間を追加します。空欄なら継続中です。</div>
     </div>
     <div class="subsection">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -1617,6 +1631,35 @@
   </div>
 </div></div>
 
+<div class="modal-overlay" id="modal-expense"><div class="modal">
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div>
+  <div class="modal-title" id="ex-title">経費を追加</div>
+  <div class="form-grid">
+    <div class="form-group member-row" id="ex-member-row" style="display:none"><label>メンバー</label><select id="ex-member"></select></div>
+    <div class="form-row">
+      <div class="form-group"><label>日付</label><input type="date" id="ex-date"></div>
+      <div class="form-group"><label>支払先</label><input type="text" id="ex-payee" placeholder="例：Amazon" list="ex-payee-list">
+        <datalist id="ex-payee-list"></datalist></div>
+    </div>
+    <div class="form-group"><label>勘定科目</label><select id="ex-account"></select></div>
+    <div class="form-group"><label>家事按分（%）</label><input type="number" inputmode="numeric" id="ex-ratio" placeholder="100"></div>
+    <div class="subsection">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="subsection-title" style="margin-bottom:0">明細</div>
+        <button class="btn btn-ghost btn-sm" onclick="addExItem()">＋ 明細</button>
+      </div>
+      <div id="ex-items"></div>
+      <div class="field-note">同じ支払先・日付の買い物をまとめて登録できます。</div>
+    </div>
+    <div class="form-group"><label>支払方法（任意）</label><select id="ex-wallet"></select></div>
+    <div class="form-group"><label>メモ</label><input type="text" id="ex-memo"></div>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-ghost" onclick="closeModal('modal-expense')">キャンセル</button>
+    <button class="btn btn-primary" onclick="saveExpenses()">まとめて保存</button>
+  </div>
+</div></div>
+
 <div class="modal-overlay" id="modal-bulkmove"><div class="modal">
   <div class="modal-handle-zone"><div class="modal-handle"></div></div>
   <div class="modal-title">記録のメンバーを変更</div>
@@ -1635,6 +1678,7 @@
       <div id="bm-list" style="max-height:280px;overflow-y:auto"></div></div>
   </div>
   <div class="form-actions">
+    <button class="btn btn-danger" style="margin-right:auto" onclick="applyBulkDelete()">削除</button>
     <button class="btn btn-ghost" onclick="closeModal('modal-bulkmove')">キャンセル</button>
     <button class="btn btn-primary" onclick="applyBulkMove()">変更する</button>
   </div>
@@ -1861,8 +1905,8 @@
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '26';
-const SCHEMA_VERSION = 24;
+const APP_VERSION = '27';
+const SCHEMA_VERSION = 25;
 const STORAGE_KEY = 'financeManager';
 
 const C = { blue:['#5B8DEF','#3D6BD1','#EAF1FF'], teal:['#2DC5A4','#189A7E','#E4FAF4'], amber:['#F7B32B','#D3921A','#FFF6E0'], pink:['#F76D8E','#D94A6E','#FFEBF0'], violet:['#9B7EDE','#7A5CC4','#F1EBFF'], slate:['#6B7A99','#4D5B78','#EEF1F6'] };
@@ -2442,6 +2486,22 @@ function migrate(data) {
     (data.deposits||[]).forEach(d=>{ if(d.memberId===undefined) d.memberId=''; });
     v = 24;
   }
+  if (v < 25) {
+    // v24 → v25 : サブスクの利用期間・履歴の終了月、税金の申告区分、経費の支払先
+    (data.subscriptions||[]).forEach(sb=>{
+      if (!sb.periods) {
+        sb.periods = (sb.activeFrom||sb.activeTo) ? [{from:sb.activeFrom||'', to:sb.activeTo||''}] : [];
+      }
+      (sb.history||[]).forEach(h=>{ if(h.to===undefined) h.to = ''; });
+    });
+    (data.taxes||[]).forEach(t=>{
+      if (t.taxMode===undefined) t.taxMode = 'none'; // 'none' | 'expense' | 'deduction'
+      if (t.account===undefined) t.account = '';
+      if (t.deductionType===undefined) t.deductionType = 'social';
+    });
+    (data.moneyRecs||[]).forEach(r=>{ if(r.payee===undefined) r.payee = ''; });
+    v = 25;
+  }
   data.schemaVersion = SCHEMA_VERSION;
   data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[]; data.checks=data.checks||[];
   data.moneyCats = (data.moneyCats&&data.moneyCats.length)?data.moneyCats:defaultMoneyCats();
@@ -2605,9 +2665,15 @@ let toastTimer;
 function showToast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2200); }
 // 削除確認ダイアログ
 function confirmDelete(title, body, onOk) {
+  confirmAction(title, body, '削除する', onOk, true);
+}
+// 汎用の確認（ボタン文言と色を指定できる）
+function confirmAction(title, body, okLabel, onOk, danger) {
   document.getElementById('confirm-title').textContent = title;
   document.getElementById('confirm-body').textContent = body;
   const btn = document.getElementById('confirm-ok-btn');
+  btn.textContent = okLabel || 'OK';
+  btn.className = 'btn ' + (danger ? 'btn-danger' : 'btn-primary');
   btn.onclick = ()=>{ closeModal('modal-confirm'); onOk(); };
   openModal('modal-confirm');
 }
@@ -5292,6 +5358,19 @@ function renderCardPayments() {
 // tax: {id, presetKey, name, shortName, year, mode, total, walletId, memo,
 //       installments:[{no, dueDate, amount, paid, paidDate, walletId, memo, point, pointTypeId}]}
 let taxEditing = null, taxInstallments = [];
+function onTaxModeSelChange() {
+  const v = document.getElementById('tax-mode-tax').value;
+  document.getElementById('tax-account-row').style.display = (v==='expense')?'':'none';
+  document.getElementById('tax-deducttype-row').style.display = (v==='deduction')?'':'none';
+  if (v==='expense') {
+    const sel = document.getElementById('tax-account');
+    if (!sel.options.length) sel.innerHTML = accountList().map(a=>`<option value="${a.id}">${escapeHTML(a.name)}</option>`).join('');
+  }
+  if (v==='deduction') {
+    const sel = document.getElementById('tax-deducttype');
+    if (!sel.options.length) sel.innerHTML = DEDUCTION_TYPES.map(t=>`<option value="${t.key}">${t.label}</option>`).join('');
+  }
+}
 function onTaxPresetChange() {
   const key = document.getElementById('tax-preset').value;
   const pre = TAX_PRESETS[key];
@@ -5435,6 +5514,11 @@ function openTaxModal(id) {
   document.getElementById('tax-mode').value = t?(t.mode||'split'):'split';
   document.getElementById('tax-total').value = t?(t.total||''):'';
   document.getElementById('tax-memo').value = t?(t.memo||''):'';
+  document.getElementById('tax-mode-tax').value = t?(t.taxMode||'none'):'none';
+  onTaxModeSelChange();
+  if (t && t.account) document.getElementById('tax-account').value = t.account;
+  if (t && t.deductionType) document.getElementById('tax-deducttype').value = t.deductionType;
+  fillMemberSelect('tax-member', t?t.memberId:'');
   document.getElementById('tax-wallet').innerHTML = '<option value="">なし（都度払い）</option>' +
     sortByOrder(state.wallets.filter(w=>w.type==='bank')).map(w=>`<option value="${w.id}" ${t&&w.id===t.walletId?'selected':''}>${escapeHTML(w.name)}</option>`).join('');
   document.getElementById('tax-delete-btn').style.display = t?'':'none';
@@ -5453,6 +5537,10 @@ function saveTax() {
     total: parseFloat(document.getElementById('tax-total').value)||0,
     walletId: document.getElementById('tax-wallet').value||'',
     memo: document.getElementById('tax-memo').value,
+    taxMode: document.getElementById('tax-mode-tax').value,
+    account: (document.getElementById('tax-account')||{}).value||'',
+    deductionType: (document.getElementById('tax-deducttype')||{}).value||'social',
+    memberId: (document.getElementById('tax-member')||{}).value||'',
     installments: taxInstallments.filter(x=>x.dueDate) };
   if (taxEditing) Object.assign(taxEditing, data);
   else state.taxes.push(Object.assign({id:'tx'+Date.now()}, data));
@@ -5907,15 +5995,76 @@ function toggleAccountEnabled(id) {
   t.enabled = (t.enabled===false);
   save(); renderAll();
 }
-// 確定申告タブから経費を直接追加
+// 確定申告タブから経費を直接追加（専用画面・一括入力）
+let exItems = [];
 function openExpenseQuickAdd() {
+  exItems = [{name:'', amount:''}];
+  document.getElementById('ex-date').value = todayStr();
+  document.getElementById('ex-payee').value = '';
+  document.getElementById('ex-ratio').value = 100;
+  document.getElementById('ex-memo').value = '';
+  document.getElementById('ex-account').innerHTML = accountList().map(a=>`<option value="${a.id}">${escapeHTML(a.name)}</option>`).join('');
+  document.getElementById('ex-wallet').innerHTML = '<option value="">指定なし</option>' +
+    sortByOrder(state.wallets.filter(w=>inCurrentMember(w))).map(w=>`<option value="${w.id}">${escapeHTML(w.name)}</option>`).join('');
+  // 支払先の候補
+  const payees = [...new Set(state.moneyRecs.map(r=>r.payee).filter(Boolean))].slice(0,20);
+  document.getElementById('ex-payee-list').innerHTML = payees.map(p=>`<option value="${escapeHTML(p)}">`).join('');
+  fillMemberSelect('ex-member', '');
+  renderExItems();
+  openModal('modal-expense');
+}
+function addExItem(){ exItems.push({name:'', amount:''}); renderExItems(); }
+function removeExItem(i){ exItems.splice(i,1); if(!exItems.length) exItems=[{name:'',amount:''}]; renderExItems(); }
+function renderExItems() {
+  const el = document.getElementById('ex-items');
+  if (!el) return;
+  const total = exItems.reduce((a,x)=>a+(parseFloat(x.amount)||0),0);
+  el.innerHTML = exItems.map((it,i)=>`
+    <div class="chg-grid" style="margin-bottom:6px" data-i="${i}">
+      <div><label>内容</label><input type="text" class="ei-name" value="${escapeHTML(it.name||'')}" placeholder="例：コピー用紙"></div>
+      <div><label>金額</label>
+        <div style="display:flex;gap:5px">
+          <input type="number" inputmode="numeric" class="ei-amount" value="${it.amount||''}" placeholder="1200" style="flex:1">
+          <button class="pat-del" onclick="removeExItem(${i})">✕</button>
+        </div></div>
+    </div>`).join('') +
+    `<div style="display:flex;justify-content:space-between;padding:8px 2px 0;font-weight:700;font-size:12.5px">
+      <span>合計（${exItems.filter(x=>x.amount).length}件）</span><span class="mono" id="ex-total">${fmt(total)}</span></div>`;
+  el.querySelectorAll('[data-i]').forEach(row=>{
+    const i=+row.dataset.i;
+    row.querySelector('.ei-name').oninput = e=>exItems[i].name=e.target.value;
+    row.querySelector('.ei-amount').oninput = e=>{
+      exItems[i].amount=parseFloat(e.target.value)||'';
+      const t = exItems.reduce((a,x)=>a+(parseFloat(x.amount)||0),0);
+      const el2 = document.getElementById('ex-total');
+      if (el2) el2.textContent = fmt(t);
+    };
+  });
+}
+function saveExpenses() {
+  const date = document.getElementById('ex-date').value || todayStr();
+  const payee = document.getElementById('ex-payee').value.trim();
+  const account = document.getElementById('ex-account').value;
+  const ratio = parseFloat(document.getElementById('ex-ratio').value)||100;
+  const walletId = document.getElementById('ex-wallet').value||'';
+  const memo = document.getElementById('ex-memo').value;
+  const memberId = (document.getElementById('ex-member')||{}).value||'';
+  const valid = exItems.filter(x=>x.amount);
+  if (!valid.length) { showToast('金額を入力してください'); return; }
   const cat = state.moneyCats.find(c=>c.type==='expense');
-  if (!cat) { showToast('先に支出カテゴリを作成してください'); return; }
-  openMoneyModal(cat.id, todayStr());
-  setTimeout(()=>{
-    const b = document.querySelector('#modal-money .seg-btn[data-mex="1"]');
-    if (b) setMoneyExpense(true, b);
-  }, 60);
+  valid.forEach((it,i)=>{
+    state.moneyRecs.push({
+      id:'m'+Date.now()+i, catId: cat?cat.id:'', cardId:'',
+      name: it.name || payee || '経費', shortName:'', payee,
+      amount: parseFloat(it.amount)||0, fixed:true, memo,
+      repeat:'once', date, dateMode:'exact', walletId,
+      dueDate:'', dueHolidayRule:'none', paid:true, paidDate:date,
+      autoCheck:false, pointTypeId:'', pointExpiry:'', skipDates:[],
+      isExpense:true, account, businessRatio:ratio, memberId, noPayment:false,
+    });
+  });
+  save(); closeModal('modal-expense'); renderAll();
+  showToast(`${valid.length}件の経費を追加しました ✓`);
 }
 
 // ── 確定申告：経費と控除 ──
@@ -6037,8 +6186,7 @@ function expensesByAccount(year) {
     let months = [];
     for (let mo=0; mo<12; mo++) {
       const ym = year+'-'+pad(mo+1);
-      if (sb.activeFrom && ym < sb.activeFrom) continue;
-      if (sb.activeTo && ym > sb.activeTo) continue;
+      if (!subActiveAt(sb, ym)) continue;
       if (cyc==='yearly' && (mo+1)!==(sb.month||1)) continue;
       const dim = daysIn(year,mo);
       const isFirst = sb.firstDate && sb.firstDate.slice(0,7)===ym;
@@ -6047,16 +6195,19 @@ function expensesByAccount(year) {
       if (sb.trialTo && d <= sb.trialTo) continue;
       months.push({ ym, d, amount: subAmountAt(sb, ym) });
     }
+    const today = todayStr();
     months.forEach(x=>{
-      // ドル建ては「実際の円額」が入力された月だけ計上（未入力は金額不明のため除外）
       const isUSD = (sb.currency==='USD');
       const actual = (sb.actuals||{})[x.ym];
-      if (isUSD && !actual) {
-        const key0 = sb.account || 'misc';
+      const key0 = sb.account || 'misc';
+      // まだ請求日が来ていない月は未確定
+      const notYet = x.d > today;
+      if (notYet || (isUSD && !actual)) {
         if (!map[key0]) map[key0] = { total:0, items:[] };
         map[key0].items.push({ name:sb.name+'（サブスク）', date:x.d, amount:0,
           gross:x.amount, ratio:sb.businessRatio||100, id:sb.id, isSub:true,
-          pendingUSD:true, usdAmount:x.amount });
+          pending:true, pendingUSD:(isUSD&&!actual), usdAmount:x.amount,
+          pendingLabel: notYet ? '未払い' : '未確定' });
         return;
       }
       const base = isUSD ? actual : x.amount;
@@ -6067,6 +6218,21 @@ function expensesByAccount(year) {
       map[key].total += amt;
       map[key].items.push({ name:sb.name+'（サブスク）', date:x.d, amount:amt,
         gross:base, ratio:sb.businessRatio||100, id:sb.id, isSub:true });
+    });
+  });
+  // 税金・保険料で「経費」に設定されたもの
+  state.taxes.forEach(t=>{
+    if (t.taxMode!=='expense') return;
+    if (!inCurrentMember(t)) return;
+    (t.installments||[]).forEach(ins=>{
+      if (!ins.paid || !ins.amount) return;
+      const d = ins.paidDate || ins.dueDate;
+      if (!d || +d.slice(0,4)!==year) return;
+      const key = t.account || 'misc';
+      if (!map[key]) map[key] = { total:0, items:[] };
+      map[key].total += ins.amount;
+      map[key].items.push({ name:`${t.name}${t.mode==='lump'?'':` 第${ins.no}期`}`, date:d,
+        amount:ins.amount, gross:ins.amount, ratio:100, id:t.id, isTax:true });
     });
   });
   state.moneyRecs.forEach(mr=>{
@@ -6107,7 +6273,22 @@ function renderTaxReport() {
   const expTotal = Object.values(map).reduce((a,x)=>a+x.total,0);
   const income = incomeInYear(year);
   const cur = currentMemberId();
-  const deducts = state.deductions.filter(d=>{
+  // 税金・保険料で「所得控除」に設定されたものを仮想レコード化
+  const taxDeducts = [];
+  state.taxes.forEach(t=>{
+    if (t.taxMode!=='deduction') return;
+    const paid = (t.installments||[]).filter(i=>i.paid && i.amount);
+    const sum = paid.filter(i=>{
+      const d = i.paidDate || i.dueDate;
+      return d && +d.slice(0,4)===year;
+    }).reduce((a,i)=>a+i.amount,0);
+    if (!sum) return;
+    taxDeducts.push({ id:'tax:'+t.id, _isTax:true, type:t.deductionType||'social',
+      name:t.name, amount:sum, year, certified:true, memberId:t.memberId||'',
+      forMemberId:t.memberId||'', items:paid.map(i=>({
+        date:i.paidDate||i.dueDate, name:`第${i.no}期`, amount:i.amount, note:'' })) });
+  });
+  const deducts = [...taxDeducts, ...state.deductions].filter(d=>{
     if (d.year!==year) return false;
     if (cur==='all') return true;
     // 支払った本人の欄にも、申告する人の欄にも表示する
@@ -6158,10 +6339,12 @@ function renderTaxReport() {
         </div>
         <div style="display:${isGrpOpen('exp-'+a.id)?'block':'none'};margin-top:6px">
           ${g.items.sort((x,y)=>x.date.localeCompare(y.date)).map(it=>`
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0 5px 14px;font-size:11.5px;color:var(--text-secondary)">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0 5px 14px;font-size:11.5px;color:var(--text-secondary);${it.pending?'opacity:0.5':''}">
               <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.date.slice(5).replace('-','/')} ${escapeHTML(it.name)}${it.ratio<100?`<span style="font-size:10px"> (${it.ratio}%)</span>`:''}</span>
-              <span class="mono" style="flex-shrink:0">${it.pendingUSD?`<span style="color:var(--text-secondary)">$${it.usdAmount} 未確定</span>`:fmt(it.amount)}</span>
-              <button class="btn btn-ghost btn-sm" style="padding:2px 7px;font-size:10px;margin-left:6px" onclick="${it.isSub?`openSubscriptionModal('${it.id}')`:`openMoneyModal(null,null,'${it.id}')`}">編集</button>
+              <span class="mono" style="flex-shrink:0">${it.pending
+                ? `<span style="color:var(--text-secondary)">${it.pendingUSD?'$'+it.usdAmount:fmt(it.gross)} ${it.pendingLabel||'未確定'}</span>`
+                : fmt(it.amount)}</span>
+              <button class="btn btn-ghost btn-sm" style="padding:2px 7px;font-size:10px;margin-left:6px" onclick="${it.isSub?`openSubscriptionModal('${it.id}')`:(it.isTax?`openTaxModal('${it.id}')`:`openMoneyModal(null,null,'${it.id}')`)}">編集</button>
             </div>`).join('')}
         </div></div>`;
     }).join('') + `<div style="display:flex;justify-content:space-between;padding:11px 2px 2px;font-weight:700">
@@ -6205,7 +6388,7 @@ function renderTaxReport() {
                     ${(ownMo||forMo)?`<div style="font-size:10.5px;color:${isOther&&forMo?forMo.color:'var(--text-secondary)'};font-weight:${isOther?'600':'400'}">${ownMo?escapeHTML(ownMo.name):''}${isOther?` → ${forMo.icon} ${escapeHTML(forMo.name)}が申告`:''}</div>`:''}
                   </div>
                   <span class="mono" style="font-size:12.5px;font-weight:600;flex-shrink:0">${fmt(d.amount)}</span>
-                  <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px" onclick="openDeductionModal('${d.id}')">編集</button>
+                  <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px" onclick="${d._isTax?`openTaxModal('${d.id.slice(4)}')`:`openDeductionModal('${d.id}')`}">編集</button>
                 </div>
                 ${(d.items||[]).length?`<div style="margin-top:4px;padding-left:6px">
                   ${d.items.map(it=>`<div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-secondary);padding:2px 0">
@@ -6289,9 +6472,25 @@ function applyBulkMove() {
   const kind = document.getElementById('bm-kind').value;
   const to = document.getElementById('bm-to').value;
   const toMo = memberById(to);
-  confirmDelete('メンバーを変更', `${bulkSelected.size}件を「${toMo?toMo.name:''}」に変更します。よろしいですか？`, ()=>{
+  confirmAction('メンバーを変更', `${bulkSelected.size}件を「${toMo?toMo.name:''}」に変更します。`, '変更する', ()=>{
     (state[kind]||[]).forEach(r=>{ if (bulkSelected.has(r.id)) r.memberId = to; });
     save(); closeModal('modal-bulkmove'); renderAll(); showToast(`${bulkSelected.size}件を変更しました ✓`);
+  });
+}
+// 選択した記録を一括削除
+function applyBulkDelete() {
+  if (!bulkSelected.size) { showToast('対象を選んでください'); return; }
+  const kind = document.getElementById('bm-kind').value;
+  const label = (BULK_KINDS.find(k=>k.key===kind)||{}).label || '';
+  confirmDelete('まとめて削除', `${label} ${bulkSelected.size}件を削除します。この操作は取り消せません。`, ()=>{
+    const n = bulkSelected.size;
+    state[kind] = (state[kind]||[]).filter(r=>!bulkSelected.has(r.id));
+    // 関連する自動生成レコードも削除
+    if (kind==='moneyRecs') {
+      state.moneyRecs = state.moneyRecs.filter(r=>!(r.sourceRecId && bulkSelected.has(r.sourceRecId)));
+    }
+    bulkSelected = new Set();
+    save(); closeModal('modal-bulkmove'); renderAll(); showToast(`${n}件を削除しました`);
   });
 }
 // 資金・決済手段のコピー
@@ -6332,7 +6531,7 @@ function applyBulkCopy() {
   const to = document.getElementById('bc-to').value;
   const toMo = memberById(to);
   const targets = state.wallets.filter(w=>bulkSelected.has(w.id));
-  confirmDelete('コピーする', `${targets.length}件を「${toMo?toMo.name:''}」にコピーします。よろしいですか？`, ()=>{
+  confirmAction('コピーする', `${targets.length}件を「${toMo?toMo.name:''}」にコピーします。`, 'コピーする', ()=>{
     let maxO = state.wallets.length?Math.max(...state.wallets.map(w=>w.order||0)):0;
     targets.forEach(w=>{
       const copy = JSON.parse(JSON.stringify(w));
@@ -6488,11 +6687,6 @@ function applyMemberTheme(mo) {
     el.style.transition = 'background .2s';
   });
   // メンバー名を上部に表示
-  const badge = document.getElementById('member-indicator');
-  if (badge) {
-    badge.textContent = mo ? `${mo.icon} ${mo.name}` : '';
-    badge.style.display = mo ? '' : 'none';
-  }
 }
 function renderMemberList() {
   const el = document.getElementById('member-list');
@@ -6528,6 +6722,41 @@ function setSbExpense(v, el) {
     if (!r.value) r.value = 100;
   }
 }
+let sbPeriods = [];
+function addSbPeriod(){ sbPeriods.push({from:todayStr().slice(0,7), to:''}); renderSbPeriods(); }
+function removeSbPeriod(i){ sbPeriods.splice(i,1); renderSbPeriods(); }
+function renderSbPeriods() {
+  const el = document.getElementById('sb-periods');
+  if (!el) return;
+  if (!sbPeriods.length) { el.innerHTML='<div class="field-note" style="margin:0 0 6px">期間の指定なし（ずっと利用中）</div>'; return; }
+  el.innerHTML = sbPeriods.map((p,i)=>`
+    <div class="chg-grid" style="margin-bottom:6px" data-i="${i}">
+      <div><label>開始</label><input type="month" class="sp-from" value="${p.from||''}"></div>
+      <div><label>終了（解約月）</label>
+        <div style="display:flex;gap:5px">
+          <input type="month" class="sp-to" value="${p.to||''}" style="flex:1">
+          <button class="pat-del" onclick="removeSbPeriod(${i})">✕</button>
+        </div></div>
+    </div>`).join('');
+  el.querySelectorAll('[data-i]').forEach(row=>{
+    const i=+row.dataset.i;
+    row.querySelector('.sp-from').onchange = e=>sbPeriods[i].from=e.target.value;
+    row.querySelector('.sp-to').onchange = e=>sbPeriods[i].to=e.target.value;
+  });
+}
+// その月が利用期間内か
+function subActiveAt(sb, ym) {
+  const ps = sb.periods||[];
+  if (!ps.length) return true;
+  return ps.some(p=>(!p.from || ym>=p.from) && (!p.to || ym<=p.to));
+}
+// 解約済みか（すべての期間が過去）
+function subEnded(sb) {
+  const ps = sb.periods||[];
+  if (!ps.length) return false;
+  const now = todayStr().slice(0,7);
+  return ps.every(p=>p.to && p.to < now);
+}
 function onSbCurrencyChange() {
   const v = document.getElementById('sb-currency').value;
   document.getElementById('sb-actual-section').style.display = (v==='USD')?'':'none';
@@ -6541,6 +6770,9 @@ function setSubShared(v, el) {
   subShared = v;
   document.querySelectorAll('#modal-subscription .seg-btn[data-sbs]').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
+  // 共有のときはメンバー選択を隠す
+  const mr = document.getElementById('sb-member-row');
+  if (mr) mr.style.display = (v || state.members.length<2) ? 'none' : '';
 }
 let sbActuals = {};
 function addSbActual() {
@@ -6604,13 +6836,15 @@ function renderSbHistory() {
       </div>
       <div class="chg-grid">
         <div><label>この月から</label><input type="month" class="sh-from" value="${h.from||''}"></div>
-        <div><label>金額</label><input type="number" inputmode="numeric" class="sh-amount" value="${h.amount||''}" placeholder="1490"></div>
+        <div><label>この月まで（任意）</label><input type="month" class="sh-to" value="${h.to||''}"></div>
       </div>
+      <div style="margin-top:6px"><label>金額</label><input type="number" inputmode="decimal" step="0.01" class="sh-amount" value="${h.amount||''}" placeholder="750"></div>
       <div style="margin-top:6px"><label>メモ</label><input type="text" class="sh-note" value="${escapeHTML(h.note||'')}" placeholder="値上げ / プラン変更など"></div>
     </div>`).join('');
   el.querySelectorAll('.pat-row').forEach(row=>{
     const i=+row.dataset.i;
     row.querySelector('.sh-from').onchange = e=>sbHistory[i].from=e.target.value;
+    row.querySelector('.sh-to').onchange = e=>sbHistory[i].to=e.target.value;
     row.querySelector('.sh-amount').oninput = e=>sbHistory[i].amount=parseFloat(e.target.value)||'';
     row.querySelector('.sh-note').oninput = e=>sbHistory[i].note=e.target.value;
   });
@@ -6618,7 +6852,9 @@ function renderSbHistory() {
 // その月に適用される金額を取得
 function subAmountAt(sb, ym) {
   let amount = sb.amount||0;
-  (sb.history||[]).filter(h=>h.from && h.from<=ym).sort((a,b)=>a.from.localeCompare(b.from))
+  // 「この月から/この月まで」の範囲に入る履歴だけ適用（期間限定の割引に対応）
+  (sb.history||[]).filter(h=>h.from && h.from<=ym && (!h.to || ym<=h.to))
+    .sort((a,b)=>a.from.localeCompare(b.from))
     .forEach(h=>{ if(h.amount) amount = h.amount; });
   return amount;
 }
@@ -6643,6 +6879,8 @@ function openSubscriptionModal(id) {
   document.getElementById('sb-currency').value = sb?(sb.currency||'JPY'):'JPY';
   sbActuals = sb?JSON.parse(JSON.stringify(sb.actuals||{})):{};
   document.getElementById('sb-firstdate').value = sb?(sb.firstDate||''):'';
+  sbPeriods = sb?JSON.parse(JSON.stringify(sb.periods||[])):[];
+  renderSbPeriods();
   subShared = sb?!!sb.shared:false;
   const sbsb = document.querySelector(`#modal-subscription .seg-btn[data-sbs="${subShared?1:0}"]`);
   if (sbsb) setSubShared(subShared, sbsb);
@@ -6683,6 +6921,7 @@ function saveSubscription() {
     history: sbHistory.filter(h=>h.from&&h.amount),
     actuals: Object.fromEntries(Object.entries(sbActuals).filter(([k,v])=>v)),
     firstDate: document.getElementById('sb-firstdate').value||'',
+    periods: sbPeriods.filter(p=>p.from||p.to),
     shared: subShared,
     isExpense: sbIsExpense,
     account: sbIsExpense ? ((document.getElementById('sb-account')||{}).value||'') : '',
@@ -6712,8 +6951,7 @@ function subscriptionItemsOn(ds) {
   const dim = daysIn(y,m);
   state.subscriptions.forEach(sb=>{
     if (!inCurrentMember(sb)) return;
-    if (sb.activeFrom && ym < sb.activeFrom) return;
-    if (sb.activeTo && ym > sb.activeTo) return;
+    if (!subActiveAt(sb, ym)) return;
     // トライアル終了日
     if (sb.trialTo === ds) {
       out.push({ kind:'subtrial', stamp:'⏰', color:PALETTE[3],
@@ -6750,7 +6988,7 @@ function renderSubscriptionList() {
   if (!el) return;
   if (!state.subscriptions.filter(sb=>inCurrentMember(sb)).length) { el.innerHTML='<div class="empty"><div class="empty-icon">🔁</div><div class="empty-text">「＋」からサブスクを登録できます</div></div>'; return; }
   const list = sortByOrder(state.subscriptions.filter(sb=>inCurrentMember(sb)));
-  const total = list.filter(sb=>(!sb.activeTo || sb.activeTo>=todayStr().slice(0,7)) && (sb.cycle||'monthly')==='monthly' && sb.currency!=='USD')
+  const total = list.filter(sb=>!subEnded(sb) && (sb.cycle||'monthly')==='monthly' && sb.currency!=='USD')
     .reduce((a,sb)=>a+subAmountAt(sb, todayStr().slice(0,7)),0);
   el.innerHTML = `<div style="text-align:right;font-size:12px;color:var(--text-secondary);margin-bottom:8px">月額合計 <b class="mono" style="font-size:14px;color:${state.settings.colorExpense}">${fmt(total)}</b></div>` +
     list.map((sb,idx)=>{
@@ -6758,16 +6996,18 @@ function renderSubscriptionList() {
     const pt = sb.pointTypeId?pointTypeById(sb.pointTypeId):null;
     const inTrial = sb.trialTo && todayStr()<=sb.trialTo;
     const curAmt = subAmountAt(sb, todayStr().slice(0,7));
-    return `<div class="job-item drag-item" data-item-id="${sb.id}">
+    const ended = subEnded(sb);
+    return `<div class="job-item drag-item" data-item-id="${sb.id}" style="${ended?'opacity:0.45':''}">
       ${orderBtnsHTML('moveSubscription', sb.id, idx, list.length, 'subs')}
       <span style="width:28px;text-align:center;font-size:21px;flex-shrink:0">🔁</span>
-      <div class="job-item-body"><div class="job-item-name">${escapeHTML(sb.name)}${inTrial?' <span class="badge-sm bd-limit">無料期間中</span>':''}</div>
+      <div class="job-item-body"><div class="job-item-name">${escapeHTML(sb.name)}${inTrial?' <span class="badge-sm bd-limit">無料期間中</span>':''}${ended?' <span class="badge-sm bd-type">解約済</span>':''}</div>
         <div class="job-item-sub">${sb.currency==='USD'?'$'+Math.round(curAmt).toLocaleString():fmt(curAmt)} / ${(sb.cycle||'monthly')==='yearly'?`毎年${MONTHS[(sb.month||1)-1]}`:'毎月'}${sb.day>=99?'末':sb.day}日${w?' / '+escapeHTML(w.name):''}${(sb.history||[]).length?` / 変更${sb.history.length}件`:''}</div>
         ${sb.point?`<div class="limit-line">還元 <b>+${Math.round(sb.point).toLocaleString()}${pt?pt.unit:'pt'}</b>${pt?`（${escapeHTML(pt.name)}）`:''}</div>`:''}
         ${sb.trialTo?`<div class="limit-line">無料期間 〜${sb.trialTo.replace(/-/g,'/')}</div>`:''}</div>
       <button class="btn btn-ghost btn-sm" onclick="openSubscriptionModal('${sb.id}')">編集</button>
     </div>`;
   }).join('');
+  enableDrag('subscription-list', state.subscriptions, 'subs');
 }
 
 // ── 立て替え ──
