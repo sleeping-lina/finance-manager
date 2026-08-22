@@ -26,6 +26,11 @@
   .topbar-total-label { font-size: 9px; color: rgba(45,212,160,0.7); letter-spacing: 1px; }
   .topbar-total-amount { font-family: 'DM Mono'; font-size: 15px; color: var(--mint); font-weight: 500; line-height: 1.1; }
   /* サブタブ */
+  /* 設定タブの項目インデックス（長いページ内の見出しへジャンプ） */
+  .sec-index { display: flex; flex-wrap: wrap; gap: 5px; margin: 0 0 10px; }
+  .sec-index .sec-chip { flex-shrink: 0; padding: 5px 10px; border-radius: 14px; background: var(--surface);
+    border: 1px solid var(--border); font-size: 11px; color: var(--text-secondary); cursor: pointer; }
+  .sec-index .sec-chip:active { background: var(--bg); }
   .subtabs { display: flex; gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0 10px; margin-bottom: 2px; }
   .subtabs::-webkit-scrollbar { display: none; }
   .subtab { flex-shrink: 0; padding: 7px 14px; border-radius: 20px; background: #fff; border: 1.5px solid var(--border);
@@ -132,6 +137,8 @@
   .job-sum-row > svg, .wal-row > svg, .job-item > svg { width:26px; height:26px; flex-shrink:0; }
   .chg-route-view svg, .limit-line svg { width:13px; height:13px; vertical-align:-2px; }
   .badge-sm { display:inline-block; padding:2px 7px; border-radius:8px; font-size:9.5px; font-weight:700; line-height:1.4; white-space:nowrap; vertical-align:middle; }
+  /* 家族カードなど、メンバー名を含んで長くなりうるバッジ */
+  .badge-sm.bd-ellip { max-width:min(160px, 55vw); overflow:hidden; text-overflow:ellipsis; }
   /* select が枠からはみ出さないように */
   select, .inp-s, .pat-row select, .chg-step select { max-width:100%; text-overflow:ellipsis; }
   .pat-row select, .chg-grid select { width:100%; min-width:0; }
@@ -692,7 +699,7 @@
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v29</span> / schema <span id="schema-footer">27</span> / 祝日データ 2025–2027
+          FinanceManager <span id="ver-footer">v31</span> / schema <span id="schema-footer">28</span> / 祝日データ 2025–2028
         </div>
       </div>
     </div>
@@ -1942,7 +1949,7 @@
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '30';
+const APP_VERSION = '31';
 const SCHEMA_VERSION = 28;
 const STORAGE_KEY = 'financeManager';
 
@@ -1972,11 +1979,15 @@ function stampHTML(s) { if (STAMPS[s]) return STAMPS[s].svg; return `<span class
 const EMOJIS = ['📱','💼','💻','🏢','💰','🪙','🏦','📄','🧾','💴','💳','🎫','🎟️','✉️','📮','☕','🍽️','🛒','🚃','🚌','🚗','⛽','⏰','📅','❗','⭐','🎯','📞','🏥','💊','💡','🏠','✂️','🎵','🎬','🎂','🎁','📚','✏️','🧹','🌙','☀️','🎾','⚽','🏃','🐱','✈️','🎓'];
 const PALETTE = ['#BFE3FF','#C6F3E4','#FFE9B8','#FFD3DE','#E3D9FF','#D9E2F0','#C9F0C4','#FFDDC2'];
 
-// ── 日本の祝日 2025-2027（振替休日含む）──
+// ── 日本の祝日 2025-2028（振替休日・国民の休日を含む）──
+// 2029年以降を追加するときは、春分・秋分を国立天文台の「暦要項」で確認すること。
+// ※2028年の春分(3/20)・秋分(9/22)は計算値。官報での確定は2027年2月のため、
+//   2027年2月以降に一度確認すること（2025〜2027年の実データとは計算式が一致済み）。
 const HOLIDAYS = new Set([
 '2025-01-01','2025-01-13','2025-02-11','2025-02-23','2025-02-24','2025-03-20','2025-04-29','2025-05-03','2025-05-04','2025-05-05','2025-05-06','2025-07-21','2025-08-11','2025-09-15','2025-09-23','2025-10-13','2025-11-03','2025-11-23','2025-11-24',
 '2026-01-01','2026-01-12','2026-02-11','2026-02-23','2026-03-20','2026-04-29','2026-05-03','2026-05-04','2026-05-05','2026-05-06','2026-07-20','2026-08-11','2026-09-21','2026-09-22','2026-09-23','2026-10-12','2026-11-03','2026-11-23',
-'2027-01-01','2027-01-11','2027-02-11','2027-02-23','2027-03-22','2027-04-29','2027-05-03','2027-05-04','2027-05-05','2027-07-19','2027-08-11','2027-09-20','2027-09-23','2027-10-11','2027-11-03','2027-11-23',
+'2027-01-01','2027-01-11','2027-02-11','2027-02-23','2027-03-21','2027-03-22','2027-04-29','2027-05-03','2027-05-04','2027-05-05','2027-07-19','2027-08-11','2027-09-20','2027-09-23','2027-10-11','2027-11-03','2027-11-23',
+'2028-01-01','2028-01-10','2028-02-11','2028-02-23','2028-03-20','2028-04-29','2028-05-03','2028-05-04','2028-05-05','2028-07-17','2028-08-11','2028-09-18','2028-09-22','2028-10-09','2028-11-03','2028-11-23',
 ]);
 const pad = n => String(n).padStart(2,'0');
 const dstr = (y,m,d) => `${y}-${pad(m+1)}-${pad(d)}`;
@@ -2034,7 +2045,7 @@ function defaultState() {
     itemOrder:['work','tax','card','money','subsc','invest','charge','point','event'],
     currentMember:'all', taxYear:new Date().getFullYear(),
     badgeColors:{type:'#EEF1F6',rate:'#E9FBF4',limit:'#FFF6E0',pt:'#F1EBFF',link:'#E4F6F1'}, sortMethod:'button',
-      lastBackupAt:'', backupSnoozeUntil:'',
+      lastBackupAt:'', backupSnoozeUntil:'', groupOpen:{},
       calFilter:{work:true,money:true,charge:true,event:true,check:true,tax:true,card:true} },
     homeMonth: new Date().getMonth(), homeYear: new Date().getFullYear() };
 }
@@ -2600,7 +2611,7 @@ function migrate(data) {
     filterPresets:[], walletGroupOrder:['card','emoney','store','bank','securities','other'],
     itemOrder:['work','tax','card','money','subsc','invest','charge','point','event'],
     currentMember:'all', taxYear:new Date().getFullYear(),
-    lastBackupAt:'', backupSnoozeUntil:'',
+    lastBackupAt:'', backupSnoozeUntil:'', groupOpen:{},
     badgeColors:{type:'#EEF1F6',rate:'#E9FBF4',limit:'#FFF6E0',pt:'#F1EBFF',link:'#E4F6F1'},
     calFilter:{work:true,money:true,charge:true,event:true,check:true,tax:true,card:true} }, data.settings||{});
   return data;
@@ -4990,6 +5001,13 @@ function fillWalletSelect(elId, selectedId, emptyLabel) {
   el.value = sid;
   if (el.value !== sid) el.value = ''; // 念のため（選択肢に無い値の指定を防ぐ）
 }
+// 家族カードのバッジ（本会員の名前を「◯◯の家族カード」の形で出す）
+// 名前が長いときは CSS（.bd-ellip）で省略されるので、title に全文を持たせる
+function familyCardBadge(w) {
+  const mm = w.mainMemberId ? memberById(w.mainMemberId) : null;
+  const label = mm ? `${mm.name}の家族カード` : '家族カード';
+  return `<span class="badge-sm bd-link bd-ellip" title="${escapeHTML(label)}">👪 ${escapeHTML(label)}</span>`;
+}
 // 実際に使うスタンプ（種別デフォルト or 個別）
 function walletStamp(w) {
   if (w.useTypeStamp!==false) {
@@ -5616,7 +5634,7 @@ function renderCardPayments() {
   el.innerHTML = list.map(p=>`
     <div class="job-sum-row" style="${p.wallet.familyCard?'opacity:0.5':''}">
       ${stampHTML(walletStamp(p.wallet))}
-      <div class="job-sum-name">${escapeHTML(p.wallet.name)}${p.wallet.familyCard?' <span class="badge-sm bd-link">家族カード</span>':''}
+      <div class="job-sum-name">${escapeHTML(p.wallet.name)}${p.wallet.familyCard?' '+familyCardBadge(p.wallet):''}
         <div class="job-sum-sub">${p.date.slice(5).replace('-','/')} 引落${p.offset===2?'（翌々月払い）':''}${p.date!==p.rawDate?'（翌営業日）':''}${p.wallet.payAccountId&&walletById(p.wallet.payAccountId)?'／'+escapeHTML(walletById(p.wallet.payAccountId).name):''}</div></div>
       <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
         <div style="text-align:right;${p.wallet.familyCard?'opacity:0.55':''}">
@@ -5666,11 +5684,10 @@ function onTaxPresetChange() {
   const pre = TAX_PRESETS[key];
   if (!pre) return;
   const nameInp = document.getElementById('tax-name');
-  const shortInp = document.getElementById('tax-short');
   // 未入力、または他のプリセット名のままなら差し替える
   const presetNames = Object.values(TAX_PRESETS).map(p=>p.name);
   if (!nameInp.value.trim() || presetNames.includes(nameInp.value.trim())) nameInp.value = pre.name;
-  if (!shortInp.value.trim() || presetNames.includes(shortInp.value.trim())) shortInp.value = pre.name;
+  // 短縮名は任意入力。プリセット名をそのまま入れても短縮にならないため自動反映しない（v31）
   // 分割月のプリセットから期を生成
   if (!taxEditing && pre.months.length) {
     const y = parseInt(document.getElementById('tax-year').value) || new Date().getFullYear();
@@ -6273,11 +6290,11 @@ function moveAccount(id,dir){
 function renderAccountList() {
   const el = document.getElementById('account-list');
   if (!el) return;
-  const open = isGrpOpen('accounts')===true && grpOpen['accounts']!==undefined;
+  const accOpen = isGrpOpen('accounts');
   const sec = document.getElementById('account-section');
-  if (sec) sec.style.display = grpOpen['accounts'] ? '' : 'none';
+  if (sec) sec.style.display = accOpen ? '' : 'none';
   const caret = document.getElementById('acc-caret');
-  if (caret) caret.className = 'grp-caret' + (grpOpen['accounts']?' open':'');
+  if (caret) caret.className = 'grp-caret' + (accOpen?' open':'');
   const all = accountListAll();
   const cnt = document.getElementById('acc-count');
   if (cnt) cnt.textContent = `${all.filter(a=>a.enabled!==false).length}/${all.length}`;
@@ -6595,14 +6612,11 @@ function expensesByAccount(year) {
   return map;
 }
 // 年間の収入（仕事）
-function incomeInYear(year) {
+// 「所得にする」を選んだ入金・受取（年金など）の年間合計。
+// 注意：年金は雑所得（公的年金等控除あり）で、事業・給与所得とは計算が別。
+// ここでは単純合算した参考値しか出せないため、画面側で注記を表示する。
+function otherIncomeInYear(year) {
   let t = 0;
-  state.records.forEach(r=>{
-    if (!inCurrentMember(r)) return;
-    const d = recBaseDate(r);
-    if (d && +d.slice(0,4)===year) t += r.amount||0;
-  });
-  // 「所得にする」を選んだ入金・受取（年金など）も加算
   for (let mo=0; mo<12; mo++) {
     moneyRecsInMonth(year, mo).forEach(mr=>{
       if (!mr.isExpense) return;
@@ -6612,6 +6626,15 @@ function incomeInYear(year) {
     });
   }
   return t;
+}
+function incomeInYear(year) {
+  let t = 0;
+  state.records.forEach(r=>{
+    if (!inCurrentMember(r)) return;
+    const d = recBaseDate(r);
+    if (d && +d.slice(0,4)===year) t += r.amount||0;
+  });
+  return t + otherIncomeInYear(year);
 }
 function renderTaxReport() {
   const year = state.settings.taxYear || new Date().getFullYear();
@@ -6626,6 +6649,7 @@ function renderTaxReport() {
   const map = expensesByAccount(year);
   const expTotal = Object.values(map).reduce((a,x)=>a+x.total,0);
   const income = incomeInYear(year);
+  const otherInc = otherIncomeInYear(year);
   const cur = currentMemberId();
   // 税金・保険料で「所得控除」に設定されたものを仮想レコード化
   const taxDeducts = [];
@@ -6678,6 +6702,7 @@ function renderTaxReport() {
           <div style="font-size:10px;color:var(--text-secondary)">所得控除</div>
           <div class="mono" style="font-size:15px;font-weight:600;color:${state.settings.colorIncomeEtc}">${fmt(ddTotal)}</div></div>
       </div>
+      ${otherInc>0?`<div class="field-note" style="margin-top:8px">「所得にする」を選んだ入金・受取 ${fmt(otherInc)} を収入に含めた参考値です。年金などは雑所得（公的年金等控除あり）で、事業所得とは計算方法が異なります。</div>`:''}
       <div class="field-note" style="margin-top:8px">記録した分の集計です。実際の申告額は税務署や税理士にご確認ください。</div>`;
   }
   // 経費一覧
@@ -7098,15 +7123,18 @@ function renderSbPeriods() {
   if (!el) return;
   if (!sbPeriods.length) { el.innerHTML='<div class="field-note" style="margin:0 0 6px">期間の指定なし（ずっと利用中）</div>'; return; }
   el.innerHTML = sbPeriods.map((p,i)=>`
-    <div class="chg-grid" style="margin-bottom:6px" data-i="${i}">
-      <div><label>開始</label><input type="month" class="sp-from" value="${p.from||''}"></div>
-      <div><label>終了（解約月）</label>
-        <div style="display:flex;gap:5px">
-          <input type="month" class="sp-to" value="${p.to||''}" style="flex:1">
-          <button class="pat-del" onclick="removeSbPeriod(${i})">✕</button>
-        </div></div>
+    <div class="pat-row" data-i="${i}">
+      <div class="pat-row-head">
+        <span style="font-size:11.5px;color:var(--text-secondary)">期間 ${i+1}</span>
+        <span style="flex:1"></span>
+        <button class="pat-del" onclick="removeSbPeriod(${i})">✕</button>
+      </div>
+      <div class="chg-grid">
+        <div><label>開始</label><input type="month" class="sp-from" value="${p.from||''}"></div>
+        <div><label>終了（解約月）</label><input type="month" class="sp-to" value="${p.to||''}"></div>
+      </div>
     </div>`).join('');
-  el.querySelectorAll('[data-i]').forEach(row=>{
+  el.querySelectorAll('.pat-row').forEach(row=>{
     const i=+row.dataset.i;
     row.querySelector('.sp-from').onchange = e=>sbPeriods[i].from=e.target.value;
     row.querySelector('.sp-to').onchange = e=>sbPeriods[i].to=e.target.value;
@@ -8237,10 +8265,7 @@ function walletBadges(w) {
   if (w.interestRate) parts.push(`<span class="badge-sm bd-rate">年${w.interestRate}%</span>`);
   if (w.pointTypeId) { const p = pointTypeById(w.pointTypeId); if(p) parts.push(`<span class="badge-sm bd-pt">${escapeHTML(p.name)}${p.limited?'(期間限定)':''}</span>`); }
   if (w.verified) parts.push('<span class="badge-sm bd-rate">✓本人確認済</span>');
-  if (w.familyCard) {
-    const mm = w.mainMemberId?memberById(w.mainMemberId):null;
-    parts.push(`<span class="badge-sm bd-link">👪 家族カード${mm?`（${escapeHTML(mm.name)}）`:''}</span>`);
-  }
+  if (w.familyCard) parts.push(familyCardBadge(w));
   if (w.memberId && state.members.length>=2) {
     const mo = memberById(w.memberId);
     if (mo) parts.push(`<span class="badge-sm bd-type">${mo.icon} ${escapeHTML(mo.name)}</span>`);
@@ -8285,9 +8310,23 @@ function walletSubLine(w) {
   }
   return lines.length ? `<div class="limit-line">${lines.join('　')}</div>` : '';
 }
-const grpOpen = {}; // 折りたたみ状態
-function toggleGroup(key) { grpOpen[key] = !grpOpen[key]; renderAll(); }
-function isGrpOpen(key) { return grpOpen[key] !== false; } // 既定は開
+// ── 折りたたみ状態（v31で state.settings.groupOpen に永続化）──
+// 既定は「開」。ただし GRP_DEFAULT_CLOSED のキーだけ既定「閉」。
+// v30以前は toggleGroup が `!grpOpen[key]` を使っていたため、未設定（undefined）の
+// 既定開グループは1回目のタップで true（開いたまま）になり、2回押さないと閉じなかった。
+// 現在の表示状態を基準に反転させることで解消している。
+const GRP_DEFAULT_CLOSED = new Set(['accounts']);
+function groupOpenMap() {
+  if (!state.settings) state.settings = {};
+  if (!state.settings.groupOpen) state.settings.groupOpen = {};
+  return state.settings.groupOpen;
+}
+function isGrpOpen(key) {
+  const m = groupOpenMap();
+  if (m[key] === undefined) return !GRP_DEFAULT_CLOSED.has(key);
+  return !!m[key];
+}
+function toggleGroup(key) { groupOpenMap()[key] = !isGrpOpen(key); save(); renderAll(); }
 function renderPoiWalletList() {
   const el = document.getElementById('poi-wallet-list');
   if (!el) return;
@@ -9233,6 +9272,39 @@ function renderChecklist() {
 }
 
 // ── render all / init ──
+// ── 設定タブの項目インデックス ──
+// 各サブページの先頭に、そのページ内のカード見出しへジャンプするチップを並べる。
+// 見出しはHTMLから自動で拾うので、カードを増やしてもここを直す必要はない。
+// カードが1枚だけのページ（資金・決済／仕事／データ）には出さない。
+function buildSettingsIndex() {
+  document.querySelectorAll('#page-settings .subpage').forEach(sub=>{
+    if (sub.querySelector(':scope > .sec-index')) return; // 生成済み
+    const cards = [...sub.querySelectorAll(':scope > .card')];
+    const entries = [];
+    cards.forEach((card, i)=>{
+      const t = card.querySelector('.card-title') || card.querySelector('.grp-title');
+      if (!t) return;
+      if (!card.id) card.id = 'seccard-' + sub.id.replace('sub-set-','') + '-' + i;
+      // グループ見出しはカウント数などの子要素を含むので、テキストだけを取り出す
+      const label = (t.childNodes[0] && t.childNodes[0].nodeValue ? t.childNodes[0].nodeValue : t.textContent).trim()
+        || t.textContent.trim();
+      entries.push({ id: card.id, label });
+    });
+    if (entries.length < 2) return;
+    const idx = document.createElement('div');
+    idx.className = 'sec-index';
+    idx.innerHTML = entries.map(e=>`<div class="sec-chip" onclick="scrollToSection('${e.id}')">${escapeHTML(e.label)}</div>`).join('');
+    sub.insertBefore(idx, sub.firstChild);
+  });
+}
+function scrollToSection(id) {
+  const card = document.getElementById(id);
+  const c = document.getElementById('content');
+  if (!card || !c) return;
+  const top = card.getBoundingClientRect().top - c.getBoundingClientRect().top + c.scrollTop;
+  c.scrollTo({ top: Math.max(0, top - 8), behavior:'smooth' });
+}
+
 // ── 開発用：ID参照の自己診断 ──
 // スクリプト内の getElementById('…') / querySelector('#…') のリテラル参照を集め、
 // 参照先がDOMに存在するかを検証する。v29のサブスク事故（削除済みIDへの参照でJSが停止）の再発防止。
@@ -9309,6 +9381,7 @@ function renderAll() {
 save();
 autoSettleCardPayments();
 syncSettingsUI();
+buildSettingsIndex();
 renderAll();
 updateMonthNav();
 if (location.hash === '#debug') runIdDiagnostics(false);
