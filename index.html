@@ -291,6 +291,20 @@
   .tab-icon { font-size: 20px; line-height: 1; filter: grayscale(0.35); }
   .tab.active .tab-icon { filter: none; }
   .tab-label { font-size: 9px; font-weight: 500; letter-spacing: -0.3px; }
+  /* 詳細シート（v33〜：一覧タップ→内容表示→編集の共通パターン） */
+  .detail-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .detail-head .stamp-wrap { flex-shrink: 0; }
+  .detail-name { font-size: 16px; font-weight: 700; word-break: break-word; }
+  .detail-sub { font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; }
+  .detail-badges { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0 2px; }
+  .detail-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 2px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .detail-row:last-of-type { border-bottom: none; }
+  .detail-row .dr-label { color: var(--text-secondary); flex-shrink: 0; }
+  .detail-row .dr-val { text-align: right; word-break: break-word; }
+  .detail-memo { background: var(--bg); border-radius: 10px; padding: 10px 11px; font-size: 12.5px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; margin-top: 10px; }
+  .detail-memo .dm-label { font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 3px; }
+  .job-item.tapable { cursor: pointer; }
+  .job-item.tapable:active { background: var(--bg); }
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(20,30,60,0.45); z-index: 100; align-items: flex-end; justify-content: center; }
   .modal-overlay.open { display: flex; }
   .modal { background: #fff; border-radius: 20px 20px 0 0; padding: 20px 16px calc(20px + var(--safe-bottom)); width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto; animation: slideup 0.22s; }
@@ -699,7 +713,7 @@
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v32</span> / schema <span id="schema-footer">29</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v33</span> / schema <span id="schema-footer">29</span> / 祝日データ 2025–2028
         </div>
       </div>
     </div>
@@ -1251,6 +1265,24 @@
     <button class="btn btn-danger" id="rt-delete-btn" style="margin-right:auto;display:none" onclick="deleteRoute()">削除</button>
     <button class="btn btn-ghost" onclick="closeModal('modal-route')">キャンセル</button>
     <button class="btn btn-primary" onclick="saveRoute()">保存</button>
+  </div>
+</div></div>
+
+<!-- 資金・決済の詳細シート（v33：一覧タップ→詳細→編集パターンの試作） -->
+<div class="modal-overlay" id="modal-walletdetail"><div class="modal">
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div>
+  <div class="detail-head">
+    <span class="stamp-wrap" id="wd-stamp"></span>
+    <div style="min-width:0">
+      <div class="detail-name" id="wd-name">—</div>
+      <div class="detail-sub" id="wd-sub"></div>
+    </div>
+  </div>
+  <div id="wd-body"></div>
+  <div class="form-actions" style="margin-top:14px">
+    <button class="btn btn-danger" style="margin-right:auto" onclick="wdDelete()">削除</button>
+    <button class="btn btn-ghost" onclick="closeModal('modal-walletdetail')">閉じる</button>
+    <button class="btn btn-primary" onclick="wdEdit()">編集</button>
   </div>
 </div></div>
 
@@ -1949,7 +1981,7 @@
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '32';
+const APP_VERSION = '33';
 const SCHEMA_VERSION = 29;
 const STORAGE_KEY = 'financeManager';
 
@@ -5487,18 +5519,45 @@ function syncLinkedWallets(target) {
     if (!ids.includes(w.id) && has) w.linkedIds = w.linkedIds.filter(x=>x!==target.id);
   });
 }
-function deleteWallet() {
-  if (!walEditing) return;
-  const t = walEditing;
+function deleteWalletById(id, modalId) {
+  const t = walletById(id); if (!t) return;
   const used = state.charges.some(c=>(c.steps||[]).some(st=>st.from===t.id||st.to===t.id))
             || state.moneyRecs.some(r=>r.walletId===t.id)
             || state.chargeRoutes.some(r=>r.from===t.id||r.to===t.id);
   if (used) { showToast('使用中のため削除できません'); return; }
   confirmDelete('資金置き場を削除', `「${t.name}」を削除します。よろしいですか？`, ()=>{
     state.wallets = state.wallets.filter(w=>w.id!==t.id);
-    save(); closeModal('modal-wallet'); renderAll(); showToast('削除しました');
+    save(); if (modalId) closeModal(modalId); renderAll(); showToast('削除しました');
   });
 }
+function deleteWallet() { if (walEditing) deleteWalletById(walEditing.id, 'modal-wallet'); }
+// ── 詳細シート（v33試作：資金・決済） ──
+// 一覧の行タップ→全項目（メモ含む）を読み取り専用で表示→「編集」「削除」。
+// 行の常設編集ボタンを置かない代わりのパターン。他の一覧へ展開するときはこの構成を踏襲する：
+//   openXxxDetail(id)（描画＋openModal）／xxEdit()（閉じてから編集モーダル）／xxDelete()（deleteXxxById を共用）
+let wdId = null;
+function openWalletDetail(id) {
+  const w = walletById(id); if (!w) return;
+  wdId = id;
+  document.getElementById('wd-stamp').innerHTML = stampHTML(walletStamp(w));
+  document.getElementById('wd-name').textContent = w.name;
+  const mo = (state.members.length>=2 && w.memberId) ? memberById(w.memberId) : null;
+  document.getElementById('wd-sub').textContent =
+    (WALLET_TYPE_LABEL[w.type]||'') + (w.brand?' / '+w.brand:'') + (mo?` / ${mo.icon} ${mo.name}`:'');
+  const rows = [];
+  if (w.active===false) rows.push(['状態','無効（選択肢に出ません）']);
+  if (w.activeFrom || w.activeTo) rows.push(['利用期間', `${w.activeFrom||''} 〜 ${w.activeTo||''}`]);
+  const badges = walletBadges(w);
+  document.getElementById('wd-body').innerHTML =
+    (badges ? `<div class="detail-badges">${badges}</div>` : '') +
+    rows.map(([k,v])=>`<div class="detail-row"><span class="dr-label">${k}</span><span class="dr-val">${escapeHTML(v)}</span></div>`).join('') +
+    (limitLineHTML(w)||'') +
+    (w.note ? `<div class="detail-memo"><span class="dm-label">メモ</span>${escapeHTML(w.note)}</div>` : '');
+  openModal('modal-walletdetail');
+}
+function wdEdit() { const id = wdId; closeModal('modal-walletdetail'); if (id) openWalletModal(id); }
+function wdDelete() { if (wdId) deleteWalletById(wdId, 'modal-walletdetail'); }
+
 // グループ内での並べ替え
 function moveRoute(id, dir){ moveItem(state.chargeRoutes, id, dir, renderAll); }
 function movePointType(id, dir){ moveItem(state.pointTypes, id, dir, renderAll); }
@@ -5534,15 +5593,16 @@ function renderWalletList() {
         </div>
       </div>
       <div id="walsetbox-${g.key}" style="display:${open?'block':'none'}">` +
-      (members.length ? members.map((w,idx)=>`
-      <div class="job-item drag-item" data-item-id="${w.id}">
+      (members.length ? members.map((w,idx)=>{
+        const sortMode = isSortMode('walset-'+g.key);
+        return `
+      <div class="job-item drag-item${sortMode?'':' tapable'}" data-item-id="${w.id}" ${sortMode?'':`onclick="openWalletDetail('${w.id}')"`}>
         ${orderBtnsHTML('moveWalletInGroup', w.id, idx, members.length, 'walset-'+g.key)}
         ${stampHTML(walletStamp(w))}
         <div class="job-item-body"><div class="job-item-name">${escapeHTML(w.name)}</div>
           <div class="job-item-sub">${WALLET_TYPE_LABEL[w.type]||''}${w.brand?' / '+w.brand:''}${rateText(w)?' / '+rateText(w):''}</div>
           ${limitLineHTML(w)}${walletSubLine(w)}</div>
-        <button class="btn btn-ghost btn-sm" onclick="openWalletModal('${w.id}')">編集</button>
-      </div>`).join('') : '<div class="field-note" style="padding:4px 2px 8px">まだありません</div>') + '</div>';
+      </div>`;}).join('') : '<div class="field-note" style="padding:4px 2px 8px">まだありません</div>') + '</div>';
   }).join('');
   walletGroups().forEach(g=>enableDrag('walsetbox-'+g.key, state.wallets, 'walset-'+g.key));
 }
