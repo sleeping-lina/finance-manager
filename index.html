@@ -699,7 +699,7 @@
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v31</span> / schema <span id="schema-footer">28</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v32</span> / schema <span id="schema-footer">29</span> / 祝日データ 2025–2028
         </div>
       </div>
     </div>
@@ -1422,7 +1422,7 @@
     </div>
     <div class="form-group"><label>色</label><div class="color-picker" id="wal-color-picker"></div></div>
     <div class="form-group"><label>連携済みのサービス</label><div id="wal-linked-area"></div>
-      <div class="field-note">楽天銀行と楽天証券のように、連携しているものを選べます。</div></div>
+      <div class="field-note">楽天銀行と楽天証券のように、連携しているものを選べます。相手側にも自動で反映されます（同じメンバーのものだけが候補に出ます）。</div></div>
     <div class="form-group"><label>メモ（特典・注意点）</label><input type="text" id="wal-note" placeholder="例：10日はWポイントデー"></div>
   </div>
   <div class="form-actions">
@@ -1949,8 +1949,8 @@
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '31';
-const SCHEMA_VERSION = 28;
+const APP_VERSION = '32';
+const SCHEMA_VERSION = 29;
 const STORAGE_KEY = 'financeManager';
 
 const C = { blue:['#5B8DEF','#3D6BD1','#EAF1FF'], teal:['#2DC5A4','#189A7E','#E4FAF4'], amber:['#F7B32B','#D3921A','#FFF6E0'], pink:['#F76D8E','#D94A6E','#FFEBF0'], violet:['#9B7EDE','#7A5CC4','#F1EBFF'], slate:['#6B7A99','#4D5B78','#EEF1F6'] };
@@ -2584,6 +2584,25 @@ function migrate(data) {
     // 新設フィールドは下の settings 既定値マージで補われるため、ここでの処理は不要
     v = 28;
   }
+  if (v < 29) {
+    // v28 → v29 : クレカ支払い記録に memberId を継承
+    // （家族カードの支払いを入力すると memberId 未設定＝本人扱いになり、
+    //   本人のカレンダー・集計に出てしまっていた不具合の修復）
+    const wById = {}; (data.wallets||[]).forEach(w=>{ wById[w.id]=w; });
+    const rById = {}; (data.moneyRecs||[]).forEach(r=>{ rById[r.id]=r; });
+    // 1) クレカ支払い本体：カードの持ち主に合わせる
+    (data.moneyRecs||[]).forEach(r=>{
+      if (r.memberId) return;
+      if (r.cardId && wById[r.cardId] && wById[r.cardId].memberId) r.memberId = wById[r.cardId].memberId;
+    });
+    // 2) 自動生成の還元・充当：元の支払い記録に合わせる（1)の結果を参照するので順序を守る）
+    (data.moneyRecs||[]).forEach(r=>{
+      if (r.memberId) return;
+      const src = (r.sourceRecId && rById[r.sourceRecId]) || (r.redeemSourceId && rById[r.redeemSourceId]) || null;
+      if (src && src.memberId) r.memberId = src.memberId;
+    });
+    v = 29;
+  }
   data.schemaVersion = SCHEMA_VERSION;
   data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[]; data.checks=data.checks||[];
   data.moneyCats = (data.moneyCats&&data.moneyCats.length)?data.moneyCats:defaultMoneyCats();
@@ -2721,8 +2740,18 @@ function buildPayMap() {
 
 // ── nav / modal / toast ──
 let currentPage = 'calendar';
+// タブ・サブタブ切替時のスクロールリセット。
+// iOS Safariは慣性スクロール（減速中）やスムーススクロール中の scrollTop 代入を
+// 無視することがあり、「タブを切り替えても上に戻らない」がv17以降も断続的に再発していた。
+// overflow を1フレームだけ止めることで進行中のスクロールを強制停止してから戻す。
+function resetScroll() {
+  const c = document.getElementById('content');
+  if (!c) return;
+  c.style.overflowY = 'hidden';
+  c.scrollTop = 0;
+  requestAnimationFrame(()=>{ c.style.overflowY = ''; c.scrollTop = 0; });
+}
 function showPage(id, el) {
-  const content = document.getElementById('content');
   currentPage = id;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -2730,8 +2759,7 @@ function showPage(id, el) {
   if (el) el.classList.add('active');
   updateMonthNav();
   renderAll();
-  content.scrollTop = 0;
-  requestAnimationFrame(()=>{ content.scrollTop = 0; });
+  resetScroll();
 }
 function openModal(id){
   const ov = document.getElementById(id);
@@ -2839,9 +2867,7 @@ function showSub(group, key, el) {
     el.parentElement.querySelectorAll('.subtab').forEach(t=>t.classList.remove('active'));
     el.classList.add('active');
   }
-  const c = document.getElementById('content');
-  c.scrollTop = 0;
-  requestAnimationFrame(()=>{ c.scrollTop = 0; });
+  resetScroll();
 }
 function updateMonthNav() {
   const bar = document.getElementById('month-bar');
@@ -5072,13 +5098,60 @@ function toggleWalMethod(key) {
   if (i>=0) walMethods.splice(i,1); else walMethods.push(key);
   renderWalMethods();
 }
+// ── 連携済みサービスの選択UI（v32で再設計） ──
+// ・候補は「編集中ウォレットと同じメンバー」のものだけに絞る。
+//   一括コピーで作った家族の同名ウォレットが混ざり、別メンバー側に誤って
+//   連携して「反映されない」ように見えていたため（メンバーをまたぐ連携は
+//   v25の方針上も意味を持たず、一括コピーも連携をコピーしない）。
+// ・既定は「連携済みのみ＋『＋連携先を選ぶ』」の省スペース表示。
+//   展開すると種別グループごとに絵文字つきで全候補を出す。
+// ・過去に別メンバーへ付いてしまった連携は ⚠ つきで表示し、タップで外せる。
+let walLinkedExpanded = false;
+function setWalLinkedExpanded(v){ walLinkedExpanded = v; renderWalLinked(); }
+function walMemberNow() {
+  const sel = document.getElementById('wal-member');
+  if (sel && sel.value) return sel.value;
+  return walEditing ? (walEditing.memberId || '') : '';
+}
 function renderWalLinked() {
   const el = document.getElementById('wal-linked-area');
   if (!el) return;
-  const others = sortByOrder(state.wallets.filter(w=>!walEditing || w.id!==walEditing.id));
-  if (!others.length) { el.innerHTML='<div class="field-note">他に登録がありません</div>'; return; }
-  el.innerHTML = `<div style="display:flex;gap:5px;flex-wrap:wrap">` + others.map(w=>`
-    <div class="pat-chip ${walLinked.includes(w.id)?'sel':''}" onclick="toggleWalLinked('${w.id}')">${escapeHTML(w.name)}</div>`).join('') + '</div>';
+  const norm = id => id || selfMemberId();
+  const cur = norm(walMemberNow());
+  const cands = sortByOrder(state.wallets.filter(w=>
+    (!walEditing || w.id!==walEditing.id) && norm(w.memberId||'')===cur));
+  const chip = w => `<div class="pat-chip ${walLinked.includes(w.id)?'sel':''}" onclick="toggleWalLinked('${w.id}')">${typeEmoji(w.type)} ${escapeHTML(w.name)}</div>`;
+  // 別メンバーに付いてしまっている既存の連携（外せるように警告つきで表示）
+  const strays = walLinked.filter(id=>!cands.some(w=>w.id===id)).map(id=>walletById(id)).filter(Boolean);
+  const strayChip = w => {
+    const mo = memberById(w.memberId);
+    return `<div class="pat-chip sel" onclick="toggleWalLinked('${w.id}')" title="別メンバーのものに連携されています。タップで解除">⚠ ${escapeHTML(w.name)}${mo?`（${mo.icon} ${escapeHTML(mo.name)}）`:''}</div>`;
+  };
+  let html = '';
+  if (!walLinkedExpanded) {
+    const linked = cands.filter(w=>walLinked.includes(w.id));
+    if (linked.length || strays.length) {
+      html += `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px">`
+        + linked.map(chip).join('') + strays.map(strayChip).join('') + `</div>`;
+    } else {
+      html += `<div class="field-note" style="margin:0 0 6px">連携なし</div>`;
+    }
+    if (cands.length) html += `<button class="btn btn-ghost btn-sm" onclick="setWalLinkedExpanded(true)">＋ 連携先を選ぶ</button>`;
+    else if (!strays.length) html = `<div class="field-note">同じメンバーの登録が他にありません</div>`;
+  } else {
+    walletGroups().forEach(g=>{
+      const ws = cands.filter(w=>g.types.includes(w.type));
+      if (!ws.length) return;
+      html += `<div style="font-size:10.5px;color:var(--text-secondary);margin:7px 0 4px">${g.label}</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap">${ws.map(chip).join('')}</div>`;
+    });
+    if (strays.length) {
+      html += `<div style="font-size:10.5px;color:var(--text-secondary);margin:7px 0 4px">⚠ 別メンバーへの連携</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap">${strays.map(strayChip).join('')}</div>`;
+    }
+    html += `<div style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="setWalLinkedExpanded(false)">閉じる</button></div>`;
+  }
+  el.innerHTML = html;
 }
 function toggleWalLinked(id) {
   const i = walLinked.indexOf(id);
@@ -5323,6 +5396,10 @@ function openWalletModal(id, presetType) {
   const rpb=document.querySelector(`#modal-wallet .seg-btn[data-wrp="${walRedeemEarns?1:0}"]`);
   if(rpb) setWalRedeemEarns(walRedeemEarns,rpb);
   walLinked = w?JSON.parse(JSON.stringify(w.linkedIds||[])):[];
+  walLinkedExpanded = false;
+  // メンバーを切り替えたら連携候補も切り替える
+  const wmSel = document.getElementById('wal-member');
+  if (wmSel) wmSel.onchange = ()=>renderWalLinked();
   walRules = w?JSON.parse(JSON.stringify(w.pointRuleIds||(w.pointRuleId?[w.pointRuleId]:[]))):[];
   walMethods = w?JSON.parse(JSON.stringify(w.methods||[])):[];
   renderWalLinked(); renderWalRules(); renderWalMethods();
@@ -5537,13 +5614,8 @@ function cardPaymentsInMonth(y, m) {
   });
   return out;
 }
-// クレカ支払いの金額を入力（未登録なら作成）
-function openCardPayment(walletId, ds) {
-  const w = walletById(walletId); if(!w) return;
-  const rec = state.moneyRecs.find(r=>r.cardId===w.id && r.date===ds);
-  if (rec) { openMoneyModal(null, null, rec.id); return; }
-  openFixAmount('card', walletId, ds, w.name + ' ' + ds.slice(5).replace('-','/') + ' 引落');
-}
+// ※クレカ支払いの入力は modal-cardpay 版の openCardPayment（後方で定義）を使う。
+//   v32まで同名の旧実装がここに残っていたが、後の定義に常に隠されて呼ばれない死にコードだったため削除した。
 // ホームの税金・保険料一覧
 function renderHomeTaxes() {
   const el = document.getElementById('home-tax-list');
@@ -6038,12 +6110,15 @@ function saveFixAmount() {
       already.amount = amount; already.fixed = true; already.noPayment = false;
       if (walletId) already.walletId = walletId;
       if (memo) already.memo = memo;
+      // 過去の不具合（memberId未設定）で本人扱いになっている記録をここで修復する
+      if (!already.memberId && w && w.memberId) already.memberId = w.memberId;
     } else {
       state.moneyRecs.push({ id:'m'+Date.now(), catId:'', cardId:id,
         name:(w?w.name:'')+' 支払い', shortName:(w?(w.shortName||''):''), amount, fixed:true,
         memo, repeat:'once', date:ds, dateMode:'exact', walletId: walletId||(w?w.payAccountId:''),
         dueDate:ds, dueHolidayRule:'after', paid:false, paidDate:'', autoCheck:false,
-        noPayment:false, pointTypeId:'', pointExpiry:'', skipDates:[] });
+        noPayment:false, pointTypeId:'', pointExpiry:'', skipDates:[],
+        memberId: (w && w.memberId) || '' });  // 家族カードの支払いは持ち主の記録として作る
     }
   } else if (kind==='tax') {
     payTaxInstallment(id, { amount, walletId, paidDate, memo, point, pointTypeId });
@@ -6060,13 +6135,15 @@ function saveFixAmount() {
       : calcGrantDate(wal, paidDate || todayStr());
     const ptType = pointTypeId || (wal ? (wal.pointTypeId||'') : '');
     if (ptCat) {
+      const srcRec = (kind==='money') ? state.moneyRecs.find(r=>r.id===id) : null;
       const srcName = (kind==='card' && walletById(id)) ? walletById(id).name
-        : (kind==='money' && state.moneyRecs.find(r=>r.id===id) ? (state.moneyRecs.find(r=>r.id===id).name||'') : '');
+        : (srcRec ? (srcRec.name||'') : '');
       state.moneyRecs.push({ id:'m'+(Date.now()+1), catId:ptCat.id, cardId:'',
         name:(srcName?srcName+' 還元':'ポイント還元'), shortName:'', amount:point, fixed:true, memo:memo||'支払いで獲得',
         repeat:'once', date:grantDate, dateMode:'exact', walletId, dueDate:'', dueHolidayRule:'none',
         paid:false, paidDate:'', autoCheck:false, pointTypeId:ptType, pointExpiry:'', skipDates:[],
-        ptStatus: (grantDate<=todayStr() ? 'granted' : 'pending'), ptGrantDate: grantDate, noPayment:false });
+        ptStatus: (grantDate<=todayStr() ? 'granted' : 'pending'), ptGrantDate: grantDate, noPayment:false,
+        memberId: (srcRec && srcRec.memberId) || '' });  // 還元は元の支払いと同じメンバーに付ける
     }
   }
   save(); closeModal('modal-fixamount'); renderAll();
@@ -7779,11 +7856,13 @@ function saveCardPayment() {
   const memo = document.getElementById('cp-memo').value;
   if (cpStatus!=='none' && !amount) { showToast('請求金額を入力してください'); return; }
   const redeem = parseFloat(document.getElementById('cp-redeem').value)||0;
+  const ownerMemberId = w.memberId || '';  // 家族カードの支払い・還元・充当は持ち主の記録として作る
   const data = { cardId:cpCardId, catId:'', redeemAmount:redeem, name:w.name+' 支払い', shortName:w.shortName||w.name,
     amount: cpStatus==='none' ? 0 : amount, fixed:true, memo, repeat:'once', date,
     dateMode:'exact', walletId, dueDate:date, dueHolidayRule:'after',
     paid: cpStatus!=='unpaid', paidDate: cpStatus==='unpaid' ? '' : date,
-    noPayment: cpStatus==='none', autoCheck:false, pointTypeId:'', pointExpiry:'', skipDates:[] };
+    noPayment: cpStatus==='none', autoCheck:false, pointTypeId:'', pointExpiry:'', skipDates:[],
+    memberId: ownerMemberId };
   let rec = cpRecId ? state.moneyRecs.find(r=>r.id===cpRecId) : null;
   if (rec) Object.assign(rec, data);
   else { rec = Object.assign({id:'m'+Date.now()}, data); state.moneyRecs.push(rec); }
@@ -7800,7 +7879,8 @@ function saveCardPayment() {
       const ptData = { catId: ptCat?ptCat.id:'', name:w.name+' 還元', amount:pt, fixed:true,
         repeat:'once', date:gd, dateMode:'exact', walletId:'', paid:false, paidDate:'',
         pointTypeId: w.pointTypeId||'', ptStatus: gd<=todayStr()?'granted':'pending',
-        ptGrantDate:gd, sourceRecId:rec.id, memo:'', dueDate:'', skipDates:[], noPayment:false };
+        ptGrantDate:gd, sourceRecId:rec.id, memo:'', dueDate:'', skipDates:[], noPayment:false,
+        memberId: ownerMemberId };
       if (ptRec) Object.assign(ptRec, ptData);
       else state.moneyRecs.push(Object.assign({id:'m'+(Date.now()+1)}, ptData));
     }
@@ -7810,7 +7890,8 @@ function saveCardPayment() {
     if (redeem && useCat) {
       const useData = { catId:useCat.id, name:w.name+' ポイント充当', amount:redeem, fixed:true,
         repeat:'once', date, dateMode:'exact', walletId:'', paid:true, paidDate:date,
-        pointTypeId:w.pointTypeId||'', redeemSourceId:rec.id, memo:'', dueDate:'', skipDates:[], noPayment:false };
+        pointTypeId:w.pointTypeId||'', redeemSourceId:rec.id, memo:'', dueDate:'', skipDates:[], noPayment:false,
+        memberId: ownerMemberId };
       if (useRec) Object.assign(useRec, useData);
       else state.moneyRecs.push(Object.assign({id:'m'+(Date.now()+2)}, useData));
     } else if (!redeem && useRec) {
