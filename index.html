@@ -456,6 +456,7 @@
       <div class="subpage" id="sub-poi-rates">
         <div class="card">
           <div class="card-title">カード・決済の還元率</div>
+          <div id="poi-rate-index"></div>
           <div id="poi-wallet-list"></div>
           <div class="field-note">登録・編集は「設定 → 資金・決済」から行えます。</div>
         </div>
@@ -715,7 +716,7 @@
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v36</span> / schema <span id="schema-footer">30</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v37</span> / schema <span id="schema-footer">30</span> / 祝日データ 2025–2028
         </div>
       </div>
     </div>
@@ -1515,6 +1516,9 @@
   <div class="form-grid">
     <div class="form-group"><label>種類</label>
       <select id="tax-preset" onchange="onTaxPresetChange()"></select></div>
+    <div class="form-group"><label>アイコン（任意）</label>
+      <input type="text" id="tax-stamp" maxlength="4" placeholder="絵文字" style="width:90px;text-align:center;font-size:20px">
+      <div class="field-note">空欄なら種類ごとの既定の絵文字が使われます。</div></div>
     <div class="form-group member-row" id="tax-member-row" style="display:none"><label>メンバー</label><select id="tax-member"></select></div>
     <div class="form-group"><label>名称</label><input type="text" id="tax-name" placeholder="例：固定資産税 令和8年度"></div>
     <div class="form-group"><label>月表示用の短縮名（任意）</label><input type="text" id="tax-short" placeholder="例：固定資産税"></div>
@@ -1860,6 +1864,9 @@
   <div class="form-grid">
     <div class="form-group member-row" id="inv-member-row" style="display:none"><label>メンバー</label><select id="inv-member"></select></div>
     <div class="form-group"><label>名称</label><input type="text" id="inv-name" placeholder="例：楽天証券 つみたてNISA"></div>
+    <div class="form-group"><label>アイコン（任意）</label>
+      <input type="text" id="inv-stamp" maxlength="4" placeholder="📈" style="width:90px;text-align:center;font-size:20px">
+      <div class="field-note">空欄なら 📈 が使われます。</div></div>
     <div class="form-group"><label>月表示用の短縮名（任意）</label><input type="text" id="inv-short" placeholder="例：NISA"></div>
     <div class="form-group"><label>種類</label>
       <select id="inv-kind">
@@ -1990,7 +1997,7 @@
      v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
      バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
 <script>
-window.APP_BOOT_VERSION = '36';
+window.APP_BOOT_VERSION = '37';
 (function(){
   var KEY = 'financeManager';
   // 版数はまずここで出す（本体が落ちても「どの版が動いているか」が必ず分かる）
@@ -2035,7 +2042,7 @@ window.APP_BOOT_VERSION = '36';
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '36';
+const APP_VERSION = '37';
 const SCHEMA_VERSION = 30;
 const STORAGE_KEY = 'financeManager';
 
@@ -3136,7 +3143,7 @@ function dayItems(ds) {
       const showDate = ins.paid && ins.paidDate ? ins.paidDate : eff;
       if (showDate !== ds) return;
       const unfixed = !ins.paid && !ins.amount;
-      items.push({ kind:'tax', stamp: pre.stamp, color: pre.color,
+      items.push({ kind:'tax', stamp: taxStamp(t), color: pre.color,
         label: t.name + (t.mode==='lump'?'':` 第${ins.no}期`) + (ins.paid?'（支払済）':(unfixed?'（金額未定）':'')),
         short: (t.shortName||pre.name),
         sub: (ins.paid && ins.paidDate
@@ -5120,11 +5127,19 @@ function walletGroups() {
 //（残さないと、古い記録を開いて保存しただけで引落先が消えるため）。
 // types を渡すとその種別だけに絞る（例：銀行だけの引落先プルダウン）。
 // 絞り込みは「有効・未解約かつ現在メンバー」。ただし編集中の記録が選んでいるものは必ず残す。
-function fillWalletSelect(elId, selectedId, emptyLabel, types) {
+// memberId を渡すと「そのメンバーのもの」だけに絞る（v37）。
+// inCurrentMember は画面の表示フィルタ用で「全員」表示のときは全件通るため、
+// 一括コピーで作った同名ウォレットが並んでしまっていた。記録に紐づくメンバーが
+// 分かっている場面では、そちらを基準に絞るのが正しい。
+function fillWalletSelect(elId, selectedId, emptyLabel, types, memberId) {
   const el = document.getElementById(elId);
   if (!el) return;
   const sid = selectedId || '';
-  const usable = w => (w.active!==false) && !w.closed && inCurrentMember(w);
+  const norm = id => id || selfMemberId();
+  const byMember = (memberId !== undefined && memberId !== null)
+    ? (w => w.shared || norm(w.memberId) === norm(memberId))
+    : inCurrentMember;
+  const usable = w => (w.active!==false) && !w.closed && byMember(w);
   const inTypes = w => !types || types.includes(w.type);
   let html = `<option value="">${emptyLabel||'指定なし'}</option>`;
   const groups = types ? walletGroups().filter(g=>g.types.some(t=>types.includes(t))) : walletGroups();
@@ -5286,9 +5301,11 @@ function setWalRateUnit(v, el) {
   walRateUnitMode = v;
   document.querySelectorAll('#modal-wallet .seg-btn[data-wru]').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById('wal-per-row').style.display = (v==='per')?'':'none';
+  // v37：両方の入力欄を常に残す（切り替えても入力済みの値が消えないように）。
+  // 選んだ方を上に強調するだけで、値の保存は両方行う。
+  document.getElementById('wal-per-row').style.display = '';
   const rateRow = document.getElementById('wal-rate');
-  if (rateRow) rateRow.closest('.form-group').style.display = (v==='pct')?'':'none';
+  if (rateRow) rateRow.closest('.form-group').style.display = '';
 }
 // 金額から獲得ポイントを計算（％ or ◯円ごと）
 function calcPointsFor(obj, amount) {
@@ -5359,9 +5376,8 @@ function rateText(obj) {
   }
   const rate = parseFloat(obj.baseRate ?? obj.rate) || 0;
   if (!rate) return '';
-  // %だけの場合は「100円で◯P」相当も併記（1P=1円換算のめやす）
-  const per100 = Math.round(rate * 100) / 100;
-  return `${rate}%（100円で${per100}P）`;
+  // 「いくらごと」が未入力なら計算単位は不明なので、勝手に100円ごととは書かない（v37）
+  return `${rate}%`;
 }
 function onPtTimingChange() {
   const v = document.getElementById('wal-pttiming').value;
@@ -5375,8 +5391,12 @@ function onPtTimingChange() {
 function calcGrantDate(wallet, paidDate) {
   if (!wallet || !paidDate) return paidDate||'';
   // 付与ルールが設定されていればそちらを優先
-  if (wallet.pointRuleId) {
-    const rule = pointRuleById(wallet.pointRuleId);
+  // v29で複数ルール（pointRuleIds）に移行したが、ここが旧フィールド（単数）しか
+  // 見ておらず、ルールを登録しても常に ptTiming（既定＝即時）が使われていた（v37で修正）
+  const _rids = (wallet.pointRuleIds && wallet.pointRuleIds.length)
+    ? wallet.pointRuleIds : (wallet.pointRuleId ? [wallet.pointRuleId] : []);
+  for (const rid of _rids) {
+    const rule = pointRuleById(rid);
     if (rule) return grantDateByRule(rule, paidDate);
   }
   const t = wallet.ptTiming || 'immediate';
@@ -5405,7 +5425,7 @@ function onWalletTypeChange() {
   const sel = document.getElementById('wal-payaccount');
   if (sel) {
     const cur = sel.value;
-    fillWalletSelect('wal-payaccount', cur, '未設定', BANK_TYPES);
+    fillWalletSelect('wal-payaccount', cur, '未設定', BANK_TYPES, walMemberNow());
   }
   if (walStampMode==='type') refreshWalPickers();
 }
@@ -5564,8 +5584,10 @@ function saveWallet() {
     bonusRates: walBonuses.filter(b=>b.cond||b.rate),
     closingRules: walClosingRules.filter(r=>r.label||r.day),
     interestRate: parseFloat(document.getElementById('wal-interest').value)||'',
-    rateUnit: (walRateUnitMode==='per') ? (parseFloat(document.getElementById('wal-rateunit').value)||0) : 0,
-    ratePoints: (walRateUnitMode==='per') ? (parseFloat(document.getElementById('wal-ratepoints').value)||0) : 0,
+    // 方式を切り替えても、入力済みの値は消さない（v37）。
+    // 計算は「いくらごと」が入っていればそちらを優先し、無ければ％を使う。
+    rateUnit: parseFloat(document.getElementById('wal-rateunit').value)||0,
+    ratePoints: parseFloat(document.getElementById('wal-ratepoints').value)||0,
     ptTiming: document.getElementById('wal-pttiming').value,
     ptTimingDays: (document.getElementById('wal-pttiming').value==='days') ? (parseInt(document.getElementById('wal-pttiming-num').value)||0) : 0,
     ptTimingDay: (['nextmonth','month2'].includes(document.getElementById('wal-pttiming').value)) ? (parseInt(document.getElementById('wal-pttiming-num').value)||0) : 0,
@@ -5712,6 +5734,13 @@ function openMoneyCatDetail(id) {
   openDetail({ stamp: stampHTML(c.stamp), name: c.name, sub: TYPE_LBL[c.type]||'支出（円）',
     rows: [['種類', TYPE_LBL[c.type]||'支出（円）']], onEdit: ()=>openMoneyCatModal(id) });
 }
+// 税金・投資のアイコン（未設定なら種類ごとの既定）
+function taxStamp(t) {
+  if (t && t.stamp) return t.stamp;
+  const pre = TAX_PRESETS[(t && t.presetKey)] || TAX_PRESETS.other;
+  return pre.stamp;
+}
+function invStamp(iv) { return (iv && iv.stamp) ? iv.stamp : '📈'; }
 function openTaxDetail(id) {
   const t = state.taxes.find(x=>x.id===id); if (!t) return;
   const pre = TAX_PRESETS[t.presetKey] || TAX_PRESETS.other;
@@ -5724,7 +5753,7 @@ function openTaxDetail(id) {
     const w = i.walletId?walletById(i.walletId):null;
     return `<div class="detail-row"><span class="dr-label">第${i.no}期${i.dueDate?`（${i.dueDate.replace(/-/g,'/')}）`:''}</span><span class="dr-val">${fmt(i.amount)}${i.paid?' ✓支払済':''}${w?` / ${escapeHTML(w.name)}`:''}</span></div>`;
   }).join('');
-  openDetail({ stamp: `<span style="font-size:22px">${pre.stamp}</span>`, name: t.name,
+  openDetail({ stamp: `<span style="font-size:22px">${taxStamp(t)}</span>`, name: t.name,
     sub: `${t.year}年度 / ${t.mode==='lump'?'一括':inst.length+'期分割'}`,
     rows: [
       ['短縮名', t.shortName],
@@ -5787,7 +5816,7 @@ function openInvestmentDetail(id) {
     ? `前月${iv.beforeDay}${iv.beforeDay2?`〜${iv.beforeDay2}`:''}日引落`
     : (iv.payMode==='card' ? `${card?card.name:'カード'}の引落日にまとめて` : '積立日に引落');
   const hist = (iv.history||[]).map(h=>`<div class="detail-row"><span class="dr-label">${h.from||''}〜${h.to||''}</span><span class="dr-val">${fmt(h.amount)}${h.note?` / ${escapeHTML(h.note)}`:''}</span></div>`).join('');
-  openDetail({ stamp:'<span style="font-size:21px">📈</span>', name: iv.name, sub: INV_KIND_LABEL[iv.kind]||'',
+  openDetail({ stamp:`<span style="font-size:21px">${invStamp(iv)}</span>`, name: iv.name, sub: INV_KIND_LABEL[iv.kind]||'',
     rows: [
       ['積立日', `毎月${iv.day>=99?'末':iv.day}日`],
       ['現在の金額', fmt(cfg.amount)],
@@ -5992,7 +6021,7 @@ function renderHomeTaxes() {
       ? `${r.showDate.slice(5).replace('-','/')}支払済 / 期限 ${(+r.eff.slice(5,7))}/${(+r.eff.slice(8,10))}${w?' / '+escapeHTML(w.name):''}`
       : `納期限 ${r.eff.slice(5).replace('-','/')}${r.t.walletId?' / 口座振替':''}`;
     return `<div class="job-sum-row">
-      <span style="width:26px;text-align:center;font-size:21px;flex-shrink:0">${r.pre.stamp}</span>
+      <span style="width:26px;text-align:center;font-size:21px;flex-shrink:0">${taxStamp(r.t||r)}</span>
       <div class="job-sum-name">${escapeHTML(r.t.name)}${r.t.mode==='lump'?'':` 第${r.ins.no}期`}
         <div class="job-sum-sub">${sub}</div></div>
       <div style="display:flex;align-items:center;gap:8px">
@@ -6242,6 +6271,7 @@ function openTaxModal(id) {
   document.getElementById('tax-modal-title').textContent = t?'税金・保険料を編集':'税金・保険料を登録';
   document.getElementById('tax-name').value = t?t.name:'';
   document.getElementById('tax-short').value = t?(t.shortName||''):'';
+  document.getElementById('tax-stamp').value = t?(t.stamp||''):'';
   document.getElementById('tax-year').value = t?t.year:new Date().getFullYear();
   document.getElementById('tax-mode').value = t?(t.mode||'split'):'split';
   document.getElementById('tax-total').value = t?(t.total||''):'';
@@ -6255,7 +6285,8 @@ function openTaxModal(id) {
   fillMemberSelect('tax-for', t?(t.forMemberId||t.memberId):'');
   document.getElementById('tax-prepay').value = t?(t.prepay||''):'';
   onTaxPrepayChange();
-  fillWalletSelect('tax-wallet', t?(t.walletId||''):'', 'なし（都度払い）', BANK_TYPES);
+  fillWalletSelect('tax-wallet', t?(t.walletId||''):'', 'なし（都度払い）', BANK_TYPES,
+    (document.getElementById('tax-member')||{}).value || (t?(t.memberId||''):''));
   document.getElementById('tax-delete-btn').style.display = t?'':'none';
   taxInstallments = t ? JSON.parse(JSON.stringify(t.installments||[])) : [];
   if (!t) {
@@ -6272,6 +6303,7 @@ function saveTax() {
   if (!taxInstallments.length) { showToast('納期限を1つ以上追加してください'); return; }
   const data = { presetKey: document.getElementById('tax-preset').value, name,
     shortName: document.getElementById('tax-short').value.trim(),
+    stamp: document.getElementById('tax-stamp').value.trim(),
     year: parseInt(document.getElementById('tax-year').value)||new Date().getFullYear(),
     mode: document.getElementById('tax-mode').value,
     total: parseFloat(document.getElementById('tax-total').value)||0,
@@ -7997,6 +8029,7 @@ function openInvestmentModal(id) {
   });
   document.getElementById('inv-title').textContent = iv?'投資・積立を編集':'投資・積立を登録';
   document.getElementById('inv-name').value = iv?iv.name:'';
+  document.getElementById('inv-stamp').value = iv?(iv.stamp||''):'';
   document.getElementById('inv-kind').value = iv?iv.kind:'nisa';
   document.getElementById('inv-amount').value = iv?iv.amount:'';
   document.getElementById('inv-day').value = iv?String(iv.day||1):'1';
@@ -8008,25 +8041,29 @@ function openInvestmentModal(id) {
   fillMemberSelect('inv-member', iv?iv.memberId:'');
   document.getElementById('inv-from').value = iv?(iv.activeFrom||''):'';
   document.getElementById('inv-to').value = iv?(iv.activeTo||''):'';
-  const brokers = sortByOrder(state.wallets.filter(w=>w.type==='securities'));
+  const _ivMem = (document.getElementById('inv-member')||{}).value || (iv?(iv.memberId||''):'');
+  const _normM = id => id || selfMemberId();
+  const _mineM = w => w.shared || _normM(w.memberId)===_normM(_ivMem);
+  const brokers = sortByOrder(state.wallets.filter(w=>w.type==='securities' && (_mineM(w) || (iv&&w.id===iv.brokerId))));
   document.getElementById('inv-broker').innerHTML = '<option value="">指定なし</option>' +
     (brokers.length ? brokers.map(w=>`<option value="${w.id}" ${iv&&w.id===iv.brokerId?'selected':''}>${escapeHTML(w.name)}</option>`).join('')
       : '<option value="" disabled>証券口座を先に登録してください</option>');
   document.getElementById('inv-card').innerHTML = '<option value="">指定なし</option>' +
-    sortByOrder(state.wallets.filter(w=>w.type==='card')).map(w=>`<option value="${w.id}" ${iv&&w.id===iv.cardId?'selected':''}>${escapeHTML(w.name)}</option>`).join('');
+    sortByOrder(state.wallets.filter(w=>w.type==='card' && (_mineM(w) || (iv&&w.id===iv.cardId)))).map(w=>`<option value="${w.id}" ${iv&&w.id===iv.cardId?'selected':''}>${escapeHTML(w.name)}</option>`).join('');
   invHistory = iv?JSON.parse(JSON.stringify(iv.history||[])):[];
   renderInvHistory();
   document.getElementById('inv-wallet').innerHTML = '<option value="">指定なし</option>' +
-    sortByOrder(state.wallets).map(w=>`<option value="${w.id}" ${iv&&w.id===iv.walletId?'selected':''}>${escapeHTML(w.name)}</option>`).join('');
+    sortByOrder(state.wallets.filter(w=>_mineM(w) || (iv&&w.id===iv.walletId))).map(w=>`<option value="${w.id}" ${iv&&w.id===iv.walletId?'selected':''}>${escapeHTML(w.name)}</option>`).join('');
   document.getElementById('inv-delete-btn').style.display = iv?'':'none';
   onInvPayModeChange();
   openModal('modal-investment');
 }
 function saveInvestment() {
   const name = document.getElementById('inv-name').value.trim();
+  const ivStampVal = document.getElementById('inv-stamp').value.trim();
   const amount = parseFloat(document.getElementById('inv-amount').value)||0;
   if (!name || !amount) { showToast('名称と金額を入力してください'); return; }
-  const data = { name, kind:document.getElementById('inv-kind').value, amount,
+  const data = { name, stamp: ivStampVal, kind:document.getElementById('inv-kind').value, amount,
     day: parseInt(document.getElementById('inv-day').value)||1,
     walletId: document.getElementById('inv-wallet').value||'',
     payMode: document.getElementById('inv-paymode').value,
@@ -8180,7 +8217,7 @@ function openCardPayment(walletId, ds) {
   document.getElementById('cp-redeem').value = rec ? (rec.redeemAmount||'') : '';
   document.getElementById('cp-date').value = ds;
   document.getElementById('cp-memo').value = rec ? (rec.memo||'') : '';
-  fillWalletSelect('cp-wallet', rec ? (rec.walletId||'') : (w.payAccountId||''), '指定なし', BANK_TYPES);
+  fillWalletSelect('cp-wallet', rec ? (rec.walletId||'') : (w.payAccountId||''), '指定なし', BANK_TYPES, w.memberId||'');
   document.getElementById('cp-delete-btn').style.display = rec ? '' : 'none';
   cpStatus = rec ? (rec.noPayment ? 'none' : (rec.paid ? 'paid' : 'unpaid')) : 'unpaid';
   const btn = document.querySelector(`#modal-cardpay .seg-btn[data-cps="${cpStatus}"]`);
@@ -8575,7 +8612,6 @@ function openDepositModal(id) {
   depEditing = id ? state.deposits.find(d=>d.id===id) : null;
   const d = depEditing;
   document.getElementById('dep-modal-title').textContent = d?'定期預金を編集':'定期預金を登録';
-  fillWalletSelect('dep-bank', d?(d.bankId||''):'', '選択', BANK_TYPES);
   document.getElementById('dep-name').value = d?d.name:'';
   document.getElementById('dep-amount').value = d?d.amount:'';
   document.getElementById('dep-rate').value = d?d.rate:'';
@@ -8583,6 +8619,10 @@ function openDepositModal(id) {
   document.getElementById('dep-end').value = d?(d.endDate||''):'';
   document.getElementById('dep-memo').value = d?(d.memo||''):'';
   fillMemberSelect('dep-member', d?d.memberId:'');
+  const depMem = document.getElementById('dep-member');
+  const fillDepBank = ()=>fillWalletSelect('dep-bank', d?(d.bankId||''):'', '選択', BANK_TYPES, depMem?depMem.value:'');
+  fillDepBank();
+  if (depMem) depMem.onchange = ()=>fillWalletSelect('dep-bank', document.getElementById('dep-bank').value, '選択', BANK_TYPES, depMem.value);
   document.getElementById('dep-delete-btn').style.display = d?'':'none';
   ['dep-amount','dep-rate','dep-start','dep-end'].forEach(idd=>{
     const inp=document.getElementById(idd);
@@ -8755,7 +8795,7 @@ function renderPoiWalletList() {
     const members = sortByOrder(state.wallets.filter(w=>g.types.includes(w.type)&&inCurrentMember(w)));
     if (!members.length) return '';
     const open = isGrpOpen('poi-'+g.key);
-    return `<div class="grp-header" onclick="toggleGroup('poi-${g.key}')">
+    return `<div class="grp-header" id="poibox-head-${g.key}" onclick="toggleGroup('poi-${g.key}')">
         <span class="grp-title"><span class="grp-caret ${open?'open':''}">▶</span>${g.label}</span>
         <span class="grp-count">${members.length}</span>
       </div>
@@ -9694,6 +9734,20 @@ function renderChecklist() {
 // ── 資金・決済／ホームのジャンプ用インデックス（v34） ──
 // 折りたたみを閉じなくても下の方へ飛べるようにする。
 // 資金・決済は「グループ名 件数」チップ。閉じているグループはタップで開いてから移動する。
+// 還元率一覧（ポイ活タブ）のジャンプ用インデックス
+function renderPoiRateIndex() {
+  const el = document.getElementById('poi-rate-index');
+  if (!el) return;
+  const gs = walletGroups().map(g=>({ g, n: state.wallets.filter(w=>g.types.includes(w.type)&&inCurrentMember(w)).length }))
+    .filter(x=>x.n>0);
+  if (gs.length < 2) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="sec-index">` + gs.map(x=>
+    `<div class="sec-chip" onclick="jumpToPoiGroup('${x.g.key}')">${escapeHTML(x.g.label)} <b>${x.n}</b></div>`).join('') + `</div>`;
+}
+function jumpToPoiGroup(key) {
+  if (!isGrpOpen('poi-'+key)) { groupOpenMap()['poi-'+key] = true; save(); renderAll(); }
+  requestAnimationFrame(()=>scrollToEl(document.getElementById('poibox-head-'+key)));
+}
 function renderWalletIndex() {
   const el = document.getElementById('wallet-index');
   if (!el) return;
@@ -9829,6 +9883,7 @@ function renderAll() {
   renderStorageUsage();
   renderBackupNotice();
   renderWalletIndex();
+  renderPoiRateIndex();
   buildHomeIndex();
   renderListHeaders();
   updateFilterBadge();
