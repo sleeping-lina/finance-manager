@@ -715,7 +715,7 @@
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v35</span> / schema <span id="schema-footer">30</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v36</span> / schema <span id="schema-footer">30</span> / 祝日データ 2025–2028
         </div>
       </div>
     </div>
@@ -1985,11 +1985,57 @@
 </div></div>
 
 <div class="toast" id="toast"></div>
+<!-- 早期ガード（v36）：本体スクリプトが最上位で落ちても、版数表示・エラー表示・
+     データ取り出しだけは必ず動くように、独立したスクリプトブロックで先に定義する。
+     v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
+     バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
+<script>
+window.APP_BOOT_VERSION = '36';
+(function(){
+  var KEY = 'financeManager';
+  // 版数はまずここで出す（本体が落ちても「どの版が動いているか」が必ず分かる）
+  document.addEventListener('DOMContentLoaded', function(){
+    var b = document.getElementById('version-badge');
+    if (b && b.textContent === '…') b.textContent = 'v' + window.APP_BOOT_VERSION;
+  });
+  // 生データの取り出し（state を経由しないのでアプリが壊れていても動く）
+  window.rescueExportRaw = function(){
+    try {
+      var raw = localStorage.getItem(KEY) || localStorage.getItem('incomeboard') || '{}';
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([raw], {type:'application/json'}));
+      a.download = 'finance-rescue-' + new Date().toISOString().slice(0,10) + '.json';
+      document.body.appendChild(a); a.click(); a.remove();
+    } catch(e) { alert('取り出しに失敗しました: ' + e); }
+  };
+  window.showFatalError = function(msg){
+    if (document.getElementById('fatal-error-banner')) return;
+    var d = document.createElement('div');
+    d.id = 'fatal-error-banner';
+    d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#C0392B;color:#fff;'
+      + 'font-size:12px;padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top));line-height:1.5';
+    d.innerHTML = '<div style="font-weight:700;margin-bottom:4px">⚠ 起動できませんでした（v'
+      + window.APP_BOOT_VERSION + '）</div>'
+      + '<div id="fatal-error-msg" style="font-size:11px;word-break:break-all;margin-bottom:8px"></div>'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap">'
+      + '<button onclick="rescueExportRaw()" style="background:#fff;color:#C0392B;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700">データを保存（JSON）</button>'
+      + '<button onclick="(navigator.clipboard?navigator.clipboard.writeText(document.getElementById(\'fatal-error-msg\').textContent):0)||alert(document.getElementById(\'fatal-error-msg\').textContent)" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid #fff;border-radius:8px;padding:6px 12px;font-size:12px">エラーをコピー</button>'
+      + '</div>';
+    (document.body || document.documentElement).appendChild(d);
+    document.getElementById('fatal-error-msg').textContent = msg;
+  };
+  // 本体スクリプトの最上位で落ちた場合もここで拾える
+  window.addEventListener('error', function(ev){
+    var m = (ev.error && (ev.error.name + ': ' + ev.error.message)) || ev.message || '不明なエラー';
+    window.showFatalError(m + (ev.lineno ? '（' + ev.lineno + '行目）' : ''));
+  });
+})();
+</script>
 <script>
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '35';
+const APP_VERSION = '36';
 const SCHEMA_VERSION = 30;
 const STORAGE_KEY = 'financeManager';
 
@@ -2647,8 +2693,12 @@ function migrate(data) {
   if (v < 30) {
     // v29 → v30 : 解約済みフラグ（終了年月なしでも解約済みにできる）
     // 既に利用終了年月が過ぎているものは解約済みとして扱う
+    // 注意：migrate は todayStr の定義より前に実行されるため、ここで todayStr() を
+    // 呼んではいけない（v34/v35 はこれで起動不能になった）。現在年月はその場で作る。
+    const _now = new Date();
+    const _nowYm = _now.getFullYear() + '-' + String(_now.getMonth()+1).padStart(2,'0');
     (data.wallets||[]).forEach(w=>{
-      if (w.closed===undefined) w.closed = !!(w.activeTo && w.activeTo < todayStr().slice(0,7));
+      if (w.closed===undefined) w.closed = !!(w.activeTo && w.activeTo < _nowYm);
     });
     v = 30;
   }
@@ -2690,7 +2740,17 @@ function loadState() {
   try { parsed = raw ? JSON.parse(raw) : null; } catch(e){}
   return migrate(parsed);
 }
-let state = loadState();
+let state;
+try {
+  state = loadState();
+} catch (e) {
+  // 読み込み・マイグレーションに失敗しても、アプリを起動不能にしない。
+  // 保存済みデータは触らないまま、原因表示とデータ取り出しの導線を出す。
+  console.error('[loadState 失敗]', e);
+  if (window.showFatalError) window.showFatalError('データの読み込みに失敗しました（' + (e && e.message) + '）。保存済みのデータはそのまま残っています。上の「データを保存」で取り出せます。');
+  state = defaultState();
+  window.__loadFailed = true;
+}
 // ── 保存（容量超過などの失敗を検知して警告する） ──
 var saveErrorShown = false;   // バナー表示中か
 var saveErrorAlerted = false; // alertは1セッション1回だけ
@@ -9713,7 +9773,7 @@ function scrollToSection(id) { scrollToEl(document.getElementById(id)); }
 const DIAG_DYNAMIC_IDS = new Set([
   'dd-subtotal','ex-total','jd-total','rec-amount','rec-break','rec-date','rec-end',
   'rec-enddate','rec-memo','rec-name','rec-pat-chips','rec-preview','rec-start',
-  'rec-transport','rec-wage','save-error-banner','boot-error-banner','rescue-info',
+  'rec-transport','rec-wage','save-error-banner','boot-error-banner','rescue-info','fatal-error-banner','fatal-error-msg',
 ]);
 function runIdDiagnostics(showResult) {
   const ids = new Set();
@@ -9791,7 +9851,7 @@ function bootApp() {
       document.getElementById('ver-footer').textContent = 'v'+APP_VERSION;
       document.getElementById('schema-footer').textContent = SCHEMA_VERSION;
     }],
-    ['保存', ()=>save()],
+    ['保存', ()=>{ if (!window.__loadFailed) save(); }],  // 読み込み失敗時は上書きしない
     ['カード支払いの自動確定', ()=>autoSettleCardPayments()],
     ['設定UIの同期', ()=>syncSettingsUI()],
     ['設定インデックス', ()=>buildSettingsIndex()],
