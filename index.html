@@ -332,7 +332,7 @@
   <header class="topbar">
     <div style="display:flex;align-items:center;">
       <span class="topbar-logo">Finance<span>Mgr</span></span>
-      <span class="version-badge" id="version-badge">v29</span>
+      <span class="version-badge" id="version-badge">…</span>
     </div>
     <div class="topbar-total">
       <div class="topbar-total-label">今月合計</div>
@@ -715,7 +715,7 @@
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v34</span> / schema <span id="schema-footer">30</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v35</span> / schema <span id="schema-footer">30</span> / 祝日データ 2025–2028
         </div>
       </div>
     </div>
@@ -1989,7 +1989,7 @@
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '34';
+const APP_VERSION = '35';
 const SCHEMA_VERSION = 30;
 const STORAGE_KEY = 'financeManager';
 
@@ -9713,7 +9713,7 @@ function scrollToSection(id) { scrollToEl(document.getElementById(id)); }
 const DIAG_DYNAMIC_IDS = new Set([
   'dd-subtotal','ex-total','jd-total','rec-amount','rec-break','rec-date','rec-end',
   'rec-enddate','rec-memo','rec-name','rec-pat-chips','rec-preview','rec-start',
-  'rec-transport','rec-wage','save-error-banner',
+  'rec-transport','rec-wage','save-error-banner','boot-error-banner','rescue-info',
 ]);
 function runIdDiagnostics(showResult) {
   const ids = new Set();
@@ -9780,13 +9780,93 @@ function renderAll() {
   renderBadgeColorSettings();
   applyBadgeColors();
 }
-save();
-autoSettleCardPayments();
-syncSettingsUI();
-buildSettingsIndex();
-renderAll();
-updateMonthNav();
-if (location.hash === '#debug') runIdDiagnostics(false);
+// ── 起動（v35：どこかで失敗しても操作不能にならないようにする） ──
+// v34以前は初期化が1箇所でも例外を投げるとJSが止まり、画面が空・タブ無反応・
+// バージョン表示が古いまま、という状態になった（データ救出もできない）。
+// 各ステップを個別に try で囲み、失敗しても残りを続行し、原因を画面に出す。
+function bootApp() {
+  const steps = [
+    ['バージョン表示', ()=>{
+      document.getElementById('version-badge').textContent = 'v'+APP_VERSION;
+      document.getElementById('ver-footer').textContent = 'v'+APP_VERSION;
+      document.getElementById('schema-footer').textContent = SCHEMA_VERSION;
+    }],
+    ['保存', ()=>save()],
+    ['カード支払いの自動確定', ()=>autoSettleCardPayments()],
+    ['設定UIの同期', ()=>syncSettingsUI()],
+    ['設定インデックス', ()=>buildSettingsIndex()],
+    ['画面の描画', ()=>renderAll()],
+    ['月ナビ', ()=>updateMonthNav()],
+  ];
+  const failures = [];
+  steps.forEach(([label, fn])=>{
+    try { fn(); } catch(e) { failures.push({label, e}); console.error('[起動エラー] '+label, e); }
+  });
+  if (failures.length) showBootError(failures);
+  if (location.hash === '#debug') { try { runIdDiagnostics(false); } catch(e){} }
+}
+// 起動時エラーの表示（原因と、データを取り出す手段を必ず出す）
+function showBootError(failures) {
+  const f = failures[0];
+  const msg = f.label + '：' + (f.e && f.e.message ? f.e.message : String(f.e));
+  const b = document.createElement('div');
+  b.id = 'boot-error-banner';
+  b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#C0392B;color:#fff;'
+    + 'font-size:12px;padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top));line-height:1.5';
+  b.innerHTML = '<div style="font-weight:700;margin-bottom:4px">⚠ 起動時にエラーが起きました（' + failures.length + '件）</div>'
+    + '<div style="font-size:11px;word-break:break-all;margin-bottom:8px">' + escapeHTML(msg) + '</div>'
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap">'
+    + '<button onclick="rescueExport()" style="background:#fff;color:#C0392B;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700">データを保存（JSON）</button>'
+    + '<button onclick="rescueCopy()" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid #fff;border-radius:8px;padding:6px 12px;font-size:12px">エラーをコピー</button>'
+    + '<button onclick="this.parentElement.parentElement.remove()" style="background:transparent;color:#fff;border:1px solid #fff;border-radius:8px;padding:6px 12px;font-size:12px">閉じる</button>'
+    + '</div>';
+  document.body.appendChild(b);
+  window.__bootFailures = failures.map(x=>x.label+': '+((x.e&&x.e.stack)||x.e));
+}
+// state を経由せず localStorage の生データを書き出す（アプリが壊れていても動く）
+function rescueExport() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('incomeboard') || '{}';
+    const blob = new Blob([raw], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'finance-rescue-' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+  } catch(e) { alert('取り出しに失敗しました: ' + e); }
+}
+function rescueCopy() {
+  const txt = (window.__bootFailures||[]).join('\n\n');
+  if (navigator.clipboard) navigator.clipboard.writeText(txt).then(()=>alert('コピーしました'), ()=>alert(txt));
+  else alert(txt);
+}
+// #rescue で開くと、アプリを描画せずデータの取り出しだけを行う安全モード
+if (location.hash === '#rescue') {
+  document.body.innerHTML = '<div style="padding:24px 18px;font-family:system-ui;line-height:1.7">'
+    + '<div style="font-size:17px;font-weight:700;margin-bottom:10px">レスキューモード</div>'
+    + '<div style="font-size:13px;color:#555;margin-bottom:16px">アプリを起動せずに、保存されているデータだけを取り出します。</div>'
+    + '<div id="rescue-info" style="font-size:12px;background:#F4F6FA;border-radius:10px;padding:12px;margin-bottom:16px"></div>'
+    + '<button onclick="rescueExport()" style="background:#4A6FA5;color:#fff;border:none;border-radius:10px;padding:12px 18px;font-size:14px;font-weight:700">データを保存（JSON）</button>'
+    + '</div>';
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('incomeboard');
+    if (!raw) {
+      document.getElementById('rescue-info').textContent = 'このアプリにはデータが保存されていません。';
+    } else {
+      const d = JSON.parse(raw);
+      document.getElementById('rescue-info').innerHTML =
+        'schema: <b>' + (d.schemaVersion||'不明') + '</b><br>'
+        + 'サイズ: <b>' + Math.round(raw.length/1024) + ' KB</b><br>'
+        + '資金・決済: ' + ((d.wallets||[]).length) + '件<br>'
+        + 'お金の記録: ' + ((d.moneyRecs||[]).length) + '件<br>'
+        + '勤務記録: ' + ((d.records||[]).length) + '件<br>'
+        + 'サブスク: ' + ((d.subscriptions||[]).length) + '件 ／ 税金: ' + ((d.taxes||[]).length) + '件';
+    }
+  } catch(e) {
+    document.getElementById('rescue-info').textContent = '読み取りエラー: ' + e;
+  }
+} else {
+  bootApp();
+}
 </script>
 </body>
 </html>
