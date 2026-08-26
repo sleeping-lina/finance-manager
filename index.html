@@ -721,7 +721,7 @@
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v38</span> / schema <span id="schema-footer">31</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v39</span> / schema <span id="schema-footer">32</span> / 祝日データ 2025–2028
         </div>
       </div>
     </div>
@@ -2003,7 +2003,7 @@
      v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
      バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
 <script>
-window.APP_BOOT_VERSION = '38';
+window.APP_BOOT_VERSION = '39';
 (function(){
   var KEY = 'financeManager';
   // 版数はまずここで出す（本体が落ちても「どの版が動いているか」が必ず分かる）
@@ -2048,8 +2048,8 @@ window.APP_BOOT_VERSION = '38';
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '38';
-const SCHEMA_VERSION = 31;
+const APP_VERSION = '39';
+const SCHEMA_VERSION = 32;
 const STORAGE_KEY = 'financeManager';
 
 const C = { blue:['#5B8DEF','#3D6BD1','#EAF1FF'], teal:['#2DC5A4','#189A7E','#E4FAF4'], amber:['#F7B32B','#D3921A','#FFF6E0'], pink:['#F76D8E','#D94A6E','#FFEBF0'], violet:['#9B7EDE','#7A5CC4','#F1EBFF'], slate:['#6B7A99','#4D5B78','#EEF1F6'] };
@@ -2745,6 +2745,31 @@ function migrate(data) {
     });
     if (dup.length) data.moneyRecs = data.moneyRecs.filter(r=>!dup.includes(r.id));
     v = 31;
+  }
+  if (v < 32) {
+    // v31 → v32 : 年末年始を休業日に加えた（v38）ことで、既に保存済みの
+    // クレカ引落日がズレたままになる問題を解消する。
+    // 「旧ルールで計算した日付と完全に一致する＝アプリが自動で入れた日付」
+    // とみなせるものだけを、新ルールの日付に直す。
+    // 手で直した日付・支払済のものは触らない。
+    const wmap = {}; (data.wallets||[]).forEach(w=>{ wmap[w.id]=w; });
+    (data.moneyRecs||[]).forEach(r=>{
+      if (!r.cardId || !r.payYm || r.paid || !r.date) return;
+      const w = wmap[r.cardId];
+      if (!w || !w.payDay) return;
+      const y = +r.payYm.slice(0,4), m = +r.payYm.slice(5,7)-1;
+      const dim = daysIn(y,m);
+      const info = cardPayDayInfo(w);
+      const pd = (info.day>=31) ? dim : Math.min(info.day, dim);
+      const raw = dstr(y,m,pd);
+      // 旧ルール（土日祝のみ）
+      let oldDs = raw, g = 0;
+      while (isWeekendOrHoliday(oldDs) && g++ < 14) oldDs = shiftDate(oldDs, 1);
+      // 新ルール（土日祝＋年末年始）
+      const newDs = adjustPayDate(raw, 'after');
+      if (r.date === oldDs && newDs !== oldDs) { r.date = newDs; if (r.dueDate===oldDs) r.dueDate = newDs; }
+    });
+    v = 32;
   }
   data.schemaVersion = SCHEMA_VERSION;
   data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[]; data.checks=data.checks||[];
@@ -5199,7 +5224,14 @@ function fillWalletSelect(elId, selectedId, emptyLabel, types, memberId) {
   groups.forEach(g=>{
     const ws = sortByOrder(state.wallets.filter(w=>g.types.includes(w.type) && inTypes(w) && (usable(w) || w.id===sid)));
     if (!ws.length) return;
-    const opts = ws.map(w=>`<option value="${w.id}">${escapeHTML(w.name)}${w.closed?'（解約済）':(w.active===false?'（無効）':'')}</option>`).join('');
+    // 絞り込み対象外なのに残っている＝過去に選んだ他メンバーのもの。
+    // 同名で見分けがつかないため、所有者を付けて明示する（v39）
+    const opts = ws.map(w=>{
+      const other = (memberId!==undefined && memberId!==null && !usable(w)) ? memberById(w.memberId) : null;
+      const suffix = w.closed ? '（解約済）' : (w.active===false ? '（無効）'
+        : (other ? `（${other.icon} ${other.name}）` : ''));
+      return `<option value="${w.id}">${escapeHTML(w.name)}${suffix}</option>`;
+    }).join('');
     html += single ? opts : `<optgroup label="${escapeHTML(g.label)}">${opts}</optgroup>`;
   });
   el.innerHTML = html;
@@ -5479,10 +5511,12 @@ function calcGrantDate(wallet, paidDate) {
 function onWalletTypeChange() {
   const t = document.getElementById('wal-type').value;
   const isCard = ['card','debit','virtual','prepaid','applepay'].includes(t);
-  document.getElementById('wal-card-fields').style.display = (isCard||t==='emoney'||t==='codepay')?'':'none';
+  // 交通系IC・ストアカード・ポイントでもポイントが貯まるので還元設定を出す（v39）
+  const hasPoints = isCard || ['emoney','codepay','transit','store','point'].includes(t);
+  document.getElementById('wal-card-fields').style.display = hasPoints?'':'none';
   document.getElementById('wal-credit-fields').style.display = (t==='card')?'':'none';
   document.getElementById('wal-bank-fields').style.display = (t==='bank')?'':'none';
-  document.getElementById('wal-emoney-fields').style.display = (t==='emoney'||t==='codepay'||t==='prepaid')?'':'none';
+  document.getElementById('wal-emoney-fields').style.display = (t==='emoney'||t==='codepay'||t==='prepaid'||t==='transit')?'':'none';
   // 引落口座の選択肢
   const sel = document.getElementById('wal-payaccount');
   if (sel) {
@@ -6038,6 +6072,12 @@ function cardPayDayInfo(w) {
   const v = +w.payDay;
   return v >= 100 ? { day: v-100, offset: 2 } : { day: v, offset: 1 };
 }
+// 他メンバーのものが候補に残っているとき、所有者を付けて見分けられるようにする（v39）
+function ownerSuffix(w, mineFn) {
+  if (!w || (mineFn && mineFn(w))) return '';
+  const mo = w.memberId ? memberById(w.memberId) : null;
+  return mo ? `（${mo.icon} ${mo.name}）` : '';
+}
 // カード支払い記録の検索。payYm（支払月）を正とし、無い古い記録は日付で拾う
 function findCardPayRec(cardId, ym, ds) {
   let rec = state.moneyRecs.find(r=>r.cardId===cardId && r.payYm===ym);
@@ -6046,6 +6086,7 @@ function findCardPayRec(cardId, ym, ds) {
   if (rec) { rec.payYm = ym; }   // 見つかった時点で紐づけを補完する
   return rec || null;
 }
+let cardDateSynced = false;   // 描画中に日付を直した場合、あとでまとめて保存する
 function cardPaymentsInMonth(y, m) {
   const out = [];
   state.wallets.filter(w=>w.type==='card' && w.closingDay && w.payDay).forEach(w=>{
@@ -6062,6 +6103,11 @@ function cardPaymentsInMonth(y, m) {
     // 実際の引落日が想定とズレて日付を直すと、旧実装では紐づけが切れて
     // 新しい行が増え、元の行が未入力に戻ってしまっていた。
     const rec = findCardPayRec(w.id, ym, ds);
+    // 予定日が変わった場合、手で直していない未払いの記録は自動で追従させる（v39）
+    if (rec && !rec.paid && rec.autoDate!==false && rec.date!==ds) {
+      rec.date = ds; if (rec.dueDate) rec.dueDate = ds;
+      cardDateSynced = true;
+    }
     out.push({ wallet:w, date:ds, rawDate:raw, rec: rec||null, offset: info.offset,
       amount: rec?rec.amount:0, fixed: rec ? (rec.fixed!==false) : false,
       paid: rec ? !!rec.paid : false, noPayment: rec ? !!rec.noPayment : false,
@@ -8127,10 +8173,10 @@ function openInvestmentModal(id) {
   const _mineM = w => w.shared || _normM(w.memberId)===_normM(_ivMem);
   const brokers = sortByOrder(state.wallets.filter(w=>w.type==='securities' && (_mineM(w) || (iv&&w.id===iv.brokerId))));
   document.getElementById('inv-broker').innerHTML = '<option value="">指定なし</option>' +
-    (brokers.length ? brokers.map(w=>`<option value="${w.id}" ${iv&&w.id===iv.brokerId?'selected':''}>${escapeHTML(w.name)}</option>`).join('')
+    (brokers.length ? brokers.map(w=>`<option value="${w.id}" ${iv&&w.id===iv.brokerId?'selected':''}>${escapeHTML(w.name)}${ownerSuffix(w,_mineM)}</option>`).join('')
       : '<option value="" disabled>証券口座を先に登録してください</option>');
   document.getElementById('inv-card').innerHTML = '<option value="">指定なし</option>' +
-    sortByOrder(state.wallets.filter(w=>w.type==='card' && (_mineM(w) || (iv&&w.id===iv.cardId)))).map(w=>`<option value="${w.id}" ${iv&&w.id===iv.cardId?'selected':''}>${escapeHTML(w.name)}</option>`).join('');
+    sortByOrder(state.wallets.filter(w=>w.type==='card' && (_mineM(w) || (iv&&w.id===iv.cardId)))).map(w=>`<option value="${w.id}" ${iv&&w.id===iv.cardId?'selected':''}>${escapeHTML(w.name)}${ownerSuffix(w,_mineM)}</option>`).join('');
   invHistory = iv?JSON.parse(JSON.stringify(iv.history||[])):[];
   renderInvHistory();
   fillWalletSelect('inv-wallet', iv?(iv.walletId||''):'', '指定なし', null, _ivMem);
@@ -8326,6 +8372,7 @@ function saveCardPayment() {
     paid: cpStatus!=='unpaid', paidDate: cpStatus==='unpaid' ? '' : date,
     noPayment: cpStatus==='none', autoCheck:false, pointTypeId:'', pointExpiry:'', skipDates:[],
     payYm: cpPayYm || (cpDate||date).slice(0,7),   // 支払月は元の行に固定（日付を直しても維持）
+    autoDate: (date === cpDate),                   // 予定日のままなら自動追従の対象にする
     memberId: ownerMemberId };
   let rec = cpRecId ? state.moneyRecs.find(r=>r.id===cpRecId) : null;
   if (rec) Object.assign(rec, data);
@@ -9996,6 +10043,7 @@ function bootApp() {
     ['設定インデックス', ()=>buildSettingsIndex()],
     ['画面の描画', ()=>renderAll()],
     ['月ナビ', ()=>updateMonthNav()],
+    ['引落日の同期', ()=>{ if (cardDateSynced && !window.__loadFailed) { cardDateSynced = false; save(); } }],
   ];
   const failures = [];
   steps.forEach(([label, fn])=>{
