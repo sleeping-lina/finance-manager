@@ -295,6 +295,8 @@
   .empty { text-align: center; padding: 28px 16px; color: var(--text-secondary); }
   .empty-icon { font-size: 30px; margin-bottom: 6px; }
   .empty-text { font-size: 12.5px; line-height: 1.7; }
+  /* 下端の安全領域まで確実にフッター色で塗る（v46） */
+  body::after { content:''; position:fixed; left:0; right:0; bottom:0; height:var(--safe-bottom); background:#fff; z-index:59; pointer-events:none; }
   .tabbar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 60; background: rgba(255,255,255,0.96); backdrop-filter: saturate(180%) blur(16px); -webkit-backdrop-filter: saturate(180%) blur(16px); border-top: 1px solid var(--border); display: flex; padding-bottom: var(--safe-bottom); height: calc(var(--tabbar-h) + var(--safe-bottom)); }
   .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; color: var(--text-secondary); user-select: none; padding-top: 6px; }
   .tab.active { color: var(--mint-dim); }
@@ -751,7 +753,7 @@
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v45</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v46</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
         </div>
       </div>
     </div>
@@ -906,6 +908,9 @@
     <div class="form-group" id="job-payday-stamp-row"><label>給料日に表示するスタンプ</label><div id="job-payday-stamp-area"></div></div>
     <div class="form-group"><label>スタンプ（勤務・収入日）</label><div id="job-stamp-area"></div></div>
     <div class="form-group"><label>カレンダー色</label><div class="color-picker" id="job-color-picker"></div></div>
+    <div class="form-group"><label>メモ</label>
+      <textarea id="job-memo" class="memo-area" rows="4" placeholder="時給・交通費・受取口座・税率の変更履歴など"></textarea>
+      <div class="field-note">設定を変更したときの記録に使えます（例：2026/04〜 時給1,200円）。</div></div>
     <div class="form-group" id="job-active-row" style="display:none"><label>状態</label>
       <div class="seg">
         <div class="seg-btn active" data-act="1" onclick="setJobActive(true,this)">有効</div>
@@ -1952,7 +1957,7 @@
         <div class="seg-btn" data-ls="1" onclick="setLendSettled(true,this)">精算済</div>
       </div></div>
     <div class="form-group" id="ld-settled-row" style="display:none"><label>精算日</label><input type="date" id="ld-settledate"></div>
-    <div class="form-group"><label>メモ</label><input type="text" id="ld-memo"></div>
+    <div class="form-group"><label>メモ</label><textarea id="ld-memo" class="memo-area" rows="3"></textarea></div>
   </div>
   <div class="form-actions">
     <button class="btn btn-danger" id="ld-delete-btn" style="margin-right:auto;display:none" onclick="deleteLend()">削除</button>
@@ -2101,7 +2106,7 @@
      v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
      バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
 <script>
-window.APP_BOOT_VERSION = '45';
+window.APP_BOOT_VERSION = '46';
 (function(){
   var KEY = 'financeManager';
   // 版数はまずここで出す（本体が落ちても「どの版が動いているか」が必ず分かる）
@@ -2146,7 +2151,7 @@ window.APP_BOOT_VERSION = '45';
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '45';
+const APP_VERSION = '46';
 const SCHEMA_VERSION = 33;
 const STORAGE_KEY = 'financeManager';
 
@@ -2232,7 +2237,7 @@ function defaultState() {
     chargeRoutes: [], deposits: [], taxes: [], pointRules: [], lends: [], investments: [], subscriptions: [],
     payslips: [],
     members: [], deductions: [], accounts: [], lendPresets: {whos:[],names:[]},
-    settings: { hoursFormat:'decimal', aggregation:'work', amountShow:'on', amountFormat:'k',
+    settings: { hoursFormat:'decimal', amountShow:'on', amountFormat:'k',
       colorIncome:'#1DB882', colorPayday:'#5B8DEF', colorExpense:'#E5544B', colorPoint:'#9B7EDE',
       colorCharge:'#F7B32B', calDisplay:'stamp', weekShowText:'on',
       colorIncomeEtc:'#2DC5A4', colorPointUse:'#7A5CC4', calTextLen:6,
@@ -2370,7 +2375,7 @@ function migrate(data) {
     data = out; v = 2;
   }
   if (v < 3) {
-    data.settings = data.settings || { hoursFormat:'decimal', aggregation:'work' };
+    data.settings = data.settings || { hoursFormat:'decimal' };
     (data.jobs||[]).forEach(j => {
       if (!j.patterns) j.patterns = [];
       if (j.defStart===undefined) j.defStart = '09:00';
@@ -2880,6 +2885,8 @@ function migrate(data) {
     if (!data.payslips) data.payslips = [];
     v = 33;
   }
+  // v43で廃止した「月の集計基準」の残骸を削除（残っていると働きの集計が翌月にずれる）v46
+  if (data.settings) delete data.settings.aggregation;
   data.schemaVersion = SCHEMA_VERSION;
   data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[]; data.checks=data.checks||[];
   data.moneyCats = (data.moneyCats&&data.moneyCats.length)?data.moneyCats:defaultMoneyCats();
@@ -2898,7 +2905,7 @@ function migrate(data) {
   data.accounts = data.accounts||[];
   data.lendPresets = data.lendPresets||{whos:[],names:[]};
   data.charges = data.charges||[]; data.chargeTemplates = data.chargeTemplates||[];
-  data.settings = Object.assign({ hoursFormat:'decimal', aggregation:'work', amountShow:'on', amountFormat:'k',
+  data.settings = Object.assign({ hoursFormat:'decimal', amountShow:'on', amountFormat:'k',
     colorIncome:'#1DB882', colorPayday:'#5B8DEF', colorExpense:'#E5544B', colorPoint:'#9B7EDE',
     colorCharge:'#F7B32B', calDisplay:'stamp', weekShowText:'on',
     colorIncomeEtc:'#2DC5A4', colorPointUse:'#7A5CC4', calTextLen:6,
@@ -3000,12 +3007,11 @@ function recBaseDate(r) {
   return (j && j.payType==='piece' && r.endDate) ? r.endDate : r.date;
 }
 function recAggDate(r) {
-  const base = recBaseDate(r);
-  if (state.settings.aggregation==='pay') {
-    const pd = computePayDate(jobById(r.jobId), base);
-    if (pd) return pd;
-  }
-  return base;
+  // v43で「月の集計基準」を廃止。勤務日（働いた日）を常に基準にする。
+  // 支払日基準は「今月の入出金」ブロックが担当する。
+  // ※設定UIだけ消して保存値 aggregation='pay' が残っていたため、
+  //   「今月の働き」が翌月にずれていた（v46で修正）
+  return recBaseDate(r);
 }
 function monthTotal(y,m) {
   // 実績（給与明細）がある仕事はその差引支給額を使い、無い仕事は従来どおり見込み（v40）
@@ -3391,6 +3397,7 @@ function dayItems(ds) {
 const moneyCatById = id => state.moneyCats.find(c=>c.id===id);
 // くり返し指定日（毎月◯日／毎週◯曜日）がこの日に当たるか
 function isCheckVisibleOn(c, ds) {
+  if (!inCurrentMember(c)) return false;   // カレンダー側も同様（v46）
   const y=+ds.slice(0,4), m=+ds.slice(5,7)-1, d=+ds.slice(8,10);
   if (c.startYm && ds.slice(0,7) < c.startYm) return false;
   if (c.endYm && ds.slice(0,7) > c.endYm) return false;
@@ -4321,9 +4328,9 @@ function openPayslip(jobId, payYm, id) {
       psItems.push({ name:'報酬額', amount: est.amount || '', sign: 1 });
       const rate = (job.taxRate ?? state.settings.invoiceTaxRate ?? 10);
       const tax = Math.floor((est.amount||0) * rate / 100);
-      if (tax) psItems.push({ name:'消費税', amount: tax, sign: 1 });
+      if (tax) psItems.push({ name:`消費税（${rate}%）`, amount: tax, sign: 1 });
       const dedRate = (job.taxDeductRate ?? state.settings.invoiceDeductRate ?? 20);
-      if (tax && dedRate) psItems.push({ name:'消費税控除分（経過措置）', amount: Math.floor(tax*dedRate/100), sign: -1 });
+      if (tax && dedRate) psItems.push({ name:`消費税控除分（${dedRate}%）`, amount: Math.floor(tax*dedRate/100), sign: -1 });
     }
     // 仕事に登録した明細テンプレートを反映（v45）
     // 「毎回入力」は空欄、「固定額」はその金額、「自動計算」は見込みから求める
@@ -4685,6 +4692,7 @@ function openJobModal(id) {
   jobDeductions.forEach(d=>{ if(d.sign===undefined) d.sign=-1; if(!d.calc) d.calc = d.amount?'fixed':'input'; });
   fillWalletSelect('job-wallet', jobEditing?(jobEditing.walletId||''):'', '指定なし', BANK_TYPES,
     (document.getElementById('job-member')||{}).value || (jobEditing?jobEditing.memberId:''));
+  document.getElementById('job-memo').value = jobEditing?(jobEditing.memo||''):'';
   document.getElementById('job-taxrate').value = jobEditing?(jobEditing.taxRate??''):'';
   document.getElementById('job-taxded').value  = jobEditing?(jobEditing.taxDeductRate??''):'';
   document.getElementById('job-closing-m').value = jobEditing?(jobEditing.closingDay||''):'';
@@ -4774,6 +4782,7 @@ function saveJob() {
     memberId: (document.getElementById('job-member')||{}).value || '',
     deductions: jobDeductions.filter(d=>d.type),
     walletId: document.getElementById('job-wallet').value || '',
+    memo: document.getElementById('job-memo').value,
     taxRate: parseFloat(document.getElementById('job-taxrate').value),
     taxDeductRate: parseFloat(document.getElementById('job-taxded').value),
     shortName: document.getElementById('job-short').value.trim(),
@@ -6841,6 +6850,9 @@ function cardPaymentsInMonth(y, m) {
     const ym = y+'-'+pad(m+1);
     if (w.activeFrom && ym < w.activeFrom) return;
     if (w.activeTo && ym > w.activeTo) return;
+    // 解約済み（終了年月なしを含む）は以後の支払いを出さない（v46）
+    // ただし既に記録がある月は残す（支払済みの履歴を消さないため）
+    if (w.closed && !state.moneyRecs.some(r=>r.cardId===w.id && r.payYm===ym)) return;
     const dim = daysIn(y,m);
     const info = cardPayDayInfo(w);
     const pd = (info.day>=31) ? dim : Math.min(info.day, dim);
@@ -7078,6 +7090,15 @@ function addTaxInstallment() {
   renderTaxInstallments();
 }
 function removeTaxInstallment(i){ taxInstallments.splice(i,1); taxInstallments.forEach((x,j)=>x.no=j+1); renderTaxInstallments(); }
+// 「支払った」にすると、支払日・決済方法・獲得ポイントの入力欄が出る（v46）
+// これらは支払済のときだけ表示する設計だが、入口が分かりにくかったため明示的なボタンを置いた
+function markTaxPaidInline(i) {
+  const ins = taxInstallments[i];
+  if (!ins) return;
+  ins.paid = true;
+  if (!ins.paidDate) ins.paidDate = ins.dueDate || todayStr();
+  renderTaxInstallments();
+}
 function renderTaxInstallments() {
   const el = document.getElementById('tax-installments');
   if (!el) return;
@@ -7092,13 +7113,16 @@ function renderTaxInstallments() {
         <span style="font-size:12px;font-weight:700;min-width:38px">第${ins.no}期</span>
         ${ins.paid?'<span class="badge-sm bd-rate">支払済</span>':''}
         <span style="flex:1"></span>
-        ${ins.paid?`<button class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:11px" onclick="undoTaxPaymentInline(${i})">取消</button>`:''}
+        ${ins.paid
+          ? `<button class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:11px" onclick="undoTaxPaymentInline(${i})">取消</button>`
+          : `<button class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:11px" onclick="markTaxPaidInline(${i})">支払った</button>`}
         <button class="pat-del" onclick="removeTaxInstallment(${i})">✕</button>
       </div>
       <div class="chg-grid">
         <div><label>納期限</label><input type="date" class="ti-due" value="${ins.dueDate||''}"></div>
         <div><label>金額（円）</label><input type="number" inputmode="numeric" class="ti-amt" value="${ins.amount||''}" placeholder="30000"></div>
       </div>
+      ${ins.paid?'':'<div class="field-note" style="margin:5px 0 0">「支払った」を押すと、支払日・決済方法・獲得ポイントを入力できます。</div>'}
       ${ins.paid?`
       <div class="chg-grid" style="margin-top:6px">
         <div><label>支払日</label><input type="date" class="ti-paiddate" value="${ins.paidDate||''}"></div>
@@ -8744,8 +8768,13 @@ function setLendSettled(v,el){ lendSettled=v;
 // 過去の入力から候補を作る
 function renderLendSuggestions() {
   const lp = state.lendPresets || {whos:[],names:[]};
-  const whos = [...new Set([...(lp.whos||[]), ...state.lends.map(l=>l.who).filter(Boolean)])].slice(0,12);
-  const names = [...new Set([...(lp.names||[]), ...state.lends.map(l=>l.name).filter(Boolean)])].slice(0,12);
+  // 候補は「登録した候補＋過去の記録」から作るため、記録が残っていると✕で消えなかった。
+  // 非表示リスト（hidden）を持たせて確実に消えるようにする（v46）
+  const hid = lp.hidden || {whos:[],names:[]};
+  const whos = [...new Set([...(lp.whos||[]), ...state.lends.map(l=>l.who).filter(Boolean)])]
+    .filter(x=>!(hid.whos||[]).includes(x)).slice(0,12);
+  const names = [...new Set([...(lp.names||[]), ...state.lends.map(l=>l.name).filter(Boolean)])]
+    .filter(x=>!(hid.names||[]).includes(x)).slice(0,12);
   document.getElementById('ld-who-list').innerHTML = whos.map(w=>`<option value="${escapeHTML(w)}">`).join('');
   document.getElementById('ld-name-list').innerHTML = names.map(n=>`<option value="${escapeHTML(n)}">`).join('');
   document.getElementById('ld-who-chips').innerHTML = whos.slice(0,8).map(w=>
@@ -8761,6 +8790,9 @@ function addLendPreset(kind) {
   const cur = document.getElementById(kind==='whos'?'ld-who':'ld-name').value.trim();
   if (!cur) { showToast('入力してから「＋ 登録」を押してください'); return; }
   state.lendPresets = state.lendPresets || {whos:[],names:[]};
+  // 一度消した候補を再登録できるように、非表示リストから外す
+  if (state.lendPresets.hidden && state.lendPresets.hidden[kind])
+    state.lendPresets.hidden[kind] = state.lendPresets.hidden[kind].filter(x=>x!==cur);
   const arr = state.lendPresets[kind] = state.lendPresets[kind] || [];
   if (!arr.includes(cur)) arr.push(cur);
   save(); renderLendSuggestions(); showToast('候補に追加しました');
@@ -8768,7 +8800,30 @@ function addLendPreset(kind) {
 function removeLendPreset(kind, val) {
   state.lendPresets = state.lendPresets || {whos:[],names:[]};
   state.lendPresets[kind] = (state.lendPresets[kind]||[]).filter(x=>x!==val);
+  const hid = state.lendPresets.hidden = state.lendPresets.hidden || {whos:[],names:[]};
+  hid[kind] = hid[kind] || [];
+  if (!hid[kind].includes(val)) hid[kind].push(val);   // 記録由来の候補も消せるようにする
   save(); renderLendSuggestions();
+}
+// 立て替えの詳細シート（メモが見えないため v46 で追加）
+function openLendDetail(id) {
+  const l = state.lends.find(x=>x.id===id); if (!l) return;
+  const mo = (state.members.length>=2 && l.memberId) ? memberById(l.memberId) : null;
+  openDetail({
+    stamp: '<span style="font-size:20px">🤝</span>',
+    name: (l.who||'—') + (l.name?`　${l.name}`:''),
+    sub: (l.dir==='lent'?'貸した（返してもらう）':'借りた（返す）') + (l.settled?' / 精算済':''),
+    badges: l.settled ? '<span class="badge-sm bd-rate">精算済</span>' : '<span class="badge-sm bd-limit">未精算</span>',
+    rows: [
+      ['金額', fmt(l.amount)],
+      ['日付', l.date ? l.date.replace(/-/g,'/') : ''],
+      ['相手', l.who],
+      ['内容', l.name],
+      ['メンバー', mo ? `${mo.icon} ${mo.name}` : ''],
+    ],
+    memo: l.memo,
+    onEdit: ()=>openLendModal(id),
+  });
 }
 function openLendModal(id) {
   lendEditing = id ? state.lends.find(l=>l.id===id) : null;
@@ -8862,7 +8917,7 @@ function renderLendList() {
         <div style="display:flex;align-items:center;gap:8px">
           <span class="mono" style="font-size:13px;color:${l.dir==='lent'?state.settings.colorIncomeEtc:state.settings.colorExpense};font-weight:600">${fmt(l.amount)}</span>
           ${orderBtnsHTML('moveLend', l.id, li, list.length, 'lends')}
-          <button class="btn btn-ghost btn-sm" onclick="openLendModal('${l.id}')">編集</button>
+          <button class="btn btn-ghost btn-sm" onclick="openLendDetail('${l.id}')">詳細</button>
         </div></div>`).join('') + '</div>';
   }
   el.innerHTML = html;
@@ -10341,6 +10396,7 @@ function checkOccurrenceDate(c) {
 }
 // 項目が現在表示中の月に出るか
 function isCheckVisible(c) {
+  if (!inCurrentMember(c)) return false;   // メンバー絞り込みが抜けていた（v46）
   const ym = curYm();
   // 分割方式による有効期間・除外月の判定
   if (c.startYm && ym < c.startYm) return false;
