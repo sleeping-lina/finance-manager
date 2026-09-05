@@ -21,7 +21,8 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { overscroll-behavior: none; height: 100%; overflow: hidden; }
-  body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text-primary); font-size: 14px; -webkit-font-smoothing: antialiased; }
+  /* 下端の安全領域がフッター色になるよう body は白。背景色は .content 側で持つ（v47） */
+  body { font-family: 'Noto Sans JP', sans-serif; background: #fff; color: var(--text-primary); font-size: 14px; -webkit-font-smoothing: antialiased; }
   .app { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
   .topbar { flex-shrink: 0; z-index: 50; background: var(--navy); color: #fff; padding: calc(var(--safe-top) + 10px) 16px 10px; display: flex; align-items: center; justify-content: space-between; }
   .topbar-logo { font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: -0.4px; }
@@ -61,7 +62,7 @@
   .month-bar-label { font-weight: 700; font-size: 15px; min-width: 108px; text-align: center; cursor: pointer; padding: 4px 6px; border-radius: 8px; }
   .month-bar-label::after { content: ' ▾'; font-size: 10px; color: var(--text-secondary); }
   .month-bar-today { width: auto !important; padding: 0 10px !important; font-size: 11px !important; color: var(--mint-dim); font-weight: 600; border-color: transparent !important; }
-  .content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px 10px calc(var(--tabbar-h) + var(--safe-bottom) + 18px); }
+  .content { background: var(--bg); flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px 10px calc(var(--tabbar-h) + var(--safe-bottom) + 18px); }
   .page { display: none; animation: fade 0.18s; }
   .page.active { display: block; }
   @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
@@ -296,7 +297,7 @@
   .empty-icon { font-size: 30px; margin-bottom: 6px; }
   .empty-text { font-size: 12.5px; line-height: 1.7; }
   /* 下端の安全領域まで確実にフッター色で塗る（v46） */
-  body::after { content:''; position:fixed; left:0; right:0; bottom:0; height:var(--safe-bottom); background:#fff; z-index:59; pointer-events:none; }
+  body::after { content:''; position:fixed; left:0; right:0; bottom:0; height:var(--safe-bottom); background:#fff; z-index:61; pointer-events:none; }
   .tabbar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 60; background: rgba(255,255,255,0.96); backdrop-filter: saturate(180%) blur(16px); -webkit-backdrop-filter: saturate(180%) blur(16px); border-top: 1px solid var(--border); display: flex; padding-bottom: var(--safe-bottom); height: calc(var(--tabbar-h) + var(--safe-bottom)); }
   .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; color: var(--text-secondary); user-select: none; padding-top: 6px; }
   .tab.active { color: var(--mint-dim); }
@@ -753,7 +754,7 @@
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v46</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v47</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
         </div>
       </div>
     </div>
@@ -2106,7 +2107,7 @@
      v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
      バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
 <script>
-window.APP_BOOT_VERSION = '46';
+window.APP_BOOT_VERSION = '47';
 (function(){
   var KEY = 'financeManager';
   // 版数はまずここで出す（本体が落ちても「どの版が動いているか」が必ず分かる）
@@ -2151,7 +2152,7 @@ window.APP_BOOT_VERSION = '46';
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '46';
+const APP_VERSION = '47';
 const SCHEMA_VERSION = 33;
 const STORAGE_KEY = 'financeManager';
 
@@ -4340,7 +4341,7 @@ function openPayslip(jobId, payYm, id) {
       let amt = '';
       if (d.calc==='fixed') amt = d.amount||'';
       else if (d.calc==='auto') amt = autoItemAmount(d.type, job, est) || '';
-      psItems.push({ name: jobItemLabel(d), amount: amt, sign });
+      psItems.push({ name: jobItemLabel(d, job), amount: amt, sign });
     });
   }
   const netEl = document.getElementById('ps-net');
@@ -4666,10 +4667,19 @@ function renderJobDeductions() {
     if (amt) amt.oninput = e=>{ jobDeductions[i].amount=parseFloat(e.target.value)||''; };
   });
 }
-function jobItemLabel(d) {
+function jobItemLabel(d, job) {
   if (typeof d === 'string') return d;              // 最も古い形式（文字列）
   if (d.name) return d.name;                        // 旧形式（名前のみ）
   const sign = d.sign===undefined ? -1 : d.sign;
+  // 消費税は率を添える（v47）
+  if (d.type==='tax') {
+    const r = (job && job.taxRate!==undefined && !isNaN(job.taxRate)) ? job.taxRate : (state.settings.invoiceTaxRate ?? 10);
+    return `消費税（${r}%）`;
+  }
+  if (d.type==='taxded') {
+    const r = (job && job.taxDeductRate!==undefined && !isNaN(job.taxDeductRate)) ? job.taxDeductRate : (state.settings.invoiceDeductRate ?? 20);
+    return `消費税控除分（${r}%）`;
+  }
   const o = jobItemOptions(sign).find(x=>x.key===d.type);
   return o ? o.label : 'その他';
 }
@@ -7096,7 +7106,7 @@ function markTaxPaidInline(i) {
   const ins = taxInstallments[i];
   if (!ins) return;
   ins.paid = true;
-  if (!ins.paidDate) ins.paidDate = ins.dueDate || todayStr();
+  if (!ins.paidDate) ins.paidDate = todayStr();   // 実際に支払った日＝今日を既定にする（v47）
   renderTaxInstallments();
 }
 function renderTaxInstallments() {
@@ -10540,6 +10550,14 @@ function moveCheck(id, dir) {
 }
 function sortedChecks(){ return [...state.checks].sort((x,y)=>(x.order||0)-(y.order||0)); }
 const KIND_BADGE = { month:'今月', monthly:'毎月', carry:'繰越', weekly:'毎週', yearly:'年1', always:'常設' };
+// 誰の項目かを示すバッジ（v47）
+// チェックリストは既定が「共有」で全員に出る。個人の項目はメンバー名を出して区別する。
+function checkOwnerBadge(c) {
+  if (state.members.length < 2) return '';
+  if (c.shared!==false) return '<span class="badge-sm bd-link">共有</span>';
+  const mo = c.memberId ? memberById(c.memberId) : null;
+  return mo ? `<span class="badge-sm bd-type">${mo.icon} ${escapeHTML(mo.name)}</span>` : '';
+}
 // 期限バッジ（期限切れ=赤 / 3日以内=橙 / それ以外=通常）
 function dueBadgeHTML(c, done) {
   const due = c.dueDate || (typeof checkOccurrenceDate==='function' ? checkOccurrenceDate(c) : '');
@@ -10562,7 +10580,7 @@ function checkRowHTML(c, idx, total) {
     <div style="flex:1;min-width:0;cursor:pointer" onclick="openCheckModal('${c.id}')">
       <div style="font-size:13px;${done?'text-decoration:line-through;color:var(--text-secondary)':''}">${c.text}</div>
       <div style="font-size:10px;color:var(--text-secondary);display:flex;gap:6px;align-items:center;margin-top:1px;flex-wrap:wrap">
-        <span style="background:var(--bg);padding:1px 6px;border-radius:8px">${KIND_BADGE[c.kind]||''}</span>
+        <span style="background:var(--bg);padding:1px 6px;border-radius:8px">${KIND_BADGE[c.kind]||''}</span>${checkOwnerBadge(c)}
         ${c.date?`<span>📅 ${(+c.date.slice(5,7))}/${(+c.date.slice(8,10))}</span>`:''}
         ${c.monthDay?`<span>📅 毎月${c.monthDay>=99?'月末':c.monthDay+'日'}</span>`:''}
         ${(c.weekday!==''&&c.weekday!==undefined&&c.kind==='weekly')?`<span>📅 毎週${WD[c.weekday]}曜</span>`:''}
