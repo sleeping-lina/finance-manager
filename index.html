@@ -296,9 +296,9 @@
   .empty { text-align: center; padding: 28px 16px; color: var(--text-secondary); }
   .empty-icon { font-size: 30px; margin-bottom: 6px; }
   .empty-text { font-size: 12.5px; line-height: 1.7; }
-  /* 下端の安全領域まで確実にフッター色で塗る（v46） */
-  body::after { content:''; position:fixed; left:0; right:0; bottom:0; height:var(--safe-bottom); background:#fff; z-index:61; pointer-events:none; }
-  .tabbar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 60; background: rgba(255,255,255,0.96); backdrop-filter: saturate(180%) blur(16px); -webkit-backdrop-filter: saturate(180%) blur(16px); border-top: 1px solid var(--border); display: flex; padding-bottom: var(--safe-bottom); height: calc(var(--tabbar-h) + var(--safe-bottom)); }
+  /* v48：安全領域を別要素で塗るのはやめた（フッターに重なって持ち上がって見えたため）。
+     body を白にし、フッターを不透明にすることで下端がフッター色になる。 */
+  .tabbar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 60; background: #fff; border-top: 1px solid var(--border); display: flex; padding-bottom: var(--safe-bottom); height: calc(var(--tabbar-h) + var(--safe-bottom)); }
   .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; color: var(--text-secondary); user-select: none; padding-top: 6px; }
   .tab.active { color: var(--mint-dim); }
   .tab-icon { font-size: 20px; line-height: 1; filter: grayscale(0.35); }
@@ -754,7 +754,7 @@
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v47</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v48</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
         </div>
       </div>
     </div>
@@ -2107,7 +2107,7 @@
      v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
      バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
 <script>
-window.APP_BOOT_VERSION = '47';
+window.APP_BOOT_VERSION = '48';
 (function(){
   var KEY = 'financeManager';
   // 版数はまずここで出す（本体が落ちても「どの版が動いているか」が必ず分かる）
@@ -2152,7 +2152,7 @@ window.APP_BOOT_VERSION = '47';
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '47';
+const APP_VERSION = '48';
 const SCHEMA_VERSION = 33;
 const STORAGE_KEY = 'financeManager';
 
@@ -2888,6 +2888,11 @@ function migrate(data) {
   }
   // v43で廃止した「月の集計基準」の残骸を削除（残っていると働きの集計が翌月にずれる）v46
   if (data.settings) delete data.settings.aggregation;
+  // 空欄を parseFloat した NaN が JSON保存で null になり「（null%）」と表示されていた（v48）
+  (data.jobs||[]).forEach(j=>{
+    if (j.taxRate!==undefined && !(typeof j.taxRate==='number' && isFinite(j.taxRate))) delete j.taxRate;
+    if (j.taxDeductRate!==undefined && !(typeof j.taxDeductRate==='number' && isFinite(j.taxDeductRate))) delete j.taxDeductRate;
+  });
   data.schemaVersion = SCHEMA_VERSION;
   data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[]; data.checks=data.checks||[];
   data.moneyCats = (data.moneyCats&&data.moneyCats.length)?data.moneyCats:defaultMoneyCats();
@@ -4271,8 +4276,8 @@ function setPsPaid(v, el) {
 }
 // テンプレートの「自動計算」で入れる金額（v45）
 function autoItemAmount(type, job, est) {
-  const rate = (job.taxRate ?? state.settings.invoiceTaxRate ?? 10);
-  const dedRate = (job.taxDeductRate ?? state.settings.invoiceDeductRate ?? 20);
+  const rate = isNum(job.taxRate) ? job.taxRate : (isNum(state.settings.invoiceTaxRate) ? state.settings.invoiceTaxRate : 10);
+  const dedRate = isNum(job.taxDeductRate) ? job.taxDeductRate : (isNum(state.settings.invoiceDeductRate) ? state.settings.invoiceDeductRate : 20);
   switch (type) {
     case 'base':      return (job.payType==='monthly') ? (job.salary||0) : (est.base || est.amount || 0);
     case 'transport': return est.transport || 0;
@@ -4327,10 +4332,10 @@ function openPayslip(jobId, payYm, id) {
       psItems.push({ name:'月額報酬', amount: job.salary || '', sign: 1 });
     } else {
       psItems.push({ name:'報酬額', amount: est.amount || '', sign: 1 });
-      const rate = (job.taxRate ?? state.settings.invoiceTaxRate ?? 10);
+      const rate = isNum(job.taxRate) ? job.taxRate : (isNum(state.settings.invoiceTaxRate) ? state.settings.invoiceTaxRate : 10);
       const tax = Math.floor((est.amount||0) * rate / 100);
       if (tax) psItems.push({ name:`消費税（${rate}%）`, amount: tax, sign: 1 });
-      const dedRate = (job.taxDeductRate ?? state.settings.invoiceDeductRate ?? 20);
+      const dedRate = isNum(job.taxDeductRate) ? job.taxDeductRate : (isNum(state.settings.invoiceDeductRate) ? state.settings.invoiceDeductRate : 20);
       if (tax && dedRate) psItems.push({ name:`消費税控除分（${dedRate}%）`, amount: Math.floor(tax*dedRate/100), sign: -1 });
     }
     // 仕事に登録した明細テンプレートを反映（v45）
@@ -4625,7 +4630,7 @@ function addJobDeduction(sign){
 function removeJobDeduction(i){ jobDeductions.splice(i,1); renderJobDeductions(); }
 function jobItemOptions(sign) {
   return sign>0
-    ? [{key:'base',label:'基本給／報酬額'},{key:'transport',label:'通勤手当'},
+    ? [{key:'base',label:'基本給'},{key:'fee',label:'報酬額'},{key:'transport',label:'通勤手当'},
        {key:'tax',label:'消費税'},{key:'bonus',label:'手当・賞与'},{key:'other',label:'その他（支給）'}]
     : JOB_DEDUCTION_TYPES.concat([{key:'taxded',label:'消費税控除分'}]);
 }
@@ -4667,17 +4672,23 @@ function renderJobDeductions() {
     if (amt) amt.oninput = e=>{ jobDeductions[i].amount=parseFloat(e.target.value)||''; };
   });
 }
+// 数値として使える値だけを返す（空欄→null。NaNはJSON保存でnullになるため）v48
+function numOrNull(v) {
+  const n = parseFloat(v);
+  return isFinite(n) ? n : null;
+}
+function isNum(v) { return typeof v === 'number' && isFinite(v); }
 function jobItemLabel(d, job) {
   if (typeof d === 'string') return d;              // 最も古い形式（文字列）
   if (d.name) return d.name;                        // 旧形式（名前のみ）
   const sign = d.sign===undefined ? -1 : d.sign;
   // 消費税は率を添える（v47）
   if (d.type==='tax') {
-    const r = (job && job.taxRate!==undefined && !isNaN(job.taxRate)) ? job.taxRate : (state.settings.invoiceTaxRate ?? 10);
+    const r = (job && isNum(job.taxRate)) ? job.taxRate : (isNum(state.settings.invoiceTaxRate) ? state.settings.invoiceTaxRate : 10);
     return `消費税（${r}%）`;
   }
   if (d.type==='taxded') {
-    const r = (job && job.taxDeductRate!==undefined && !isNaN(job.taxDeductRate)) ? job.taxDeductRate : (state.settings.invoiceDeductRate ?? 20);
+    const r = (job && isNum(job.taxDeductRate)) ? job.taxDeductRate : (isNum(state.settings.invoiceDeductRate) ? state.settings.invoiceDeductRate : 20);
     return `消費税控除分（${r}%）`;
   }
   const o = jobItemOptions(sign).find(x=>x.key===d.type);
@@ -4793,8 +4804,8 @@ function saveJob() {
     deductions: jobDeductions.filter(d=>d.type),
     walletId: document.getElementById('job-wallet').value || '',
     memo: document.getElementById('job-memo').value,
-    taxRate: parseFloat(document.getElementById('job-taxrate').value),
-    taxDeductRate: parseFloat(document.getElementById('job-taxded').value),
+    taxRate: numOrNull(document.getElementById('job-taxrate').value),
+    taxDeductRate: numOrNull(document.getElementById('job-taxded').value),
     shortName: document.getElementById('job-short').value.trim(),
     paydayShortName: document.getElementById('job-payday-short').value.trim(),
     wage:parseFloat(document.getElementById('job-wage').value)||0,
