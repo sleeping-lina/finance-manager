@@ -21,9 +21,10 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { overscroll-behavior: none; height: 100%; overflow: hidden; }
-  /* 下端の安全領域がフッター色になるよう body は白。背景色は .content 側で持つ（v47） */
-  body { font-family: 'Noto Sans JP', sans-serif; background: #fff; color: var(--text-primary); font-size: 14px; -webkit-font-smoothing: antialiased; }
-  .app { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+  /* v49: 画面の下端に隙間ができても白く見えないよう、html の背景はフッター色（JSでメンバー色に追従） */
+  html { background: var(--footer-bg, #fff); }
+  body { font-family: 'Noto Sans JP', sans-serif; background: transparent; color: var(--text-primary); font-size: 14px; -webkit-font-smoothing: antialiased; }
+  .app { height: 100vh; height: 100dvh; height: var(--app-h, 100dvh); display: flex; flex-direction: column; overflow: hidden; }
   .topbar { flex-shrink: 0; z-index: 50; background: var(--navy); color: #fff; padding: calc(var(--safe-top) + 10px) 16px 10px; display: flex; align-items: center; justify-content: space-between; }
   .topbar-logo { font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: -0.4px; }
   .topbar-logo span { color: var(--mint); }
@@ -299,6 +300,15 @@
   /* v48：安全領域を別要素で塗るのはやめた（フッターに重なって持ち上がって見えたため）。
      body を白にし、フッターを不透明にすることで下端がフッター色になる。 */
   .tabbar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 60; background: #fff; border-top: 1px solid var(--border); display: flex; padding-bottom: var(--safe-bottom); height: calc(var(--tabbar-h) + var(--safe-bottom)); }
+  /* v49: フッターの色を下方向へ延長（下端に隙間ができても白帯にならない） */
+  .tabbar::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 160px; background: inherit; pointer-events: none; }
+  /* v49: ホーム画面アプリ（ステータスバー透過）で画面の高さが実際より短く報告される iOS の不具合への対策。
+     画面の実寸で .app の高さを決め、フッターは固定配置ではなく .app の一番下に置く */
+  html.vp-fix, html.vp-fix body { height: var(--app-h); }
+  html.vp-fix .tabbar { position: relative; bottom: auto; flex-shrink: 0; }
+  html.vp-fix .content { padding-bottom: 18px; }
+  html.vp-fix .modal-overlay { bottom: auto; height: var(--app-h); }
+  html.vp-fix .toast { bottom: calc(100% - var(--app-h) + var(--tabbar-h) + var(--safe-bottom) + 14px); }
   .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; color: var(--text-secondary); user-select: none; padding-top: 6px; }
   .tab.active { color: var(--mint-dim); }
   .tab-icon { font-size: 20px; line-height: 1; filter: grayscale(0.35); }
@@ -754,7 +764,8 @@
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v48</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v49</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
+          <div id="vp-info" style="margin-top:2px;opacity:.7"></div>
         </div>
       </div>
     </div>
@@ -1394,7 +1405,7 @@
   <div class="form-actions" style="margin-top:14px">
     <button class="btn btn-danger" id="dt-delete-btn" style="margin-right:auto" onclick="dtDelete()">削除</button>
     <button class="btn btn-ghost" onclick="closeModal('modal-detail')">閉じる</button>
-    <button class="btn btn-primary" onclick="dtEdit()">編集</button>
+    <button class="btn btn-primary" id="dt-edit-btn" onclick="dtEdit()">編集</button>
   </div>
 </div></div>
 
@@ -2107,7 +2118,37 @@
      v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
      バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
 <script>
-window.APP_BOOT_VERSION = '48';
+window.APP_BOOT_VERSION = '49';
+// v49: iOS ホーム画面アプリの高さ補正
+// ステータスバー透過（black-translucent）で起動すると、iOS が画面の高さをステータスバー分だけ短く報告し、
+// フッターが持ち上がって下に白い帯ができることがある。画面の実寸（screen）を使って高さを決める。
+window.fixViewport = function () {
+  try {
+    var de = document.documentElement, b = document.body;
+    if (!b) return;
+    var probe = document.createElement('div');
+    probe.style.cssText = 'position:absolute;visibility:hidden;left:0;top:0;padding-top:env(safe-area-inset-top)';
+    b.appendChild(probe);
+    var safeTop = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+    b.removeChild(probe);
+    var standalone = (window.navigator.standalone === true) ||
+      (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+    var ih = window.innerHeight, iw = window.innerWidth;
+    var sw = screen.width, sh = screen.height;
+    var full = (iw <= ih) ? Math.max(sw, sh) : Math.min(sw, sh);
+    var h = ih, fix = false;
+    // ステータスバー透過のホーム画面アプリだけ補正（Safari・旧設定のアプリは触らない）
+    if (standalone && safeTop > 0 && full > ih && full - ih <= 120) { h = full; fix = true; }
+    de.style.setProperty('--app-h', h + 'px');
+    if (fix) de.classList.add('vp-fix'); else de.classList.remove('vp-fix');
+    window.__vpInfo = { standalone: standalone, safeTop: safeTop, innerHeight: ih, screenHeight: full, appH: h, fix: fix };
+    var vi = document.getElementById('vp-info');
+    if (vi) vi.textContent = '画面 ' + ih + '/' + full + (standalone ? ' ホーム画面' : ' ブラウザ') + ' 上' + Math.round(safeTop) + (fix ? ' 高さ補正あり' : '');
+  } catch (e) {}
+};
+document.addEventListener('DOMContentLoaded', function(){ window.fixViewport(); });
+window.addEventListener('resize', function(){ window.fixViewport(); });
+window.addEventListener('orientationchange', function(){ setTimeout(window.fixViewport, 300); });
 (function(){
   var KEY = 'financeManager';
   // 版数はまずここで出す（本体が落ちても「どの版が動いているか」が必ず分かる）
@@ -2152,7 +2193,7 @@ window.APP_BOOT_VERSION = '48';
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '48';
+const APP_VERSION = '49';
 const SCHEMA_VERSION = 33;
 const STORAGE_KEY = 'financeManager';
 
@@ -6505,6 +6546,8 @@ function openDetail(cfg) {
     (cfg.memo ? `<div class="detail-memo"><span class="dm-label">メモ</span>${escapeHTML(cfg.memo)}</div>` : '');
   dtEditFn = cfg.onEdit || null;
   dtDeleteFn = cfg.onDelete || null;
+  const eb = document.getElementById('dt-edit-btn');
+  if (eb) { eb.style.display = dtEditFn ? '' : 'none'; eb.textContent = cfg.editLabel || '編集'; }
   document.getElementById('dt-delete-btn').style.display = dtDeleteFn ? '' : 'none';
   openModal('modal-detail');
 }
@@ -8452,6 +8495,8 @@ function applyMemberTheme(mo) {
     el.style.background = color ? color : '';
     el.style.transition = 'background .2s';
   });
+  // v49: 画面下端（フッターの下）の色もフッターと同じにする
+  document.documentElement.style.setProperty('--footer-bg', color || '#fff');
   // ヘッダー・月ナビは念のため明示的にリセット
   const top = document.querySelector('.topbar');
   const mbar = document.getElementById('month-bar');
@@ -8846,13 +8891,13 @@ function openLendDetail(id) {
     onEdit: ()=>openLendModal(id),
   });
 }
-function openLendModal(id) {
+function openLendModal(id, presetWho) {
   lendEditing = id ? state.lends.find(l=>l.id===id) : null;
   const l = lendEditing;
   lendDir = l?l.dir:'lent';
   lendSettled = l?!!l.settled:false;
   document.getElementById('lend-title').textContent = l?'立て替えを編集':'立て替えを記録';
-  document.getElementById('ld-who').value = l?l.who:'';
+  document.getElementById('ld-who').value = l?l.who:(presetWho||'');
   document.getElementById('ld-name').value = l?l.name:'';
   document.getElementById('ld-amount').value = l?l.amount:'';
   document.getElementById('ld-date').value = l?l.date:todayStr();
@@ -8911,6 +8956,70 @@ function moveLend(id, dir) {
   arr.forEach((l,k)=>{ l.order = k; });   // 並び替え後に通し番号を振り直す
   save(); renderAll();
 }
+// ── 相手ごとの集計（v49）──
+// 未精算の立て替えを相手ごとにまとめ、「立て替えた」と「立て替えてもらった」の差額を出す。
+// 差額 > 0 … 相手から受け取る / 差額 < 0 … 相手に返す
+let lendPersonCur = '', lendPersonRows = [];
+function lendKey(who){ return String(who||'').trim(); }
+function lendPersonSummary() {
+  const map = new Map();
+  state.lends.filter(l=>!l.settled && inCurrentMember(l)).forEach(l=>{
+    const k = lendKey(l.who); if (!k) return;
+    if (!map.has(k)) map.set(k, { who:k, lent:0, borrowed:0, count:0, lastDate:'' });
+    const g = map.get(k);
+    if (l.dir==='lent') g.lent += (+l.amount||0); else g.borrowed += (+l.amount||0);
+    g.count++;
+    if ((l.date||'') > g.lastDate) g.lastDate = l.date||'';
+  });
+  return [...map.values()].map(g=>Object.assign(g, { net: g.lent - g.borrowed }))
+    .sort((a,b)=>Math.abs(b.net)-Math.abs(a.net) || b.lastDate.localeCompare(a.lastDate));
+}
+function lendNetLabel(net) {
+  if (net>0) return { text:`受け取る ${fmt(net)}`, color: state.settings.colorIncomeEtc };
+  if (net<0) return { text:`返す ${fmt(-net)}`, color: state.settings.colorExpense };
+  return { text:'差し引き ±0', color:'var(--text-secondary)' };
+}
+function openLendPerson(who) {
+  const k = lendKey(who);
+  const g = lendPersonSummary().find(x=>x.who===k);
+  const items = state.lends.filter(l=>!l.settled && inCurrentMember(l) && lendKey(l.who)===k)
+    .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  if (!g || !items.length) { closeModal('modal-detail'); renderAll(); return; }
+  lendPersonCur = k;
+  const nl = lendNetLabel(g.net);
+  const rowsHTML = items.map(l=>`
+    <div class="detail-row tapable" onclick="openLendDetail('${l.id}')">
+      <span class="dr-label">${(l.date||'').slice(5).replace('-','/')}　${l.dir==='lent'?'立て替えた':'立て替えてもらった'}${l.name?' / '+escapeHTML(l.name):''}</span>
+      <span class="dr-val mono" style="color:${l.dir==='lent'?state.settings.colorIncomeEtc:state.settings.colorExpense}">${l.dir==='lent'?'':'−'}${fmt(l.amount)}</span>
+    </div>`).join('');
+  openDetail({
+    stamp: '<span style="font-size:20px">🤝</span>',
+    name: k,
+    sub: `未精算 ${items.length}件`,
+    rows: [
+      ['立て替えた（計）', fmt(g.lent)],
+      ['立て替えてもらった（計）', fmt(g.borrowed)],
+      ['差額', g.net>0 ? `${fmt(g.net)} を受け取る` : g.net<0 ? `${fmt(-g.net)} を返す` : '±0（相殺）'],
+    ],
+    extraHTML: `<div style="margin-top:12px;font-size:11.5px;color:var(--text-secondary)">内訳（タップで詳細）</div>${rowsHTML}
+      <button class="btn btn-ghost btn-block" style="margin-top:12px" onclick="closeModal('modal-detail');openLendModal(null,lendPersonCur)">＋ ${escapeHTML(k)} との立て替えを記録</button>`,
+    editLabel: 'まとめて精算',
+    onEdit: ()=>settleLendPerson(k),
+  });
+}
+// 相手の未精算をまとめて精算済みにする（差額だけやり取りした場合など）
+function settleLendPerson(who) {
+  const k = lendKey(who);
+  const items = state.lends.filter(l=>!l.settled && inCurrentMember(l) && lendKey(l.who)===k);
+  if (!items.length) return;
+  const g = lendPersonSummary().find(x=>x.who===k) || {net:0};
+  const how = g.net>0 ? `差額 ${fmt(g.net)} を受け取った` : g.net<0 ? `差額 ${fmt(-g.net)} を返した` : '相殺した';
+  confirmAction('まとめて精算', `${k} との未精算 ${items.length}件を、${how}ものとして精算済みにします。精算日は今日になります。`, '精算済みにする', ()=>{
+    const d = todayStr();
+    items.forEach(l=>{ l.settled = true; l.settledDate = d; });
+    save(); renderAll(); showToast(`${k} との立て替えを精算しました ✓`);
+  });
+}
 function renderLendList() {
   const el = document.getElementById('input-lend-area');
   if (!el) return;
@@ -8924,8 +9033,21 @@ function renderLendList() {
     <div style="flex:1;background:var(--bg);border-radius:10px;padding:10px;text-align:center">
       <div style="font-size:10.5px;color:var(--text-secondary)">借りている</div>
       <div class="mono" style="font-size:15px;font-weight:600;color:${state.settings.colorExpense}">${fmt(borSum)}</div></div>
-  </div>
-  <button class="btn btn-primary btn-block" onclick="openLendModal()">＋ 立て替えを記録</button>
+  </div>`;
+  // 相手ごとの集計（v49）：2件以上ある相手、または貸し借り両方ある相手がいるときに表示
+  const persons = lendPersonRows = lendPersonSummary();
+  if (persons.some(g=>g.count>=2)) {
+    html += `<div style="font-size:11.5px;color:var(--text-secondary);margin:2px 2px 6px">相手ごと（未精算・差し引き）</div>
+      <div id="lend-person-list" style="margin-bottom:10px">` + persons.map(g=>{
+        const nl = lendNetLabel(g.net);
+        const gi = persons.indexOf(g);
+        return `<div class="job-sum-row tapable" onclick="openLendPerson(lendPersonRows[${gi}].who)">
+          <div class="job-sum-name">${escapeHTML(g.who)}
+            <div class="job-sum-sub">${g.count}件${g.lent?`　立て替えた ${fmt(g.lent)}`:''}${g.borrowed?`　もらった ${fmt(g.borrowed)}`:''}</div></div>
+          <span class="mono" style="font-size:13px;font-weight:600;color:${nl.color};white-space:nowrap">${nl.text}</span>
+        </div>`; }).join('') + '</div>';
+  }
+  html += `<button class="btn btn-primary btn-block" onclick="openLendModal()">＋ 立て替えを記録</button>
   <div style="display:flex;justify-content:flex-end;margin-top:8px">${sortToggleBtn('lends')}</div>`;
   const list = lendDisplayList().slice(0,20);
   if (list.length) {
