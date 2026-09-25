@@ -764,7 +764,7 @@
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v49</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v50</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
           <div id="vp-info" style="margin-top:2px;opacity:.7"></div>
         </div>
       </div>
@@ -2118,7 +2118,7 @@
      v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
      バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
 <script>
-window.APP_BOOT_VERSION = '49';
+window.APP_BOOT_VERSION = '50';
 // v49: iOS ホーム画面アプリの高さ補正
 // ステータスバー透過（black-translucent）で起動すると、iOS が画面の高さをステータスバー分だけ短く報告し、
 // フッターが持ち上がって下に白い帯ができることがある。画面の実寸（screen）を使って高さを決める。
@@ -2193,7 +2193,7 @@ window.addEventListener('orientationchange', function(){ setTimeout(window.fixVi
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '49';
+const APP_VERSION = '50';
 const SCHEMA_VERSION = 33;
 const STORAGE_KEY = 'financeManager';
 
@@ -3080,15 +3080,34 @@ function monthTotal(y,m) {
   return t;
 }
 let payMap = {};
+// 入金日ごとの入金見込み・実受取（v50で作り直し）
+// payMap[日付][仕事ID] = { amount, gross, deduction, planned, plannedCount, ps }
+// ・明細（実受取）があればその入金日・差引支給額
+// ・無ければ payEstimate（明細の初期値と同じ計算、予定の仕事は含めない）
 function buildPayMap() {
   payMap = {};
-  state.records.forEach(r=>{
-    if (!inCurrentMember(r)) return;
-    const j = jobById(r.jobId);
-    if (j && j.closingDay) {
+  const put = (ds, jid, v) => { payMap[ds] = payMap[ds] || {}; payMap[ds][jid] = v; };
+  state.jobs.forEach(j=>{
+    if (!inCurrentMember(j) || j.payType==='monthly' || !j.closingDay) return;
+    const yms = new Set();
+    state.records.forEach(r=>{
+      if (r.jobId!==j.id || !inCurrentMember(r)) return;
       const pd = computePayDate(j, recBaseDate(r));
-      if (pd) { payMap[pd] = payMap[pd] || {}; payMap[pd][j.id] = (payMap[pd][j.id]||0) + r.amount; }
-    }
+      if (pd) yms.add(pd.slice(0,7));
+    });
+    (state.payslips||[]).forEach(ps=>{ if (ps.jobId===j.id) yms.add(ps.payYm); });
+    yms.forEach(ym=>{
+      const ps = payslipFor(j.id, ym);
+      if (ps) {
+        put(ps.payDate || jobPayDateFor(j, ym), j.id, { amount: ps.net||0, gross: itemsGross(ps.items||[]),
+          deduction: 0, planned:0, plannedCount:0, ps });
+        return;
+      }
+      const pe = payEstimate(j, ym);
+      if (!pe.net && !pe.plannedCount) return;
+      put(jobPayDateFor(j, ym), j.id, { amount: pe.net, gross: pe.gross, deduction: Math.max(0, pe.gross - pe.net),
+        planned: pe.planned, plannedCount: pe.plannedCount, ps:null });
+    });
   });
 }
 
@@ -3272,24 +3291,38 @@ function dayItems(ds) {
   });
   state.jobs.filter(j=>j.payType==='monthly'&&j.active&&j.salary>0&&inCurrentMember(j)).forEach(j=>{
     const y=+ds.slice(0,4), m=+ds.slice(5,7)-1;
-    const rawPd = Math.min(j.payday||25, daysIn(y,m));
-    const adj = adjustPayDate(dstr(y,m,rawPd), j.holidayRule||'none');
+    const ym = ds.slice(0,7);
+    const ps = payslipFor(j.id, ym);
+    const adj = ps && ps.payDate ? ps.payDate : jobPayDateFor(j, ym);
     if (adj===ds) {
-      const nd = jobNetAmount(j, j.salary||0);
-      items.push({ kind:'payday', stamp:j.paydayStamp||'payday', color:j.color, label:j.name+'（支払日）',
-        short:(j.paydayShortName||j.shortName||''),
-        sub: nd.deduction ? `額面 ${fmt(j.salary)} − 控除 ${fmt(nd.deduction)}` : '月額報酬',
-        amount: nd.deduction ? nd.net : j.salary, grossAmount:j.salary, deduction:nd.deduction, ref:j });
+      if (ps) {
+        items.push({ kind:'payday', stamp:j.paydayStamp||'payday', color:j.color, label:j.name+'（支払日）',
+          short:(j.paydayShortName||j.shortName||''), sub: ps.paid ? '実受取（受取済）' : '実受取（未受取）',
+          amount: ps.net||0, grossAmount: itemsGross(ps.items||[]), deduction: 0, ref:j, ps, paidActual: !!ps.paid });
+      } else {
+        const pe = payEstimate(j, ym);
+        const ded = Math.max(0, pe.gross - pe.net);
+        items.push({ kind:'payday', stamp:j.paydayStamp||'payday', color:j.color, label:j.name+'（支払日）',
+          short:(j.paydayShortName||j.shortName||''),
+          sub: ded ? `額面 ${fmt(pe.gross)} − 控除 ${fmt(ded)}` : '月額報酬',
+          amount: pe.net, grossAmount: pe.gross, deduction: ded, ref:j });
+      }
     }
   });
   if (payMap[ds]) {
-    Object.entries(payMap[ds]).forEach(([jid,amt])=>{
+    Object.entries(payMap[ds]).forEach(([jid,v])=>{
       const j = jobById(jid);
-      const nd2 = j ? jobNetAmount(j, amt) : {net:amt, deduction:0};
-      items.push({ kind:'payinfo', stamp:(j&&j.paydayStamp)||'payday', color:j?j.color:PALETTE[2], label:(j?j.name:'')+'（給料日見込）',
+      const ps = v.ps;
+      let sub;
+      if (ps) sub = ps.paid ? '実受取（受取済）' : '実受取（未受取）';
+      else {
+        sub = v.deduction ? `支給 ${fmt(v.gross)} − 控除 ${fmt(v.deduction)}` : '締め日・支払日から自動計算';
+        if (v.plannedCount) sub += ` ／ 予定 ${v.plannedCount}件 +${fmt(v.planned).slice(1)} は未計上`;
+      }
+      items.push({ kind:'payinfo', stamp:(j&&j.paydayStamp)||'payday', color:j?j.color:PALETTE[2],
+        label:(j?j.name:'')+(ps?'（入金）':'（給料日見込）'),
         short:(j?(j.paydayShortName||j.shortName||''):''),
-        sub: nd2.deduction ? `額面 ${fmt(amt)} − 控除 ${fmt(nd2.deduction)}` : '締め日・支払日から自動計算',
-        amount: nd2.deduction ? nd2.net : amt, grossAmount:amt, deduction:nd2.deduction, ref:j });
+        sub, amount: v.amount, grossAmount: v.gross, deduction: v.deduction, ref:j, ps, paidActual: !!(ps && ps.paid) });
     });
   }
   state.events.forEach(ev=>{
@@ -3554,7 +3587,7 @@ function moneyMonthTotals(y, m) {
 function dayTotal(ds) {
   let t = 0;
   if (state.settings.aggregation==='pay') {
-    if (payMap[ds]) Object.values(payMap[ds]).forEach(v=>t+=v);
+    if (payMap[ds]) Object.values(payMap[ds]).forEach(v=>t+=v.amount||0);
     state.records.forEach(r=>{ if(!inCurrentMember(r)) return; const j=jobById(r.jobId); if(!(j&&j.closingDay) && recBaseDate(r)===ds) t+=r.amount; });
   } else {
     state.records.forEach(r=>{ if(!inCurrentMember(r)) return; if(recBaseDate(r)===ds) t+=r.amount; });
@@ -3651,8 +3684,13 @@ function renderCalMonth() {
     const weekEl = document.createElement('div'); weekEl.className='cal-week';
     const daysEl = document.createElement('div'); daysEl.className='cal-days';
     week.forEach((c,i)=>{
-      const items = dayItemsFiltered(c.ds).filter(x=>x.kind!=='event'&&!x.span);
+      const allItems = dayItemsFiltered(c.ds);
+      const items = allItems.filter(x=>x.kind!=='event'&&!x.span);
       const total = dayTotal(c.ds);
+      // 複数日の案件は帯で表示するため items から外しているが、金額は終了日に出す（v50）
+      // v49までは外したまま金額も数えていなかったため、月表示に案件の金額が出なかった
+      const spanEarn = allItems.filter(x=>x.kind==='record' && x.span && x.ref.endDate===c.ds)
+        .reduce((a,x)=>a+(x.amount||0),0);
       let expSum=0, ptSum=0, paySum=0, earnSum=0, incSum=0, ptUseSum=0;
       items.forEach(x=>{
         if(x.kind==='money'){
@@ -3669,6 +3707,7 @@ function renderCalMonth() {
         else if(x.kind==='payday'||x.kind==='payinfo') paySum+=x.amount;
         else if(x.kind==='record') earnSum+=x.amount;
       });
+      earnSum += spanEarn;
       const cell = document.createElement('div');
       cell.className = 'cal-day' + (c.other?' other':'') + (i===0?' sun':'') + (i===6?' sat':'') + (HOLIDAYS.has(c.ds)?' hol':'') + (c.ds===today?' today':'');
       const mode = state.settings.calDisplay || 'stamp';
@@ -4071,7 +4110,7 @@ function updateFilterBadge() {
 // 未確定・未来の項目は薄く表示
 function itemOpacity(x) {
   const isUnfixed = x.unfixed || (x.kind==='cardpay');
-  const isFuturePay = (x.kind==='payday'||x.kind==='payinfo');
+  const isFuturePay = (x.kind==='payday'||x.kind==='payinfo') && !x.paidActual;
   if (isUnfixed || isFuturePay) return `opacity:${(state.settings.unfixedOpacity||55)/100}`;
   return '';
 }
@@ -4227,13 +4266,22 @@ function defaultCoverPeriod(job, payYm) {
   return { from, to };
 }
 // 対象期間内の勤務記録から見込みを出す
-function estimateForPeriod(job, from, to) {
+function estimateForPeriod(job, from, to, opts) {
   // 月額固定は勤務記録を持たないため、登録した月額をそのまま見込みとする（v41）
   if (job && job.payType==='monthly') {
     return { days:0, hours:0, transport:0, amount: job.salary||0,
       base: job.salary||0, workHours:0, recs:[] };
   }
-  const recs = state.records.filter(r=>r.jobId===job.id && r.date>=from && r.date<=to);
+  // 期間の判定は「勤務日の基準日」で行う（案件は終了日）。v50
+  // 以前は開始日で判定していたため、6/24〜7/1 のような案件が入金一覧（終了日で判定）と別の月に入り、
+  // 「給与・報酬の入金」の金額とタップした中身が食い違っていた。
+  const onlyDone = opts && opts.doneOnly;
+  const recs = state.records.filter(r=>{
+    if (r.jobId!==job.id) return false;
+    const d = recBaseDate(r);
+    if (d<from || d>to) return false;
+    return onlyDone ? recIsDone(r) : true;
+  });
   const days = recs.length;
   const hours = recs.reduce((a,r)=>a+(r.hours||0),0);
   const transport = recs.reduce((a,r)=>a+(r.transport||0),0);
@@ -4290,9 +4338,13 @@ function renderPsDiff() {
   const job = jobById(psJobId);
   const from = document.getElementById('ps-from').value, to = document.getElementById('ps-to').value;
   if (!job || !from || !to) { el.innerHTML=''; return; }
-  const est = estimateForPeriod(job, from, to);
+  const est = estimateForPeriod(job, from, to, { doneOnly: job.payType!=='monthly' });
+  const all = estimateForPeriod(job, from, to);
+  const plannedAmt = all.amount - est.amount, plannedCnt = all.recs.length - est.recs.length;
+  // 見込みは明細の初期値と同じ計算（報酬額＋消費税−控除分など）で比べる（v50）
+  const estNet = itemsNet(buildEstimateItems(job, est));
   const actual = parseFloat(document.getElementById('ps-net').value) || psItemsTotal().net;
-  const diff = actual - est.amount;
+  const diff = actual - estNet;
   const reasons = [];
   if (job.payType==='hourly') {
     const h = parseFloat(document.getElementById('ps-hours').value);
@@ -4303,11 +4355,13 @@ function renderPsDiff() {
   const ded = psItems.filter(i=>i.sign<0 && (parseFloat(i.amount)||0));
   if (ded.length) reasons.push('控除 ' + ded.map(i=>i.name||'不明').join('・'));
   el.innerHTML = `<div style="background:var(--bg);border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.9">
-    <div style="display:flex;justify-content:space-between"><span>見込み</span><span class="mono">${fmt(est.amount)}</span></div>
+    <div style="display:flex;justify-content:space-between"><span>見込み</span><span class="mono">${fmt(estNet)}</span></div>
     <div style="display:flex;justify-content:space-between"><span>実績</span><span class="mono">${fmt(actual)}</span></div>
     <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px solid var(--border);margin-top:4px;padding-top:4px">
       <span>差額</span><span class="mono" style="color:${diff<0?'#C0392B':(diff>0?'#1DB882':'inherit')}">${diff>0?'+':''}${fmt(diff)}</span></div>
     ${reasons.length?`<div style="font-size:11px;color:var(--text-secondary);margin-top:3px">${escapeHTML(reasons.join(' ／ '))}</div>`:''}
+    ${plannedCnt>0?`<div style="font-size:11px;color:var(--text-secondary);margin-top:3px">※まだ終わっていない仕事 ${plannedCnt}件（${fmt(plannedAmt)}）は見込みに含めていません</div>`:''}
+    <div style="font-size:11px;color:var(--text-secondary);margin-top:3px">対象：${est.recs.length}件${job.payType==='piece'?'（案件は終了日で判定）':''}</div>
   </div>`;
 }
 function setPsPaid(v, el) {
@@ -4328,6 +4382,64 @@ function autoItemAmount(type, job, est) {
     default: return 0;
   }
 }
+// 明細の初期値（見込みから自動入力）を作る。入金一覧・カレンダー・明細画面で共通に使う（v50）
+function buildEstimateItems(job, est) {
+  const items = [];
+  const isHourly = job.payType==='hourly';
+  // テンプレートに支給項目があれば既定の自動追加はしない（重複を避ける）
+  const hasPlus = (job.deductions||[]).some(d=>typeof d==='object' && (d.sign===undefined?-1:d.sign)>0);
+  if (hasPlus) { /* テンプレート側で用意する */ }
+  else if (isHourly) {
+    items.push({ name:'基本給', amount: est.base || '', sign: 1 });
+    if (est.transport) items.push({ name:'通勤手当', amount: est.transport, sign: 1 });
+  } else if (job.payType==='monthly') {
+    // 月額固定は消費税の扱いが無いので、登録した月額をそのまま支給に入れる（v41）
+    items.push({ name:'月額報酬', amount: job.salary || '', sign: 1 });
+  } else {
+    items.push({ name:'報酬額', amount: est.amount || '', sign: 1 });
+    const rate = isNum(job.taxRate) ? job.taxRate : (isNum(state.settings.invoiceTaxRate) ? state.settings.invoiceTaxRate : 10);
+    const tax = Math.floor((est.amount||0) * rate / 100);
+    if (tax) items.push({ name:`消費税（${rate}%）`, amount: tax, sign: 1 });
+    const dedRate = isNum(job.taxDeductRate) ? job.taxDeductRate : (isNum(state.settings.invoiceDeductRate) ? state.settings.invoiceDeductRate : 20);
+    if (tax && dedRate) items.push({ name:`消費税控除分（${dedRate}%）`, amount: Math.floor(tax*dedRate/100), sign: -1 });
+  }
+  // 仕事に登録した明細テンプレートを反映（v45）
+  // 「毎回入力」は空欄、「固定額」はその金額、「自動計算」は見込みから求める
+  (job.deductions||[]).forEach(d0=>{
+    const d = (typeof d0==='string') ? { name:d0, sign:-1, calc:'input' } : d0;
+    const sign = d.sign===undefined ? -1 : d.sign;
+    let amt = '';
+    if (d.calc==='fixed') amt = d.amount||'';
+    else if (d.calc==='auto') amt = autoItemAmount(d.type, job, est) || '';
+    items.push({ name: jobItemLabel(d, job), amount: amt, sign });
+  });
+  return items;
+}
+// 支払月の入金見込み（v50）
+// これまで「給与・報酬の入金」の金額は報酬額の合計だけ（消費税・控除分なし）、
+// タップした明細は開始日で期間判定＋予定も含む、カレンダーはさらに別計算、と3通りあって一致しなかった。
+// すべてここに集約する。予定の仕事（まだ終わっていない）は含めず、別に planned として返す。
+function payEstimate(job, payYm) {
+  const cover = defaultCoverPeriod(job, payYm);
+  if (job.payType==='monthly') {
+    const est = estimateForPeriod(job, cover.from, cover.to);
+    const items = job.active ? buildEstimateItems(job, est) : [];
+    return { cover, est, items, net: itemsNet(items), gross: itemsGross(items), planned:0, plannedCount:0 };
+  }
+  const est = estimateForPeriod(job, cover.from, cover.to, { doneOnly:true });
+  const all = estimateForPeriod(job, cover.from, cover.to);
+  const items = est.recs.length ? buildEstimateItems(job, est) : [];
+  return { cover, est, items, net: itemsNet(items), gross: itemsGross(items),
+    planned: all.amount - est.amount, plannedCount: all.recs.length - est.recs.length };
+}
+function itemsNet(items) { return items.reduce((a,it)=>a + (it.sign<0?-1:1)*(parseFloat(it.amount)||0), 0); }
+function itemsGross(items) { return items.filter(it=>it.sign>=0).reduce((a,it)=>a+(parseFloat(it.amount)||0), 0); }
+// 支払月の入金日（月額固定は「毎月◯日」、それ以外は締め払いの支払日）v50
+function jobPayDateFor(job, payYm) {
+  const py=+payYm.slice(0,4), pm=+payYm.slice(5,7)-1;
+  const pdv = (job.payType==='monthly') ? (job.payday||25) : (job.payDay||job.payday||25);
+  return adjustPayDate(dstr(py,pm, pdv>=31?daysIn(py,pm):Math.min(pdv,daysIn(py,pm))), job.holidayRule||'none');
+}
 function payslipFor(jobId, payYm) {
   return (state.payslips||[]).find(p=>p.jobId===jobId && p.payYm===payYm) || null;
 }
@@ -4342,11 +4454,10 @@ function openPayslip(jobId, payYm, id) {
   const cover = ps && ps.coverFrom ? {from:ps.coverFrom, to:ps.coverTo} : defaultCoverPeriod(job, ym);
   document.getElementById('ps-from').value = cover.from;
   document.getElementById('ps-to').value = cover.to;
-  const est = estimateForPeriod(job, cover.from, cover.to);
-  // 入金日：既定は仕事の支払日
-  const py=+ym.slice(0,4), pm=+ym.slice(5,7)-1;
-  const pdv = job.payDay||job.payday||25;
-  const defPay = adjustPayDate(dstr(py,pm, pdv>=31?daysIn(py,pm):Math.min(pdv,daysIn(py,pm))), job.holidayRule||'none');
+  // 見込みは入金一覧と同じく「終わった仕事」だけで出す（v50）
+  const est = estimateForPeriod(job, cover.from, cover.to, { doneOnly: job.payType!=='monthly' });
+  // 入金日：既定は仕事の支払日（月額固定は「毎月◯日」を使う。v49までは締め払いの支払日を見ていた）
+  const defPay = jobPayDateFor(job, ym);
   document.getElementById('ps-paydate').value = ps ? (ps.payDate||defPay) : defPay;
   fillMemberSelect('ps-member', ps ? ps.memberId : (job.memberId||''));
   fillWalletSelect('ps-wallet', ps ? (ps.walletId||'') : (job.walletId||''), '指定なし', BANK_TYPES,
@@ -4361,34 +4472,7 @@ function openPayslip(jobId, payYm, id) {
   if (ps && ps.items && ps.items.length) {
     psItems = JSON.parse(JSON.stringify(ps.items));
   } else {
-    psItems = [];
-    // テンプレートに支給項目があれば既定の自動追加はしない（重複を避ける）
-    const hasPlus = (job.deductions||[]).some(d=>typeof d==='object' && (d.sign===undefined?-1:d.sign)>0);
-    if (hasPlus) { /* テンプレート側で用意する */ }
-    else if (isHourly) {
-      psItems.push({ name:'基本給', amount: est.base || '', sign: 1 });
-      if (est.transport) psItems.push({ name:'通勤手当', amount: est.transport, sign: 1 });
-    } else if (job.payType==='monthly') {
-      // 月額固定は消費税の扱いが無いので、登録した月額をそのまま支給に入れる（v41）
-      psItems.push({ name:'月額報酬', amount: job.salary || '', sign: 1 });
-    } else {
-      psItems.push({ name:'報酬額', amount: est.amount || '', sign: 1 });
-      const rate = isNum(job.taxRate) ? job.taxRate : (isNum(state.settings.invoiceTaxRate) ? state.settings.invoiceTaxRate : 10);
-      const tax = Math.floor((est.amount||0) * rate / 100);
-      if (tax) psItems.push({ name:`消費税（${rate}%）`, amount: tax, sign: 1 });
-      const dedRate = isNum(job.taxDeductRate) ? job.taxDeductRate : (isNum(state.settings.invoiceDeductRate) ? state.settings.invoiceDeductRate : 20);
-      if (tax && dedRate) psItems.push({ name:`消費税控除分（${dedRate}%）`, amount: Math.floor(tax*dedRate/100), sign: -1 });
-    }
-    // 仕事に登録した明細テンプレートを反映（v45）
-    // 「毎回入力」は空欄、「固定額」はその金額、「自動計算」は見込みから求める
-    (job.deductions||[]).forEach(d0=>{
-      const d = (typeof d0==='string') ? { name:d0, sign:-1, calc:'input' } : d0;
-      const sign = d.sign===undefined ? -1 : d.sign;
-      let amt = '';
-      if (d.calc==='fixed') amt = d.amount||'';
-      else if (d.calc==='auto') amt = autoItemAmount(d.type, job, est) || '';
-      psItems.push({ name: jobItemLabel(d, job), amount: amt, sign });
-    });
+    psItems = buildEstimateItems(job, est);
   }
   const netEl = document.getElementById('ps-net');
   delete netEl.dataset.touched;
@@ -4448,7 +4532,9 @@ function deletePayslip() {
 function openPayslipDetail(id) {
   const ps = (state.payslips||[]).find(p=>p.id===id); if (!ps) return;
   const job = jobById(ps.jobId);
-  const est = (job && ps.coverFrom) ? estimateForPeriod(job, ps.coverFrom, ps.coverTo) : null;
+  // 対象期間が未入力の明細は、支払月から既定の期間を使う（v50）
+  const cov = job ? (ps.coverFrom ? {from:ps.coverFrom, to:ps.coverTo} : defaultCoverPeriod(job, ps.payYm)) : null;
+  const est = job ? estimateForPeriod(job, cov.from, cov.to) : null;
   const w = ps.walletId ? walletById(ps.walletId) : null;
   const rows = [
     ['入金日', ps.payDate ? ps.payDate.replace(/-/g,'/') : ''],
@@ -4461,10 +4547,12 @@ function openPayslipDetail(id) {
   ];
   const items = (ps.items||[]).map(i=>
     `<div class="detail-row"><span class="dr-label">${escapeHTML(i.name||'')}</span><span class="dr-val">${i.sign<0?'−':''}${fmt(i.amount)}</span></div>`).join('');
-  const diff = est ? (ps.net - est.amount) : null;
+  // 見込みは明細の初期値と同じ計算（報酬額＋消費税−控除分など）で比べる（v50）
+  const estNet = est ? itemsNet(buildEstimateItems(job, est)) : null;
+  const diff = est ? (ps.net - estNet) : null;
   const extra = items
     + `<div class="detail-row" style="font-weight:700"><span class="dr-label">差引支給額</span><span class="dr-val">${fmt(ps.net)}</span></div>`
-    + (est ? `<div class="detail-row"><span class="dr-label">見込み</span><span class="dr-val">${fmt(est.amount)}</span></div>
+    + (est ? `<div class="detail-row"><span class="dr-label">見込み</span><span class="dr-val">${fmt(estNet)}</span></div>
        <div class="detail-row"><span class="dr-label">差額</span><span class="dr-val" style="color:${diff<0?'#C0392B':(diff>0?'#1DB882':'inherit')}">${diff>0?'+':''}${fmt(diff)}</span></div>` : '');
   openDetail({
     stamp: stampHTML(job?job.stamp:'work'),
@@ -4792,7 +4880,8 @@ function setPayType(t, el){ jobPayType=t; document.querySelectorAll('#modal-job 
 function setJobActive(a, el){ jobActive=a; document.querySelectorAll('#modal-job .seg-btn[data-act]').forEach(b=>b.classList.remove('active')); el.classList.add('active'); }
 function applyPayTypeFields(){
   // 案件ごとの仕事では消費税の設定を出す
-  const inv = jobPayType==='project';
+  // v50: 'project' と書いていたため（実際の値は 'piece'）、消費税率の欄が一度も表示されていなかった
+  const inv = jobPayType==='piece';
   const ir = document.getElementById('job-invoice-row');
   if (ir) ir.style.display = inv?'':'none';
   const inote = document.getElementById('job-invoice-note');
@@ -5004,16 +5093,8 @@ function isCardWallet(id) {
 }
 // 仕事の入金見込み（支払日がこの月に来るもの）
 function jobPayInMonth(job, y, m) {
-  if (job.payType==='monthly') {
-    return job.active ? (job.salary||0) : 0;
-  }
-  let t = 0;
-  state.records.filter(r=>r.jobId===job.id && inCurrentMember(r)).forEach(r=>{
-    if (!recIsDone(r)) return;                 // 予定は数えない
-    const pd = computePayDate(job, recAggDate(r)) || recAggDate(r);
-    if (+pd.slice(0,4)===y && +pd.slice(5,7)-1===m) t += r.amount||0;
-  });
-  return t;
+  // v50：明細の見込みと同じ計算（報酬額＋消費税−控除分など）。予定の仕事は含めない
+  return payEstimate(job, `${y}-${pad(m+1)}`).net;
 }
 // 仕事ごとの「今月の働き」内訳（v44）
 // 予定と実績を分けて出す：時給制は「◯/◯回・◯/◯h」、案件ごとは「◯/◯件」
@@ -5102,9 +5183,10 @@ function renderHome() {
   const ym2 = `${y}-${pad(m+1)}`;
   const rows = state.jobs.filter(j=>inCurrentMember(j)).map(j=>{
     const ps = payslipFor(j.id, ym2);
-    const amt = ps ? (ps.net||0) : jobPayInMonth(j, y, m);
-    return { j, ps, amt };
-  }).filter(x=>x.amt || x.ps);
+    const pe = ps ? null : payEstimate(j, ym2);
+    const amt = ps ? (ps.net||0) : pe.net;
+    return { j, ps, pe, amt };
+  }).filter(x=>x.amt || x.ps || (x.pe && x.pe.plannedCount));
   if (!rows.length) el.innerHTML='<div class="empty"><div class="empty-text">この月に入金予定の給与・報酬はありません</div></div>';
   else el.innerHTML = rows.map(x=>{
     const j = x.j, ps = x.ps;
@@ -5112,9 +5194,12 @@ function renderHome() {
     const badge = ps
       ? `<span class="badge-sm ${ps.paid?'bd-rate':'bd-limit'}" style="margin-left:5px">${ps.paid?'受取済':'未受取'}</span>`
       : '';
+    const pe = x.pe;
     const sub = ps
       ? (ps.payDate ? ps.payDate.slice(5).replace('-','/')+' 入金' : '明細あり')
-      : '見込み ／ タップで実受取を入力';
+      : `${jobPayDateFor(j, ym2).slice(5).replace('-','/')} 見込み${pe.est.recs.length?`（${pe.est.recs.length}件）`:''}`
+        + (pe.plannedCount ? `<br><span style="opacity:.75">予定 ${pe.plannedCount}件 +${fmt(pe.planned).slice(1)} は未計上</span>` : '')
+        + '<br>タップで実受取を入力';
     return `<div class="job-sum-row tapable"
         onclick="${ps?`openPayslipDetail('${ps.id}')`:`openPayslip('${j.id}','${ym2}')`}">
       ${stampHTML(j.stamp)}
@@ -10955,7 +11040,10 @@ function runIdDiagnostics(showResult) {
 function renderAll() {
   const now = new Date();
   buildPayMap();
-  document.getElementById('topbar-total').textContent = fmt(monthTotal(now.getFullYear(), now.getMonth()));
+  // v50：ヘッダーの数字も「今月の働き」ブロックと同じ計算にする
+  // （v49まではラベルだけ「今月の働き」で、数字は旧計算＝予定の仕事も含む月合計だった）
+  const htNow = headerTotalValue(now.getFullYear(), now.getMonth());
+  document.getElementById('topbar-total').textContent = htNow.text;
   document.getElementById('version-badge').textContent = 'v'+APP_VERSION;
   document.getElementById('ver-footer').textContent = 'v'+APP_VERSION;
   document.getElementById('schema-footer').textContent = SCHEMA_VERSION;
