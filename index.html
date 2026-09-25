@@ -764,7 +764,7 @@
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v50</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v51</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
           <div id="vp-info" style="margin-top:2px;opacity:.7"></div>
         </div>
       </div>
@@ -2118,7 +2118,7 @@
      v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
      バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
 <script>
-window.APP_BOOT_VERSION = '50';
+window.APP_BOOT_VERSION = '51';
 // v49: iOS ホーム画面アプリの高さ補正
 // ステータスバー透過（black-translucent）で起動すると、iOS が画面の高さをステータスバー分だけ短く報告し、
 // フッターが持ち上がって下に白い帯ができることがある。画面の実寸（screen）を使って高さを決める。
@@ -2193,7 +2193,7 @@ window.addEventListener('orientationchange', function(){ setTimeout(window.fixVi
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '50';
+const APP_VERSION = '51';
 const SCHEMA_VERSION = 33;
 const STORAGE_KEY = 'financeManager';
 
@@ -2934,6 +2934,27 @@ function migrate(data) {
     if (j.taxRate!==undefined && !(typeof j.taxRate==='number' && isFinite(j.taxRate))) delete j.taxRate;
     if (j.taxDeductRate!==undefined && !(typeof j.taxDeductRate==='number' && isFinite(j.taxDeductRate))) delete j.taxDeductRate;
   });
+  // v48より前に保存した明細には項目名が「消費税（null%）」のまま残っていた（v51で掃除）
+  // ※ migrate はあとで定義される const 関数を呼べない（TDZ）ため、ここで完結させる
+  {
+    const okNum = x => typeof x==='number' && isFinite(x);
+    const st = data.settings || {};
+    const rateOf = (jobId, ded) => {
+      const j = (data.jobs||[]).find(x=>x.id===jobId);
+      if (ded) return (j && okNum(j.taxDeductRate)) ? j.taxDeductRate : (okNum(st.invoiceDeductRate) ? st.invoiceDeductRate : 20);
+      return (j && okNum(j.taxRate)) ? j.taxRate : (okNum(st.invoiceTaxRate) ? st.invoiceTaxRate : 10);
+    };
+    const fixName = (name, jobId) => {
+      if (typeof name!=='string' || name.indexOf('null%')<0) return name;
+      return name.replace(/消費税控除分（null%）/g, `消費税控除分（${rateOf(jobId,true)}%）`)
+                 .replace(/消費税（null%）/g, `消費税（${rateOf(jobId,false)}%）`);
+    };
+    (data.payslips||[]).forEach(ps=>(ps.items||[]).forEach(it=>{ it.name = fixName(it.name, ps.jobId); }));
+    (data.jobs||[]).forEach(j=>(j.deductions||[]).forEach((d,i)=>{
+      if (typeof d==='string') j.deductions[i] = fixName(d, j.id);
+      else if (d && d.name) d.name = fixName(d.name, j.id);
+    }));
+  }
   data.schemaVersion = SCHEMA_VERSION;
   data.jobs=data.jobs||[]; data.records=data.records||[]; data.events=data.events||[]; data.checks=data.checks||[];
   data.moneyCats = (data.moneyCats&&data.moneyCats.length)?data.moneyCats:defaultMoneyCats();
@@ -7110,7 +7131,8 @@ function renderHomeInvestments() {
 function renderCardPayments() {
   const el = document.getElementById('home-card-list');
   if (!el) return;
-  const list = cardPaymentsInMonth(calYear, calMonth);
+  // 家族カードは本会員カードの引落にまとめて請求されるため一覧に出さない（カレンダーと同じ）v51
+  const list = cardPaymentsInMonth(calYear, calMonth).filter(p=>!p.wallet.familyCard);
   if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-text">クレジットカードに締め日・支払日を設定すると、支払予定がここに出ます</div></div>'; return; }
   el.innerHTML = list.map(p=>`
     <div class="job-sum-row" style="${p.wallet.familyCard?'opacity:0.5':''}">
