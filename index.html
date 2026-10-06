@@ -335,8 +335,11 @@
   .detail-badges { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0 2px; }
   .detail-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 2px; border-bottom: 1px solid var(--border); font-size: 13px; }
   .detail-row:last-of-type { border-bottom: none; }
-  .detail-row .dr-label { color: var(--text-secondary); flex-shrink: 0; }
-  .detail-row .dr-val { text-align: right; word-break: break-word; }
+  /* v55：項目名が長いと金額側が細く縦長になっていた（項目名を縮めない設定だったため）。
+     項目名を折り返し、金額は折り返さない */
+  .detail-row .dr-label { color: var(--text-secondary); flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+  .detail-row .dr-val { text-align: right; overflow-wrap: anywhere; flex: 0 1 auto; max-width: 62%; }
+  .detail-row .dr-val.mono, .detail-row .dr-amt { white-space: nowrap; flex-shrink: 0; max-width: none; }
   .detail-memo { background: var(--bg); border-radius: 10px; padding: 10px 11px; font-size: 12.5px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; margin-top: 10px; }
   .detail-memo .dm-label { font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 3px; }
   .job-item.tapable { cursor: pointer; }
@@ -767,7 +770,7 @@
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v54</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v55</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
           <div id="vp-info" style="margin-top:2px;opacity:.7"></div>
         </div>
       </div>
@@ -912,6 +915,9 @@
           <input type="number" inputmode="decimal" step="1" id="job-taxded" placeholder="20"></div>
       </div>
       <div class="field-note" id="job-invoice-note" style="display:none">インボイス制度の経過措置に合わせて変更できます（現在は2割）。</div>
+      <div class="form-group"><label>源泉所得税の税率（%・任意）</label>
+        <input type="number" inputmode="decimal" step="0.001" id="job-whrate" placeholder="3.063">
+        <div class="field-note">入れると実受取の明細に「源泉所得税（3.063%）」を自動で入れます（時給制は交通費を除いた額、案件は報酬額にかけて1円未満切り捨て）。</div></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 8px;">
         <div class="subsection-title" style="margin-bottom:0">支給・控除の項目</div>
         <div style="display:flex;gap:5px">
@@ -2138,7 +2144,7 @@
      v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
      バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
 <script>
-window.APP_BOOT_VERSION = '54';
+window.APP_BOOT_VERSION = '55';
 // v49: iOS ホーム画面アプリの高さ補正
 // ステータスバー透過（black-translucent）で起動すると、iOS が画面の高さをステータスバー分だけ短く報告し、
 // フッターが持ち上がって下に白い帯ができることがある。画面の実寸（screen）を使って高さを決める。
@@ -2213,7 +2219,7 @@ window.addEventListener('orientationchange', function(){ setTimeout(window.fixVi
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '54';
+const APP_VERSION = '55';
 const SCHEMA_VERSION = 33;
 const STORAGE_KEY = 'financeManager';
 
@@ -3124,7 +3130,14 @@ const jobById = id => state.jobs.find(j=>j.id===id);
 // ── 集計 ──
 function recBaseDate(r) {
   const j = jobById(r.jobId);
-  return (j && j.payType==='piece' && r.endDate) ? r.endDate : r.date;
+  // 案件ごと：期日（納期）があれば期日、無ければ終了日で計上する（v55）
+  // 例）作業 10/28〜11/1・期日 11/1 で 10/31 に納品 → 終了日を 10/31 にしても期日 11/1 のまま11月締めに入る
+  if (j && j.payType==='piece') return r.dueDate || r.endDate || r.date;
+  return r.date;
+}
+function recDueText(r) {
+  if (!r.dueDate) return '';
+  return `期日 ${r.dueDate.slice(5).replace('-','/')}${r.dueTime?' '+r.dueTime:''}`;
 }
 function recAggDate(r) {
   // v43で「月の集計基準」を廃止。勤務日（働いた日）を常に基準にする。
@@ -3361,8 +3374,20 @@ function dayItems(ds) {
       short: (r.shortName || (j?j.shortName:'') || ''),
       sub: r.start ? (r.start+'〜'+r.end+(r.hours?('（実働'+fmtH(r.hours)+'）'):''))
         : ((isSpan?(r.date.slice(5).replace('-','/')+'〜'+r.endDate.slice(5).replace('-','/')):(j?j.name:''))
+           + (recDueText(r) ? '　'+recDueText(r) : '')
            + (recWorkLine(r) ? '　'+recWorkLine(r) : '') + (recChanged(r) ? `　${recAmountText(r)}` : '')),
       amount:r.amount, memo:r.memo||'', ref:r, span:isSpan });
+  });
+  // 期日が作業期間の外にある案件は、期日の日にも表示する（収入はこの日で計上）v55
+  state.records.forEach(r=>{
+    if (!inCurrentMember(r) || !r.dueDate || r.dueDate!==ds) return;
+    const j = jobById(r.jobId);
+    if (!j || j.payType!=='piece') return;
+    const last = r.endDate || r.date;
+    if (r.date<=ds && ds<=last) return;
+    items.push({ kind:'record', stamp:j.stamp, color:j.color, label:(r.name||j.name)+'（期日）',
+      short:(r.shortName||j.shortName||''), sub: recDueText(r)+' / 収入はこの日で計上',
+      amount:r.amount, memo:'', ref:r, span:false, dueMarker:true });
   });
   state.jobs.filter(j=>j.payType==='monthly'&&j.active&&j.salary>0&&inCurrentMember(j)).forEach(j=>{
     const y=+ds.slice(0,4), m=+ds.slice(5,7)-1;
@@ -3765,7 +3790,7 @@ function renderCalMonth() {
       const total = dayTotal(c.ds);
       // 複数日の案件は帯で表示するため items から外しているが、金額は終了日に出す（v50）
       // v49までは外したまま金額も数えていなかったため、月表示に案件の金額が出なかった
-      const spanEarn = allItems.filter(x=>x.kind==='record' && x.span && x.ref.endDate===c.ds)
+      const spanEarn = allItems.filter(x=>x.kind==='record' && x.span && recBaseDate(x.ref)===c.ds)
         .reduce((a,x)=>a+(x.amount||0),0);
       let expSum=0, ptSum=0, paySum=0, earnSum=0, incSum=0, ptUseSum=0, usdSum=0;
       items.forEach(x=>{
@@ -3782,7 +3807,7 @@ function renderCalMonth() {
         // ドル払いのサブスクは円と足さずに「$」で別に出す（v54）
         else if(x.kind==='subsc'){ if (x.subUSD) usdSum+=x.subAmount; else expSum+=x.subAmount; if(x.subPoint) ptSum+=x.subPoint; }
         else if(x.kind==='payday'||x.kind==='payinfo') paySum+=x.amount;
-        else if(x.kind==='record') earnSum+=x.amount;
+        else if(x.kind==='record') { if (recBaseDate(x.ref)===c.ds) earnSum+=x.amount; }   // 収入は計上日だけ（v55）
       });
       earnSum += spanEarn;
       const cell = document.createElement('div');
@@ -3866,8 +3891,8 @@ function buildWeekAmountHTML(items, total, ds) {
     else if (x.kind==='subsc') { if (x.subUSD) usd+=x.subAmount; else exp+=x.subAmount; if(x.subPoint) pt+=x.subPoint; }
     else if (x.kind==='payday'||x.kind==='payinfo') pay+=x.amount;
     else if (x.kind==='record') {
-      // 複数日の案件は最終日にだけ金額を出す
-      if (x.span && x.ref.endDate && ds !== x.ref.endDate) return;
+      // 案件は計上日（期日、無ければ終了日）にだけ金額を出す（v55）
+      if (recBaseDate(x.ref) !== ds) return;
       earn+=x.amount;
     }
   });
@@ -3995,7 +4020,7 @@ function showDayDetail(ds) {
         else expenseSum+=x.moneyAmount;
       }
       else if (x.kind==='payday' || x.kind==='payinfo') paySum += x.amount;
-      else if (x.kind==='record') earnSum += x.amount;
+      else if (x.kind==='record') { if (recBaseDate(x.ref)===ds) earnSum += x.amount; }   // 計上日だけ合計（v55）
     });
     body.innerHTML = items.map(x=>{
       // 右側に出す金額（収入=緑 / 支出=赤 / ポイント=紫）
@@ -4296,6 +4321,11 @@ function openRecordModal(jobId, ds, recId) {
         <div class="form-group"><label>開始日</label><input type="date" id="rec-date" value="${ds}"></div>
         <div class="form-group"><label>終了日（単日なら空欄）</label><input type="date" id="rec-enddate" value="${recEditing?(recEditing.endDate||''):''}"></div>
       </div>
+      <div class="form-row">
+        <div class="form-group"><label>期日・納期（任意）</label><input type="date" id="rec-duedate" value="${recEditing?(recEditing.dueDate||''):''}"></div>
+        <div class="form-group"><label>時刻</label><input type="time" id="rec-duetime" value="${recEditing?(recEditing.dueTime||''):''}"></div>
+      </div>
+      <div class="field-note" style="margin-top:-4px">期日を入れると、収入は終了日（納品日）ではなく期日で締め日を判定します。早めに納品して終了日を変えても入金月は変わりません。</div>
       <div class="form-group"><label>金額（円）</label><input type="number" inputmode="numeric" id="rec-amount" value="${recEditing?recEditing.amount:''}" placeholder="50000">
         <div class="field-note">入力ミスの修正はここを直します。報酬額が変わった場合は下の「金額変更」を使うと変更前後が残ります。</div></div>
       ${recEditing ? `<div class="form-group" id="rec-amtchg-area"></div>` : ''}
@@ -4303,7 +4333,7 @@ function openRecordModal(jobId, ds, recId) {
         <input type="number" inputmode="decimal" step="0.25" id="rec-workhours" value="${recEditing?(recEditing.workHours||''):''}" placeholder="12.5">
         <div class="field-note" id="rec-hourly-note">入力すると時給換算が出ます。</div></div>
       <div class="form-group"><label>メモ</label><textarea id="rec-memo" class="memo-area" rows="4" placeholder="案件内容・作業メモなど">${recEditing?escapeHTML(recEditing.memo||''):''}</textarea></div>
-      <div class="field-note">期間を設定するとカレンダーに帯で表示されます。収入は終了日（納品日）基準で計上します。</div>`;
+      <div class="field-note">期間を設定するとカレンダーに帯で表示されます。収入は期日（無ければ終了日）基準で計上します。</div>`;
     // 金額変更の履歴（v51）
     recAmtHist = recEditing ? JSON.parse(JSON.stringify(recEditing.amountHistory||[])) : [];
     recAmtChgOpen = false;
@@ -4418,6 +4448,7 @@ function openRecordDetail(id) {
     ['状態', recIsDone(r) ? '' : '予定（まだ計上しない）'],
   ] : [
     ['期間', period],
+    ['期日', recDueText(r).replace(/^期日 /,'')],
     ['金額', recAmountText(r)],
     ['総作業時間', r.workHours ? fmtH(r.workHours) : '未入力（編集で入れると時給換算が出ます）'],
     ['時給換算', recHourlyText(r)],
@@ -4531,7 +4562,7 @@ function renderPsItems() {
     amt.oninput = e=>{
       psItems[i].amount = e.target.value;
       if (psItems[i].auto) psItems[i].manual = true;       // 税の行を手で直したら自動計算しない
-      if (psItems[i].fee || psItems[i].auto==='tax') {
+      if (psItems[i].fee || psItems[i].auto==='tax' || psItems[i].wbase) {
         recalcPsTaxes();
         // 自動計算した行・小計の表示だけ書き換える（入力中のカーソルを保つ）
         el.querySelectorAll('.pat-row').forEach(rw=>{
@@ -4598,6 +4629,12 @@ function setPsPaid(v, el) {
   if (el) el.classList.add('active');
 }
 // テンプレートの「自動計算」で入れる金額（v45）
+// 源泉所得税をかける額（v55）：時給制は交通費を除いた額、それ以外は報酬・月額
+function withholdingBase(job, est) {
+  if (job.payType==='monthly') return job.salary||0;
+  if (job.payType==='hourly') return est.base || 0;
+  return est.amount || 0;
+}
 function autoItemAmount(type, job, est) {
   const rate = isNum(job.taxRate) ? job.taxRate : (isNum(state.settings.invoiceTaxRate) ? state.settings.invoiceTaxRate : 10);
   const dedRate = isNum(job.taxDeductRate) ? job.taxDeductRate : (isNum(state.settings.invoiceDeductRate) ? state.settings.invoiceDeductRate : 20);
@@ -4607,6 +4644,7 @@ function autoItemAmount(type, job, est) {
     case 'fee':       return est.amount || 0;
     case 'tax':       return Math.floor((est.amount||0) * rate / 100);
     case 'taxded':    return Math.floor(Math.floor((est.amount||0) * rate / 100) * dedRate / 100);
+    case 'incometax': return isNum(job.withholdingRate) ? Math.floor(withholdingBase(job, est) * job.withholdingRate / 100) : 0;
     default: return 0;
   }
 }
@@ -4619,7 +4657,7 @@ function buildEstimateItems(job0, est) {
   const hasPlus = (job.deductions||[]).some(d=>typeof d==='object' && (d.sign===undefined?-1:d.sign)>0);
   if (hasPlus) { /* テンプレート側で用意する */ }
   else if (isHourly) {
-    items.push({ name:'基本給', amount: est.base || '', sign: 1 });
+    items.push({ name:'基本給', amount: est.base || '', sign: 1, wbase: true });
     if (est.transport) items.push({ name:'通勤手当', amount: est.transport, sign: 1 });
   } else if (job.payType==='monthly') {
     // 月額固定は消費税の扱いが無いので、登録した月額をそのまま支給に入れる（v41）
@@ -4649,14 +4687,24 @@ function buildEstimateItems(job0, est) {
     }
     // 案件ごとの消費税・控除分は「固定額」以外は自動計算（v54）
     const taxLike = d.type==='tax' || d.type==='taxded';
+    // 源泉所得税：税率が設定されていれば「固定額」以外は自動計算（v55）
+    const whAuto = d.type==='incometax' && sign<0 && isNum(job.withholdingRate) && d.calc!=='fixed';
     if (d.calc==='fixed') amt = d.amount||'';
-    else if (d.calc==='auto' || (isPiece && taxLike)) amt = autoItemAmount(d.type, job, est) || '';
+    else if (d.calc==='auto' || (isPiece && taxLike) || whAuto) amt = autoItemAmount(d.type, job, est) || '';
     const it = { name: jobItemLabel(d, job), amount: amt, sign };
     if (taxLike && d.calc!=='fixed' && (d.calc==='auto' || isPiece)) it.auto = d.type;
+    if (whAuto) it.auto = 'incometax';
+    if (d.type==='base' && sign>0 && job.payType==='hourly') it.wbase = true;
     items.push(it);
   });
   // 案件ごとの仕事は、報酬の行が必ず先頭に来るようにする（v54）
   if (job.payType==='piece' && !items.some(i=>i.fee)) items.unshift(...feeLineItems(job, est));
+  // 源泉所得税の税率があり、テンプレートに源泉所得税が無ければ足す（v55）
+  const hasWh = (job.deductions||[]).some(d=>typeof d==='object' && d.type==='incometax');
+  if (isNum(job.withholdingRate) && job.withholdingRate>0 && !hasWh) {
+    const v = autoItemAmount('incometax', job, est);
+    if (v || items.length) items.push({ name:`源泉所得税（${job.withholdingRate}%）`, amount: v||'', sign:-1, auto:'incometax' });
+  }
   return items;
 }
 // 明細を見込みから作り直す（v54）：古い計算で保存した明細を、今の計算（案件の終了日で判定）でやり直す
@@ -4697,6 +4745,12 @@ function recalcPsTaxes() {
   const job = jobSettingAt(jobById(psJobId), (document.getElementById('ps-to')||{}).value); if (!job) return;
   const { rate, dedRate } = jobTaxRates(job);
   const m = psSummaryMarks(psItems);
+  // 源泉所得税（v55）：時給制は基本給の行、案件は報酬の小計にかける
+  const whIt = psItems.find(i=>i.auto==='incometax');
+  if (whIt && !whIt.manual && isNum(job.withholdingRate)) {
+    const base = m.hasFee ? m.subtotal : psItems.filter(i=>i.wbase).reduce((a,i)=>a+(parseFloat(i.amount)||0),0);
+    whIt.amount = Math.floor(base * job.withholdingRate / 100);
+  }
   if (!m.hasFee) return;
   const taxIt = psItems.find(i=>i.auto==='tax');
   if (taxIt && !taxIt.manual) taxIt.amount = Math.floor(m.subtotal * rate / 100);
@@ -4801,6 +4855,7 @@ function savePayslip() {
       if (i.fee) o.fee = true;
       if (i.recId) o.recId = i.recId;
       if (i.auto) o.auto = i.auto;
+      if (i.wbase) o.wbase = true;
       if (i.manual) o.manual = true;
       return o;
     }),
@@ -4846,9 +4901,9 @@ function openPayslipDetail(id) {
   const items = pitems.map((i,k)=>{
     const rec = i.recId ? state.records.find(r=>r.id===i.recId) : null;
     const note = rec ? [recWorkLine(rec), recChanged(rec) ? '変更前 '+fmt(recOrigAmount(rec)) : ''].filter(Boolean).join('　') : '';
-    return `<div class="detail-row"${rec?` onclick="openRecordDetail('${rec.id}')" style="cursor:pointer"`:''}><span class="dr-label">${escapeHTML(i.name||'')}${note?`<br><span style="font-size:10.5px">${note}</span>`:''}</span><span class="dr-val">${i.sign<0?'−':''}${fmt(i.amount)}</span></div>`
-      + (mk.hasFee && k===mk.lastFee ? `<div class="detail-row" style="font-weight:700"><span class="dr-label">小計</span><span class="dr-val">${fmt(mk.subtotal)}</span></div>` : '')
-      + (mk.hasFee && k===mk.taxIdx ? `<div class="detail-row" style="font-weight:700"><span class="dr-label">税込計</span><span class="dr-val">${fmt(mk.withTax)}</span></div>` : '');
+    return `<div class="detail-row"${rec?` onclick="openRecordDetail('${rec.id}')" style="cursor:pointer"`:''}><span class="dr-label">${escapeHTML(i.name||'')}${note?`<br><span style="font-size:10.5px">${note}</span>`:''}</span><span class="dr-val dr-amt">${i.sign<0?'−':''}${fmt(i.amount)}</span></div>`
+      + (mk.hasFee && k===mk.lastFee ? `<div class="detail-row" style="font-weight:700"><span class="dr-label">小計</span><span class="dr-val dr-amt">${fmt(mk.subtotal)}</span></div>` : '')
+      + (mk.hasFee && k===mk.taxIdx ? `<div class="detail-row" style="font-weight:700"><span class="dr-label">税込計</span><span class="dr-val dr-amt">${fmt(mk.withTax)}</span></div>` : '');
   }).join('');
   // 見込みは明細の初期値と同じ計算（報酬額＋消費税−控除分など）で比べる（v50）
   const estNet = est ? itemsNet(buildEstimateItems(job, est)) : null;
@@ -4928,6 +4983,8 @@ function saveRecord() {
       finalAmount = na;
     }
     data={ jobId:j.id, date, endDate, start:'', end:'', breakMin:0, hours:0, transport:0,
+      dueDate: (document.getElementById('rec-duedate')||{}).value || '',
+      dueTime: (document.getElementById('rec-duetime')||{}).value || '',
       amount: finalAmount, name, workHours:wh, memo:document.getElementById('rec-memo').value, amountHistory: hist };
   }
   if (recEditing) { Object.assign(recEditing, data); showToast('更新しました ✓'); }
@@ -5064,7 +5121,7 @@ const JOB_ITEM_CALC = [
   { key:'auto',  label:'自動計算' },
 ];
 // 自動計算に対応する項目（見込みから求められるもの）
-const AUTO_ITEMS = { base:'基本給', transport:'通勤手当', fee:'報酬額', tax:'消費税', taxded:'消費税控除分' };
+const AUTO_ITEMS = { base:'基本給', transport:'通勤手当', fee:'報酬額', tax:'消費税', taxded:'消費税控除分', incometax:'源泉所得税' };
 function addJobDeduction(sign){
   jobDeductions.push({ type: sign>0?'base':'incometax', sign: sign||-1, calc:'input', amount:'' });
   renderJobDeductions();
@@ -5133,6 +5190,7 @@ function jobItemLabel(d, job) {
     const r = (job && isNum(job.taxDeductRate)) ? job.taxDeductRate : (isNum(state.settings.invoiceDeductRate) ? state.settings.invoiceDeductRate : 20);
     return `消費税控除分（${r}%）`;
   }
+  if (d.type==='incometax' && job && isNum(job.withholdingRate)) return `源泉所得税（${job.withholdingRate}%）`;
   const o = jobItemOptions(sign).find(x=>x.key===d.type);
   return o ? o.label : 'その他';
 }
@@ -5166,6 +5224,7 @@ function openJobModal(id) {
   renderJobHistory();
   document.getElementById('job-taxrate').value = jobEditing?(jobEditing.taxRate??''):'';
   document.getElementById('job-taxded').value  = jobEditing?(jobEditing.taxDeductRate??''):'';
+  document.getElementById('job-whrate').value  = jobEditing?(jobEditing.withholdingRate??''):'';
   document.getElementById('job-closing-m').value = jobEditing?(jobEditing.closingDay||''):'';
   renderJobDeductions();
   document.getElementById('job-name').value = jobEditing?jobEditing.name:'';
@@ -5262,6 +5321,7 @@ function saveJob() {
     endDate: document.getElementById('job-end').value || '',
     taxRate: numOrNull(document.getElementById('job-taxrate').value),
     taxDeductRate: numOrNull(document.getElementById('job-taxded').value),
+    withholdingRate: numOrNull(document.getElementById('job-whrate').value),
     shortName: document.getElementById('job-short').value.trim(),
     paydayShortName: document.getElementById('job-payday-short').value.trim(),
     wage:parseFloat(document.getElementById('job-wage').value)||0,
@@ -5312,8 +5372,8 @@ function deleteJob() {
 // ── 仕事の設定の変更履歴（v52）──
 // job の各項目は常に「現在の設定」。history:[{date:'この日から', changes:{wage:{from,to}, ...}, note}]
 // ある日の設定は、その日より後に適用された変更を「変更前」に戻して求める。
-const JOB_TRACKED = ['wage','transport','salary','walletId','taxRate','taxDeductRate'];
-const JOB_TRACKED_LABEL = { wage:'時給', transport:'交通費', salary:'月額', walletId:'受取口座', taxRate:'消費税率', taxDeductRate:'控除割合' };
+const JOB_TRACKED = ['wage','transport','salary','walletId','taxRate','taxDeductRate','withholdingRate'];
+const JOB_TRACKED_LABEL = { wage:'時給', transport:'交通費', salary:'月額', walletId:'受取口座', taxRate:'消費税率', taxDeductRate:'控除割合', withholdingRate:'源泉税率' };
 let jobHistory = [];
 function jobSettingAt(job, ds) {
   if (!job) return job;
@@ -5328,7 +5388,7 @@ function jobSettingAt(job, ds) {
 function jobChangeValueText(k, v) {
   if (v===null || v===undefined || v==='') return '未設定';
   if (k==='walletId') { const w = walletById(v); return w ? w.name : '（削除済み）'; }
-  if (k==='taxRate' || k==='taxDeductRate') return v+'%';
+  if (k==='taxRate' || k==='taxDeductRate' || k==='withholdingRate') return v+'%';
   return fmt(v);
 }
 function jobChangeText(h) {
@@ -5425,7 +5485,7 @@ function renderJobTab() {
     const when = r.endDate && r.endDate>r.date ? `${r.date.slice(5).replace('-','/')}〜${r.endDate.slice(5).replace('-','/')}` : r.date.slice(5).replace('-','/');
     const detail = (j && j.payType==='hourly')
       ? (r.start ? `${r.start}〜${r.end}　実働 ${fmtH(r.hours||0)}` : '')
-      : recWorkLine(r);
+      : [recDueText(r), recWorkLine(r)].filter(Boolean).join('　');
     return `<div class="job-sum-row tapable" onclick="openRecordDetail('${r.id}')">
       <span class="jt-stamp">${stampHTML(j?j.stamp:'work')}</span>
       <div class="job-sum-name">${escapeHTML(r.name || (j?j.name:''))}${done?'':' <span class="badge-sm bd-limit">予定</span>'}
@@ -9527,10 +9587,23 @@ function openLendSettlement(id) {
       ['立て替えてもらった（計）', fmt(g.borrowed||0)],
       ['差額', g.net>0 ? `${fmt(g.net)} を受け取った` : g.net<0 ? `${fmt(-g.net)} を返した` : '±0（相殺）'],
     ],
-    extraHTML: `<div style="margin-top:12px;font-size:11.5px;color:var(--text-secondary)">内訳</div>${rowsHTML || '<div class="field-note">（内訳の記録は削除されています）</div>'}`,
+    extraHTML: `<div style="margin-top:12px;font-size:11.5px;color:var(--text-secondary)">内訳</div>${rowsHTML || '<div class="field-note">（内訳の記録は削除されています）</div>'}
+      <div style="display:flex;gap:6px;align-items:flex-end;margin-top:12px">
+        <div style="flex:1"><label style="font-size:11.5px;color:var(--text-secondary)">精算日を修正</label><input type="date" id="lsg-date" value="${g.date||''}"></div>
+        <button class="btn btn-ghost btn-sm" onclick="saveLendSettlementDate('${g.id}')">日付を保存</button>
+      </div>`,
     editLabel: '精算を取り消す',
     onEdit: ()=>undoLendSettlement(id),
   });
+}
+// まとめて精算の日付を直す（v55）：記録と内訳の精算日をそろえて変える
+function saveLendSettlementDate(id) {
+  const g = (state.lendSettlements||[]).find(x=>x.id===id); if (!g) return;
+  const v = (document.getElementById('lsg-date')||{}).value;
+  if (!v) { showToast('日付を入力してください'); return; }
+  g.date = v;
+  state.lends.forEach(l=>{ if (l.settleGroupId===id) l.settledDate = v; });
+  save(); renderAll(); openLendSettlement(id); showToast('精算日を修正しました ✓');
 }
 function undoLendSettlement(id) {
   const g = (state.lendSettlements||[]).find(x=>x.id===id); if (!g) return;
@@ -11568,7 +11641,7 @@ function scrollToSection(id) { scrollToEl(document.getElementById(id)); }
 // 参照先がDOMに存在するかを検証する。v29のサブスク事故（削除済みIDへの参照でJSが停止）の再発防止。
 // 実行方法：設定 → データ → 「ID参照チェック」、または URL末尾に #debug を付けて開く（結果はコンソール）。
 // UIを削除・改名したら必ずこれを実行すること。JSが後から生成するIDは下の除外リストに登録する。
-const DIAG_DYNAMIC_IDS = new Set(['ps-subtotal','ps-withtax','rec-amtchg-area','rec-newamount','rec-chgdate','rec-chgnote',
+const DIAG_DYNAMIC_IDS = new Set(['rec-duedate','rec-duetime','lsg-date','ps-subtotal','ps-withtax','rec-amtchg-area','rec-newamount','rec-chgdate','rec-chgnote',
   'dd-subtotal','ex-total','jd-total','rec-amount','rec-break','rec-date','rec-end',
   'rec-enddate','rec-memo','rec-name','rec-pat-chips','rec-preview','rec-start',
   'rec-transport','rec-wage','rec-workhours','rec-hourly-note','save-error-banner','boot-error-banner','rescue-info','fatal-error-banner','fatal-error-msg',
