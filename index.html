@@ -770,7 +770,7 @@
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v55</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v56</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
           <div id="vp-info" style="margin-top:2px;opacity:.7"></div>
         </div>
       </div>
@@ -916,8 +916,8 @@
       </div>
       <div class="field-note" id="job-invoice-note" style="display:none">インボイス制度の経過措置に合わせて変更できます（現在は2割）。</div>
       <div class="form-group"><label>源泉所得税の税率（%・任意）</label>
-        <input type="number" inputmode="decimal" step="0.001" id="job-whrate" placeholder="3.063">
-        <div class="field-note">入れると実受取の明細に「源泉所得税（3.063%）」を自動で入れます（時給制は交通費を除いた額、案件は報酬額にかけて1円未満切り捨て）。</div></div>
+        <input type="number" inputmode="decimal" step="0.001" id="job-whrate" placeholder="例：10.21">
+        <div class="field-note">給与明細や契約にある税率を入れてください。実受取の明細に「源泉所得税（◯%）」を自動で入れます（時給制は交通費を除いた額、案件は報酬額にかけて1円未満切り捨て）。</div></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 8px;">
         <div class="subsection-title" style="margin-bottom:0">支給・控除の項目</div>
         <div style="display:flex;gap:5px">
@@ -938,7 +938,7 @@
         <div><label>今回の変更の適用日</label><input type="date" id="job-chg-date"></div>
         <div><label>変更の理由・メモ</label><input type="text" id="job-chg-note" placeholder="昇給 など"></div>
       </div>
-      <div class="field-note">時給・交通費・月額・受取口座・税率を変えて保存すると、変更前後が自動で残ります。
+      <div class="field-note">時給・交通費（シフトパターンも含む）・月額・受取口座・税率を変えて保存すると、変更前後が自動で残ります。
         適用日より前の勤務・明細には変更前の設定が使われます。</div></div>
     <div class="form-group"><label>メモ</label>
       <textarea id="job-memo" class="memo-area" rows="4" placeholder="仕事についてのメモ"></textarea></div>
@@ -2144,7 +2144,7 @@
      v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
      バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
 <script>
-window.APP_BOOT_VERSION = '55';
+window.APP_BOOT_VERSION = '56';
 // v49: iOS ホーム画面アプリの高さ補正
 // ステータスバー透過（black-translucent）で起動すると、iOS が画面の高さをステータスバー分だけ短く報告し、
 // フッターが持ち上がって下に白い帯ができることがある。画面の実寸（screen）を使って高さを決める。
@@ -2219,7 +2219,7 @@ window.addEventListener('orientationchange', function(){ setTimeout(window.fixVi
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '55';
+const APP_VERSION = '56';
 const SCHEMA_VERSION = 33;
 const STORAGE_KEY = 'financeManager';
 
@@ -3135,6 +3135,12 @@ function recBaseDate(r) {
   if (j && j.payType==='piece') return r.dueDate || r.endDate || r.date;
   return r.date;
 }
+// シフトパターンの短縮名（v56）
+function recPatternShort(r, j) {
+  if (!r.patternId || !j || !j.patterns) return '';
+  const p = j.patterns.find(x=>x.id===r.patternId);
+  return p && p.shortName ? p.shortName : '';
+}
 function recDueText(r) {
   if (!r.dueDate) return '';
   return `期日 ${r.dueDate.slice(5).replace('-','/')}${r.dueTime?' '+r.dueTime:''}`;
@@ -3371,7 +3377,7 @@ function dayItems(ds) {
     const hit = isSpan ? (r.date<=ds && ds<=r.endDate) : (r.date===ds);
     if (hit) items.push({ kind:'record', stamp:j?j.stamp:'yen', color:j?j.color:PALETTE[0],
       label: r.name || (j?j.name:'収入'),
-      short: (r.shortName || (j?j.shortName:'') || ''),
+      short: (r.shortName || recPatternShort(r, j) || (j?j.shortName:'') || ''),
       sub: r.start ? (r.start+'〜'+r.end+(r.hours?('（実働'+fmtH(r.hours)+'）'):''))
         : ((isSpan?(r.date.slice(5).replace('-','/')+'〜'+r.endDate.slice(5).replace('-','/')):(j?j.name:''))
            + (recDueText(r) ? '　'+recDueText(r) : '')
@@ -4301,7 +4307,8 @@ function openRecordModal(jobId, ds, recId) {
         ch.onclick = ()=>{
           document.querySelectorAll('#rec-pat-chips .pat-chip').forEach(x=>x.classList.remove('sel'));
           ch.classList.add('sel');
-          const p = j.patterns.find(pp=>pp.id===ch.dataset.pid);
+          // その日に適用されるパターンの時給・交通費（v56）
+          const p = (jobSettingAt(j, document.getElementById('rec-date').value || ds).patterns || j.patterns).find(pp=>pp.id===ch.dataset.pid);
           if (p) { recPatId=p.id;
             document.getElementById('rec-start').value=p.start||j.defStart||'09:00';
             document.getElementById('rec-end').value=p.end||j.defEnd||'17:00';
@@ -4741,6 +4748,27 @@ function psSummaryMarks(items) {
   return { lastFee, taxIdx, subtotal: sub, withTax: sub + tax, hasFee: lastFee>=0 };
 }
 // 報酬額を直したら消費税・控除分を計算し直す（手で直した行はそのまま）v51
+// 時給制：労働時間を書き換えたら基本給と源泉所得税を計算し直す（v56）
+// 時給は対象期間の記録の平均（記録ごとに時給が違っても合うように）。記録が無ければ当時の時給
+function recalcHourlyBase() {
+  const job = jobById(psJobId); if (!job || job.payType!=='hourly') return;
+  const h = parseFloat((document.getElementById('ps-hours')||{}).value);
+  if (!isFinite(h)) return;
+  const from = document.getElementById('ps-from').value, to = document.getElementById('ps-to').value;
+  const est = (from && to) ? estimateForPeriod(job, from, to) : { hours:0, base:0 };
+  const ja = jobSettingAt(job, to);
+  const wage = est.hours>0 ? est.base/est.hours : (ja.wage||0);
+  if (!wage) return;
+  const bases = psItems.filter(i=>i.wbase || (i.sign>0 && i.name==='基本給'));
+  if (bases.length!==1) return;                 // 基本給が複数あると決められないので触らない
+  bases[0].wbase = true;
+  bases[0].amount = Math.floor(h * wage);
+  // 以前に保存した明細の源泉所得税も、税率が設定されていれば自動計算の対象にする
+  if (isNum(ja.withholdingRate)) psItems.forEach(i=>{ if (i.sign<0 && /^源泉所得税/.test(i.name||'') && !i.auto) i.auto = 'incometax'; });
+  psItems.forEach(i=>{ if (i.auto==='incometax') i.manual = false; });
+  recalcPsTaxes();
+  renderPsItems();
+}
 function recalcPsTaxes() {
   const job = jobSettingAt(jobById(psJobId), (document.getElementById('ps-to')||{}).value); if (!job) return;
   const { rate, dedRate } = jobTaxRates(job);
@@ -4829,7 +4857,7 @@ function openPayslip(jobId, payYm, id) {
     document.getElementById(idd).onchange = ()=>{ renderPsDiff(); };
   });
   ['ps-days','ps-hours'].forEach(idd=>{
-    document.getElementById(idd).oninput = ()=>renderPsDiff();
+    document.getElementById(idd).oninput = ()=>{ if (idd==='ps-hours') recalcHourlyBase(); renderPsDiff(); };
   });
   renderPsItems();
   openModal('modal-payslip');
@@ -5281,9 +5309,10 @@ function renderPatternEditor() {
   el.innerHTML = jobPatterns.map(p=>`
     <div class="pat-row" data-pid="${p.id}">
       <div class="pat-row-head">
-        <input type="text" class="p-name" placeholder="パターン名（例：A店 早番）" value="${p.name||''}">
+        <input type="text" class="p-name" placeholder="パターン名（例：A店 早番）" value="${escapeHTML(p.name||'')}">
         <button class="pat-del" onclick="removePattern('${p.id}')">✕</button>
       </div>
+      <div style="margin:6px 0"><label>カレンダー用の短縮名（任意）</label><input type="text" class="p-short" value="${escapeHTML(p.shortName||'')}" placeholder="例：早"></div>
       <div class="pat-grid">
         <div><label>時給（円）</label><input type="number" inputmode="numeric" class="p-wage" value="${p.wage||''}" placeholder="1100"></div>
         <div><label>交通費/日</label><input type="number" inputmode="numeric" class="p-transport" value="${p.transport||''}" placeholder="500"></div>
@@ -5297,6 +5326,7 @@ function renderPatternEditor() {
   el.querySelectorAll('.pat-row').forEach(row=>{
     const p = jobPatterns.find(x=>x.id===row.dataset.pid);
     row.querySelector('.p-name').oninput = e=>p.name=e.target.value;
+    row.querySelector('.p-short').oninput = e=>p.shortName=e.target.value.trim();
     row.querySelector('.p-wage').oninput = e=>p.wage=parseFloat(e.target.value)||'';
     row.querySelector('.p-transport').oninput = e=>p.transport=parseFloat(e.target.value)||'';
     row.querySelector('.p-break').oninput = e=>p.breakMin=parseFloat(e.target.value)||'';
@@ -5347,6 +5377,15 @@ function saveJob() {
       // 未設定→設定は「初めて設定した」だけなので履歴にしない（過去にもその値を使う）v53
       if (norm(a)!==norm(b) && norm(a)!==null && !(k!=='walletId' && norm(a)===0)) changes[k] = { from: norm(a), to: norm(b) };
     });
+    // シフトパターンの時給・交通費の変更も残す（v56）。キーは p.<パターンID>.<項目>
+    (jobEditing.patterns||[]).forEach(op=>{
+      const np = (data.patterns||[]).find(x=>x.id===op.id); if (!np) return;
+      [['wage','時給'],['transport','交通費']].forEach(([f,lb])=>{
+        const norm = v => (v===undefined || v===null || v==='') ? null : v;
+        const a = norm(op[f]), b = norm(np[f]);
+        if (a!==b && a!==null) changes[`p.${op.id}.${f}`] = { from:a, to:b, label:`${np.name||op.name||'パターン'} ${lb}` };
+      });
+    });
     data.history = jobHistory.slice();
     if (Object.keys(changes).length) {
       data.history.push({ date: document.getElementById('job-chg-date').value || todayStr(), changes,
@@ -5380,8 +5419,15 @@ function jobSettingAt(job, ds) {
   const hist = job.history||[];
   if (!hist.length || !ds) return job;
   const o = Object.assign({}, job);
+  o.patterns = (job.patterns||[]).map(p=>Object.assign({}, p));
   hist.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).forEach(h=>{
-    if ((h.date||'') > ds) Object.entries(h.changes||{}).forEach(([k,v])=>{ o[k] = v.from; });
+    if ((h.date||'') > ds) Object.entries(h.changes||{}).forEach(([k,v])=>{
+      if (k.startsWith('p.')) {            // シフトパターンの項目（v56）
+        const [, pid, f] = k.split('.');
+        const pp = o.patterns.find(x=>x.id===pid);
+        if (pp) pp[f] = (v.from===null ? '' : v.from);
+      } else o[k] = v.from;
+    });
   });
   return o;
 }
@@ -5392,7 +5438,7 @@ function jobChangeValueText(k, v) {
   return fmt(v);
 }
 function jobChangeText(h) {
-  return Object.entries(h.changes||{}).map(([k,v])=>`${JOB_TRACKED_LABEL[k]||k} ${jobChangeValueText(k,v.from)} → ${jobChangeValueText(k,v.to)}`).join('、');
+  return Object.entries(h.changes||{}).map(([k,v])=>`${v.label||JOB_TRACKED_LABEL[k]||k} ${jobChangeValueText(k,v.from)} → ${jobChangeValueText(k,v.to)}`).join('、');
 }
 function renderJobHistory() {
   const el = document.getElementById('job-history');
