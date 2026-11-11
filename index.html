@@ -305,6 +305,19 @@
   .jt-stamp { width:28px; height:28px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; }
   .jt-stamp svg { width:28px; height:28px; }
   .jt-stamp .em { font-size:20px; }
+  /* v57 週表示：帯は行いっぱい、金額は右端 */
+  .wk-band { display: flex !important; width: 100%; box-sizing: border-box; align-items: center; gap: 4px; }
+  .wk-band .wk-band-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wk-item { display: flex; align-items: center; gap: 4px; }
+  .wk-item .wk-item-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wk-amt { flex-shrink: 0; margin-left: auto; font-weight: 600; font-size: 11.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .wk-band .wk-amt { background: rgba(255,255,255,.85); border-radius: 6px; padding: 0 5px; }
+  .hb-table { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-top: 4px; }
+  .hb-table th, .hb-table td { padding: 2px 3px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .hb-table th { color: var(--text-secondary); font-weight: 600; text-align: left; }
+  #ios-glass-guard { position: fixed; top: 0; left: 0; right: 0; height: 12px; background: transparent; pointer-events: none; z-index: 9999; }
+  #status-fill { display: none; position: fixed; top: 0; left: 0; right: 0; height: var(--safe-top); background: var(--footer-bg, #fff); pointer-events: none; z-index: 9998; }
+  html.status-member #status-fill { display: block; }
   .tabbar::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 160px; background: inherit; pointer-events: none; }
   /* v49: ホーム画面アプリ（ステータスバー透過）で画面の高さが実際より短く報告される iOS の不具合への対策。
      画面の実寸で .app の高さを決め、フッターは固定配置ではなく .app の一番下に置く */
@@ -367,6 +380,11 @@
 </style>
 </head>
 <body>
+<!-- v57：iOS 27 のガラス効果でヘッダーがぼやける対策。画面最上部に高さ11px以上の透明な要素を置くと、
+     WebKit の判定がずれてぼかしがかからなくなる（ユーザーの別アプリで効果を確認済みの回避策） -->
+<div id="ios-glass-guard" aria-hidden="true"></div>
+<!-- v57：ステータスバー部分をメンバー色にする（設定で切替） -->
+<div id="status-fill" aria-hidden="true"></div>
 <div class="app">
   <header class="topbar">
     <div style="display:flex;align-items:center;">
@@ -721,14 +739,20 @@
               <input type="range" id="cal-textlen" min="3" max="12" step="1" style="width:110px" oninput="setCalTextLen(this.value)">
               <span class="mono" id="cal-textlen-val" style="font-size:12px;min-width:38px;text-align:right"></span>
             </div></div>
-          <div class="settings-row"><span>週表示に内容を表示</span>
+          <div class="settings-row"><span>週表示の名前</span>
             <div class="seg seg-sm">
-              <div class="seg-btn" data-wt="on" onclick="setWeekShowText('on',this)">する</div>
-              <div class="seg-btn" data-wt="off" onclick="setWeekShowText('off',this)">しない</div>
+              <div class="seg-btn" data-wn="full" onclick="setWeekName('full',this)">正式名</div>
+              <div class="seg-btn" data-wn="short" onclick="setWeekName('short',this)">短縮名</div>
+            </div></div>
+          <div class="settings-row"><span>ステータスバーの色</span>
+            <div class="seg seg-sm">
+              <div class="seg-btn" data-sb="header" onclick="setStatusBarColor('header',this)">ヘッダー</div>
+              <div class="seg-btn" data-sb="member" onclick="setStatusBarColor('member',this)">メンバー色</div>
             </div></div>
           <div class="settings-row"><span>カレンダーの金額表示</span>
             <div class="seg seg-sm">
               <div class="seg-btn" data-am="on" onclick="setAmountShow('on',this)">表示</div>
+              <div class="seg-btn" data-am="nomonth" onclick="setAmountShow('nomonth',this)">月だけ非表示</div>
               <div class="seg-btn" data-am="off" onclick="setAmountShow('off',this)">非表示</div>
             </div></div>
           <div class="settings-row"><span>金額の表記</span>
@@ -770,7 +794,7 @@
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v56</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v57</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
           <div id="vp-info" style="margin-top:2px;opacity:.7"></div>
         </div>
       </div>
@@ -915,6 +939,9 @@
           <input type="number" inputmode="decimal" step="1" id="job-taxded" placeholder="20"></div>
       </div>
       <div class="field-note" id="job-invoice-note" style="display:none">インボイス制度の経過措置に合わせて変更できます（現在は2割）。</div>
+      <div class="form-group" id="job-duetime-row" style="display:none"><label>期日の既定の時刻（案件）</label>
+        <input type="time" id="job-duetime" placeholder="18:00">
+        <div class="field-note">案件の記録で期日の日付を入れたとき、時刻が空ならこの時刻が入ります。</div></div>
       <div class="form-group"><label>源泉所得税の税率（%・任意）</label>
         <input type="number" inputmode="decimal" step="0.001" id="job-whrate" placeholder="例：10.21">
         <div class="field-note">給与明細や契約にある税率を入れてください。実受取の明細に「源泉所得税（◯%）」を自動で入れます（時給制は交通費を除いた額、案件は報酬額にかけて1円未満切り捨て）。</div></div>
@@ -2144,7 +2171,7 @@
      v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
      バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
 <script>
-window.APP_BOOT_VERSION = '56';
+window.APP_BOOT_VERSION = '57';
 // v49: iOS ホーム画面アプリの高さ補正
 // ステータスバー透過（black-translucent）で起動すると、iOS が画面の高さをステータスバー分だけ短く報告し、
 // フッターが持ち上がって下に白い帯ができることがある。画面の実寸（screen）を使って高さを決める。
@@ -2219,7 +2246,7 @@ window.addEventListener('orientationchange', function(){ setTimeout(window.fixVi
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '56';
+const APP_VERSION = '57';
 const SCHEMA_VERSION = 33;
 const STORAGE_KEY = 'financeManager';
 
@@ -3141,6 +3168,10 @@ function recPatternShort(r, j) {
   const p = j.patterns.find(x=>x.id===r.patternId);
   return p && p.shortName ? p.shortName : '';
 }
+function clearRecDue() {
+  const d = document.getElementById('rec-duedate'), t = document.getElementById('rec-duetime');
+  if (d) d.value = ''; if (t) t.value = '';
+}
 function recDueText(r) {
   if (!r.dueDate) return '';
   return `期日 ${r.dueDate.slice(5).replace('-','/')}${r.dueTime?' '+r.dueTime:''}`;
@@ -3716,12 +3747,12 @@ function renderCalendar() {
   else if (calView==='list') renderCalList();
 }
 function bandList() {
-  const bands = state.events.map(ev=>({ title:ev.title, color:ev.color, start:ev.startDate, end:ev.endDate||ev.startDate, evId:ev.id, recDate:null }));
+  const bands = state.events.map(ev=>({ title:ev.title, short:(ev.shortName||''), color:ev.color, start:ev.startDate, end:ev.endDate||ev.startDate, evId:ev.id, recDate:null }));
   state.records.forEach(r=>{
     if (!inCurrentMember(r)) return;
     const j = jobById(r.jobId);
     if (j && j.payType==='piece' && r.endDate && r.endDate>r.date)
-      bands.push({ title:r.name||j.name, color:j.color, start:r.date, end:r.endDate, evId:null, recDate:r.date });
+      bands.push({ title:r.name||j.name, short:(r.shortName||j.shortName||''), color:j.color, start:r.date, end:r.endDate, evId:null, recDate:r.date, recId:r.id });
   });
   return bands;
 }
@@ -3834,7 +3865,7 @@ function renderCalMonth() {
           ${items.length>maxItems?`<span class="cal-more">+${items.length-maxItems}</span>`:''}</div>`;
       }
       let amtLines = '';
-      if (state.settings.amountShow!=='off') {
+      if (state.settings.amountShow!=='off' && state.settings.amountShow!=='nomonth') {
         // 集計基準に応じて主表示を選ぶ（重複表示を避ける）
         if (state.settings.aggregation==='pay') {
           if (paySum>0) amtLines += `<div class="cal-amount" style="color:${state.settings.colorPayday}">${fmtCalAmountRaw(paySum)}</div>`;
@@ -3861,6 +3892,8 @@ function renderCalMonth() {
     if (wBands.length) {
       const bg = document.createElement('div'); bg.className='cal-bands';
       let lane = 0;
+      // 重なるときは開始日が早い方を上に（同じなら長い方を上に）v57
+      wBands.sort((a,b)=>a.start.localeCompare(b.start) || b.end.localeCompare(a.end));
       wBands.slice(0,3).forEach(b=>{
         let sIdx = week.findIndex(c=>c.ds>=b.start); if (b.start<weekStart) sIdx=0; if(sIdx<0) sIdx=0;
         let eIdx = 6; for(let i=6;i>=0;i--){ if(week[i].ds<=b.end){ eIdx=i; break; } }
@@ -3878,7 +3911,33 @@ function renderCalMonth() {
     wrap.appendChild(weekEl);
   }
 }
-// 週表示の金額欄（収入/入金/支出/ポイントを色分けして縦に）
+// 週表示：1件ごとの金額（v57）。案件は計上日（期日・終了日）だけ
+function weekItemAmount(x, ds) {
+  if (state.settings.amountShow==='off') return null;
+  const S = state.settings, parts = [];
+  const add = (t, c) => parts.push(`<span style="color:${c}">${t}</span>`);
+  const yen = v => fmt(v).slice(1);
+  if (x.kind==='money') {
+    if (x.mtype==='point') add(`+${Math.round(x.moneyAmount).toLocaleString()}pt`, S.colorPoint);
+    else if (x.mtype==='pointuse') add(`-${Math.round(x.moneyAmount).toLocaleString()}pt`, S.colorPointUse);
+    else if (x.mtype==='income') add(`+${yen(x.moneyAmount)}`, S.colorIncomeEtc);
+    else add(`-${yen(x.moneyAmount)}`, S.colorExpense);
+  }
+  else if (x.kind==='charge') { add(yen(x.chargeAmt), S.colorCharge); if (x.chargePt) add(`+${Math.round(x.chargePt).toLocaleString()}pt`, S.colorPoint); }
+  else if (x.kind==='cardrec') { if (x.cardAmount) add(`-${yen(x.cardAmount)}`, S.colorExpense); if (x.estPt) add(`+${Math.round(x.estPt).toLocaleString()}pt`, S.colorPoint); }
+  else if (x.kind==='tax' && x.taxAmount) add(`-${yen(x.taxAmount)}`, S.colorExpense);
+  else if (x.kind==='taxpoint') add(`+${Math.round(x.taxPoint).toLocaleString()}pt`, S.colorPoint);
+  else if (x.kind==='invest' && x.investAmount) add(`-${yen(x.investAmount)}`, S.colorExpense);
+  else if (x.kind==='subsc') {
+    add(x.subUSD ? `-$${Math.round(x.subAmount*100)/100}` : `-${yen(x.subAmount)}`, S.colorExpense);
+    if (x.subPoint) add(`+${Math.round(x.subPoint).toLocaleString()}pt`, S.colorPoint);
+  }
+  else if ((x.kind==='payday'||x.kind==='payinfo') && x.amount) add(yen(x.amount), S.colorPayday);
+  else if (x.kind==='record' && x.amount) { if (recBaseDate(x.ref)!==ds) return null; add(yen(x.amount), S.colorIncome); }
+  if (!parts.length) return null;
+  return { text: parts.join(' '), color: 'inherit' };
+}
+// 週表示の金額欄（収入/入金/支出/ポイントを色分けして縦に）※v57から未使用（行ごとの表示に変更）
 function buildWeekAmountHTML(items, total, ds) {
   if (state.settings.amountShow==='off') return '';
   let earn=0, pay=0, exp=0, pt=0, inc=0, ptu=0, chg=0, usd=0;
@@ -3925,37 +3984,41 @@ function renderCalWeek() {
     const dow = new Date(calYear, calMonth, d).getDay();
     const items = dayItemsFiltered(ds);
     const total = dayTotal(ds);
-    // この日にかかる複数日バンド
-    const dayBands = bands.filter(b=>b.start<=ds && ds<=b.end && b.start!==b.end);
+    // この日にかかる複数日バンド（開始日が早い方を上に。v57）
+    const dayBands = bands.filter(b=>b.start<=ds && ds<=b.end && b.start!==b.end)
+      .sort((a,b)=>a.start.localeCompare(b.start) || b.end.localeCompare(a.end));
     // 単日アイテム（バンドで表示されるものは除く）
     const singles = items.filter(x=>!(x.span) && x.kind!=='event');
     const singleEvents = items.filter(x=>x.kind==='event' && (x.ref.endDate||x.ref.startDate)===x.ref.startDate);
     const row = document.createElement('div');
     row.className = 'cal-week-row' + (ds===today?' today':'');
+    // v57：帯は幅をそろえ（行いっぱい）、金額は行ごとに右端へ
+    const useShort = state.settings.weekName==='short';
     const bandHTML = dayBands.map(b=>{
       const isStart = b.start===ds, isEnd = b.end===ds;
       const cls = isStart?'start':(isEnd?'end':'mid');
       const edge = isStart?'┌':(isEnd?'└':'│');
+      const rec = b.recId ? state.records.find(r=>r.id===b.recId) : null;
+      const a = (rec && recBaseDate(rec)===ds) ? weekItemAmount({kind:'record', ref:rec, amount:rec.amount}, ds) : null;
+      const title = (useShort && b.short) ? b.short : b.title;
       return `<div class="wk-band ${cls}" style="background:${b.color||PALETTE[0]}">
-        <span class="edge">${edge}</span><span>${b.title}</span>
-        ${isStart?'<span class="edge">開始</span>':''}${isEnd?'<span class="edge">終了</span>':''}</div>`;
+        <span class="edge">${edge}</span><span class="wk-band-title">${escapeHTML(title)}</span>
+        ${isStart?'<span class="edge">開始</span>':''}${isEnd?'<span class="edge">終了</span>':''}
+        ${a?`<span class="wk-amt" style="color:${a.color}">${a.text}</span>`:''}</div>`;
     }).join('');
-    const showText = state.settings.weekShowText!=='off';
-    const singleItems = singles.concat(singleEvents).slice(0,5);
-    let itemsHTML;
-    if (showText) {
-      itemsHTML = singleItems.map(x=>
-        `<div class="wk-item">${stampHTML(x.stamp)}<span class="wk-item-label">${escapeHTML(x.label)}</span></div>`).join('');
-    } else {
-      itemsHTML = `<div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap">${singleItems.map(x=>stampHTML(x.stamp)).join('')}</div>`;
-    }
+    const singleItems = singles.concat(singleEvents);
+    let itemsHTML = singleItems.map(x=>{
+      const a = weekItemAmount(x, ds);
+      const name = useShort ? calLabel(x.short, x.label) : x.label;
+      return `<div class="wk-item" style="${itemOpacity(x)}">${stampHTML(x.stamp)}<span class="wk-item-label">${escapeHTML(name)}</span>${a?`<span class="wk-amt" style="color:${a.color}">${a.text}</span>`:''}</div>`;
+    }).join('');
     if (!singleItems.length && !dayBands.length) itemsHTML = '<span class="cal-week-empty">予定なし</span>';
     row.innerHTML = `<div class="cal-week-date ${dow===0?'sun':dow===6?'sat':''} ${HOLIDAYS.has(ds)?'hol':''}"><div class="wd">${WD[dow]}</div><div class="dn">${d}</div></div>
       <div class="cal-week-body" style="flex-direction:column;align-items:stretch;gap:2px">
         ${itemsHTML}
         ${dayBands.length?`<div class="wk-bands">${bandHTML}</div>`:''}
       </div>
-      ${buildWeekAmountHTML(items, total, ds)}`;
+      `;
     row.onclick = ()=>showDayDetail(ds);
     el.appendChild(row);
   }
@@ -4329,7 +4392,9 @@ function openRecordModal(jobId, ds, recId) {
         <div class="form-group"><label>終了日（単日なら空欄）</label><input type="date" id="rec-enddate" value="${recEditing?(recEditing.endDate||''):''}"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>期日・納期（任意）</label><input type="date" id="rec-duedate" value="${recEditing?(recEditing.dueDate||''):''}"></div>
+        <div class="form-group"><label>期日・納期（任意）</label>
+          <div style="display:flex;gap:4px;align-items:center"><input type="date" id="rec-duedate" value="${recEditing?(recEditing.dueDate||''):''}" style="flex:1;min-width:0">
+          <button type="button" class="btn btn-ghost btn-sm" style="padding:5px 8px" onclick="clearRecDue()">なし</button></div></div>
         <div class="form-group"><label>時刻</label><input type="time" id="rec-duetime" value="${recEditing?(recEditing.dueTime||''):''}"></div>
       </div>
       <div class="field-note" style="margin-top:-4px">期日を入れると、収入は終了日（納品日）ではなく期日で締め日を判定します。早めに納品して終了日を変えても入金月は変わりません。</div>
@@ -4341,6 +4406,12 @@ function openRecordModal(jobId, ds, recId) {
         <div class="field-note" id="rec-hourly-note">入力すると時給換算が出ます。</div></div>
       <div class="form-group"><label>メモ</label><textarea id="rec-memo" class="memo-area" rows="4" placeholder="案件内容・作業メモなど">${recEditing?escapeHTML(recEditing.memo||''):''}</textarea></div>
       <div class="field-note">期間を設定するとカレンダーに帯で表示されます。収入は期日（無ければ終了日）基準で計上します。</div>`;
+    // 期日：日付を入れたとき時刻が空なら仕事の「期日の既定の時刻」を入れる（v57）
+    const dd = document.getElementById('rec-duedate');
+    if (dd) dd.onchange = ()=>{
+      const t = document.getElementById('rec-duetime');
+      if (dd.value && t && !t.value && j.dueTimeDefault) t.value = j.dueTimeDefault;
+    };
     // 金額変更の履歴（v51）
     recAmtHist = recEditing ? JSON.parse(JSON.stringify(recEditing.amountHistory||[])) : [];
     recAmtChgOpen = false;
@@ -4625,10 +4696,46 @@ function renderPsDiff() {
       <span>差額</span><span class="mono" style="color:${diff<0?'#C0392B':(diff>0?'#1DB882':'inherit')}">${diff>0?'+':''}${fmt(diff)}</span></div>
     ${reasons.length?`<div style="font-size:11px;color:var(--text-secondary);margin-top:3px">${escapeHTML(reasons.join(' ／ '))}</div>`:''}
     ${plannedCnt>0?`<div style="font-size:11px;color:var(--text-secondary);margin-top:3px">※まだ終わっていない仕事 ${plannedCnt}件（${fmt(plannedAmt)}）は見込みに含めていません</div>`:''}
-    <div style="font-size:11px;color:var(--text-secondary);margin-top:3px">対象：${est.recs.length}件${job.payType==='piece'?'（案件は終了日で判定）':''}${
+    ${job.payType==='hourly' ? hourlyBreakdownHTML(job, all.recs) : ''}
+    <div style="font-size:11px;color:var(--text-secondary);margin-top:3px">対象：${est.recs.length}件${job.payType==='piece'?'（案件は期日・終了日で判定）':''}${
       job.payType==='piece' && all.recs.length ? '<br>' + all.recs.slice().sort((a,b)=>recBaseDate(a).localeCompare(recBaseDate(b))).map(r=>
         `${escapeHTML(r.name||'')}（${r.date.slice(5).replace('-','/')}${r.endDate&&r.endDate!==r.date?'〜'+r.endDate.slice(5).replace('-','/'):''}）${recIsDone(r)?'':'予定'}`).join('、') : ''}</div>
   </div>`;
+}
+// 時給制の見込みの内訳（v57）：時給（シフトパターン）ごとの 時給×時間、交通費、1日ずつの明細。
+// 記録に入っている時給が、その日のパターンの時給と違う日には ⚠ を付ける（計算が合わないときの確認用）
+function hourlyBreakdownHTML(job, recs) {
+  if (!recs.length) return '';
+  const groups = new Map();
+  let tSum = 0, tDays = 0;
+  const rows = recs.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(r=>{
+    const ja = jobSettingAt(job, r.date);
+    const pat = r.patternId ? (ja.patterns||[]).find(p=>p.id===r.patternId) : null;
+    const wage = r.wageUsed || (pat && pat.wage) || ja.wage || 0;
+    const base = Math.max(0, (r.amount||0) - (r.transport||0));
+    const key = (pat ? pat.name : '基本') + '|' + wage;
+    if (!groups.has(key)) groups.set(key, { name: pat ? pat.name : (r.patternId ? '（削除したパターン）' : '基本設定'), wage, hours:0, base:0, days:0 });
+    const g = groups.get(key); g.hours += r.hours||0; g.base += base; g.days++;
+    if (r.transport) { tSum += r.transport; tDays++; }
+    const expWage = pat ? (pat.wage || ja.wage) : ja.wage;
+    const warn = expWage && r.wageUsed && Math.abs(expWage - r.wageUsed) > 0.001 ? `⚠ 設定の時給 ${fmt(expWage)}` : '';
+    return `<tr${recIsDone(r)?'':' style="opacity:.6"'}><td>${r.date.slice(5).replace('-','/')}</td><td>${escapeHTML(pat?pat.name:'')}</td>
+      <td style="text-align:right">${fmtH(r.hours||0)}</td><td style="text-align:right">${fmt(wage)}</td>
+      <td style="text-align:right">${r.transport?fmt(r.transport):''}</td><td style="text-align:right">${fmt(r.amount||0)}</td></tr>
+      ${warn?`<tr><td colspan="6" style="color:#C0392B;font-size:10.5px">${warn}</td></tr>`:''}`;
+  }).join('');
+  const lines = [...groups.values()].map(g=>{
+    const calc = Math.round(g.wage * g.hours);
+    const extra = g.base - calc;
+    return `<div style="display:flex;justify-content:space-between;gap:8px"><span>${escapeHTML(g.name)} ${fmt(g.wage)} × ${fmtH(g.hours)}（${g.days}日）${Math.abs(extra)>=1?`<span style="color:var(--text-secondary)"> ＋割増等 ${fmt(extra)}</span>`:''}</span><span class="mono">${fmt(g.base)}</span></div>`;
+  }).join('');
+  return `<div style="border-top:1px dashed var(--border);margin-top:6px;padding-top:6px;font-size:11.5px;line-height:1.7">
+    <div style="font-weight:700;margin-bottom:2px">内訳（予定も含む）</div>
+    ${lines}
+    ${tSum?`<div style="display:flex;justify-content:space-between"><span>交通費（${tDays}日）</span><span class="mono">${fmt(tSum)}</span></div>`:''}
+    <details style="margin-top:4px"><summary style="cursor:pointer;color:var(--text-secondary)">1日ずつ見る</summary>
+      <table class="hb-table"><thead><tr><th>日</th><th>パターン</th><th>時間</th><th>時給</th><th>交通費</th><th>金額</th></tr></thead><tbody>${rows}</tbody></table>
+    </details></div>`;
 }
 function setPsPaid(v, el) {
   psPaid = v;
@@ -5253,6 +5360,7 @@ function openJobModal(id) {
   document.getElementById('job-taxrate').value = jobEditing?(jobEditing.taxRate??''):'';
   document.getElementById('job-taxded').value  = jobEditing?(jobEditing.taxDeductRate??''):'';
   document.getElementById('job-whrate').value  = jobEditing?(jobEditing.withholdingRate??''):'';
+  document.getElementById('job-duetime').value = jobEditing?(jobEditing.dueTimeDefault||''):'';
   document.getElementById('job-closing-m').value = jobEditing?(jobEditing.closingDay||''):'';
   renderJobDeductions();
   document.getElementById('job-name').value = jobEditing?jobEditing.name:'';
@@ -5290,6 +5398,7 @@ function applyPayTypeFields(){
   // 案件ごとの仕事では消費税の設定を出す
   // v50: 'project' と書いていたため（実際の値は 'piece'）、消費税率の欄が一度も表示されていなかった
   const inv = jobPayType==='piece';
+  const dtr = document.getElementById('job-duetime-row'); if (dtr) dtr.style.display = inv ? '' : 'none';
   const ir = document.getElementById('job-invoice-row');
   if (ir) ir.style.display = inv?'':'none';
   const inote = document.getElementById('job-invoice-note');
@@ -5352,6 +5461,7 @@ function saveJob() {
     taxRate: numOrNull(document.getElementById('job-taxrate').value),
     taxDeductRate: numOrNull(document.getElementById('job-taxded').value),
     withholdingRate: numOrNull(document.getElementById('job-whrate').value),
+    dueTimeDefault: document.getElementById('job-duetime').value || '',
     shortName: document.getElementById('job-short').value.trim(),
     paydayShortName: document.getElementById('job-payday-short').value.trim(),
     wage:parseFloat(document.getElementById('job-wage').value)||0,
@@ -5875,7 +5985,9 @@ function setSortMethod(v, el){ state.settings.sortMethod=v; save(); syncSettings
 function setUnfixedOpacity(v){ state.settings.unfixedOpacity=parseInt(v)||55; save();
   document.getElementById('unfixed-opacity-val').textContent=state.settings.unfixedOpacity+'%'; renderCalendar(); }
 function setCalTextLen(v){ state.settings.calTextLen=parseInt(v)||6; save(); document.getElementById('cal-textlen-val').textContent=state.settings.calTextLen+'文字'; renderCalendar(); }
-function setWeekShowText(v, el){ state.settings.weekShowText=v; save(); syncSettingsUI(); renderAll(); }
+// v57：「週表示に内容を表示」は廃止（常に表示）。代わりに週表示の名前（正式名／短縮名）
+function setWeekName(v, el){ state.settings.weekName=v; save(); syncSettingsUI(); renderAll(); }
+function setStatusBarColor(v, el){ state.settings.statusBarColor=v; save(); syncSettingsUI(); renderMemberBar(); renderAll(); }
 function setAmountFormat(v, el){ state.settings.amountFormat=v; save(); syncSettingsUI(); renderAll(); }
 function syncSettingsUI(){
   document.querySelectorAll('.seg-btn[data-hf]').forEach(b=>b.classList.toggle('active', b.dataset.hf===state.settings.hoursFormat));
@@ -5883,7 +5995,8 @@ function syncSettingsUI(){
   document.querySelectorAll('.seg-btn[data-am]').forEach(b=>b.classList.toggle('active', b.dataset.am===state.settings.amountShow));
   document.querySelectorAll('.seg-btn[data-af]').forEach(b=>b.classList.toggle('active', b.dataset.af===state.settings.amountFormat));
   document.querySelectorAll('.seg-btn[data-cd]').forEach(b=>b.classList.toggle('active', b.dataset.cd===state.settings.calDisplay));
-  document.querySelectorAll('.seg-btn[data-wt]').forEach(b=>b.classList.toggle('active', b.dataset.wt===state.settings.weekShowText));
+  document.querySelectorAll('.seg-btn[data-wn]').forEach(b=>b.classList.toggle('active', b.dataset.wn===(state.settings.weekName||'full')));
+  document.querySelectorAll('.seg-btn[data-sb]').forEach(b=>b.classList.toggle('active', b.dataset.sb===(state.settings.statusBarColor||'header')));
   const tl = document.getElementById('cal-textlen');
   if (tl) { tl.value = state.settings.calTextLen||6; document.getElementById('cal-textlen-val').textContent = (state.settings.calTextLen||6)+'文字'; }
   document.querySelectorAll('.seg-btn[data-ll]').forEach(b=>b.classList.toggle('active', b.dataset.ll===(state.settings.limitLabelStyle||'slash')));
@@ -9146,6 +9259,8 @@ function applyMemberTheme(mo) {
   });
   // v49: 画面下端（フッターの下）の色もフッターと同じにする
   document.documentElement.style.setProperty('--footer-bg', color || '#fff');
+  // v57: ステータスバー部分の色（ヘッダーと同じ／メンバー色）
+  document.documentElement.classList.toggle('status-member', state.settings.statusBarColor==='member');
   // ヘッダー・月ナビは念のため明示的にリセット
   const top = document.querySelector('.topbar');
   const mbar = document.getElementById('month-bar');
@@ -11687,7 +11802,7 @@ function scrollToSection(id) { scrollToEl(document.getElementById(id)); }
 // 参照先がDOMに存在するかを検証する。v29のサブスク事故（削除済みIDへの参照でJSが停止）の再発防止。
 // 実行方法：設定 → データ → 「ID参照チェック」、または URL末尾に #debug を付けて開く（結果はコンソール）。
 // UIを削除・改名したら必ずこれを実行すること。JSが後から生成するIDは下の除外リストに登録する。
-const DIAG_DYNAMIC_IDS = new Set(['rec-duedate','rec-duetime','lsg-date','ps-subtotal','ps-withtax','rec-amtchg-area','rec-newamount','rec-chgdate','rec-chgnote',
+const DIAG_DYNAMIC_IDS = new Set(['ios-glass-guard','status-fill','rec-duedate','rec-duetime','lsg-date','ps-subtotal','ps-withtax','rec-amtchg-area','rec-newamount','rec-chgdate','rec-chgnote',
   'dd-subtotal','ex-total','jd-total','rec-amount','rec-break','rec-date','rec-end',
   'rec-enddate','rec-memo','rec-name','rec-pat-chips','rec-preview','rec-start',
   'rec-transport','rec-wage','rec-workhours','rec-hourly-note','save-error-banner','boot-error-banner','rescue-info','fatal-error-banner','fatal-error-msg',
