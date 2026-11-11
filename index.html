@@ -547,7 +547,7 @@
         <div class="subtab active" onclick="showSub('set','money',this)">資金・決済</div>
         <div class="subtab" onclick="showSub('set','members',this)">家族</div>
         <div class="subtab" onclick="showSub('set','jobs',this)">仕事</div>
-        <div class="subtab" onclick="showSub('set','fixed',this)">税金・投資</div>
+        <div class="subtab" onclick="showSub('set','fixed',this)">固定費・資産</div>
         <div class="subtab" onclick="showSub('set','cats',this)">カテゴリ</div>
         <div class="subtab" onclick="showSub('set','tax',this)">確定申告</div>
         <div class="subtab" onclick="showSub('set','display',this)">表示</div>
@@ -600,7 +600,7 @@
         </div>
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div class="card-title" style="margin-bottom:0">サブスク</div>
+            <div class="card-title" style="margin-bottom:0">定期的な支払い</div>
             <div style="display:flex;gap:5px" id="subs-head"></div>
           </div>
           <div id="subscription-list"></div>
@@ -794,7 +794,7 @@
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v57</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v58</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
           <div id="vp-info" style="margin-top:2px;opacity:.7"></div>
         </div>
       </div>
@@ -1552,7 +1552,10 @@
         <div class="form-group" id="wal-mainmember-row" style="display:none"><label>本会員</label>
           <select id="wal-mainmember"></select>
           <div class="field-note">引落口座は本会員のものになります。</div></div>
-        <div class="form-group"><label>引落口座</label><select id="wal-payaccount"></select></div>
+        <div class="form-group"><label>引落口座</label><select id="wal-payaccount"></select>
+          <div class="form-row" style="margin-top:6px"><div class="form-group" style="margin:0"><label>口座を変えた場合の適用月</label><input type="month" id="wal-acc-from"></div></div>
+          <div id="wal-acc-hist"></div>
+          <div class="field-note">引落口座を変えて保存すると変更前後が残り、適用月より前の引落は変更前の口座で表示します。</div></div>
         <div class="form-row">
           <div class="form-group"><label>利用開始（任意）</label><input type="month" id="wal-active-from"></div>
           <div class="form-group"><label>利用終了（任意）</label><input type="month" id="wal-active-to"></div>
@@ -1751,7 +1754,11 @@
   <div class="modal-title" id="sub-title">サブスクを登録</div>
   <div class="form-grid">
     <div class="form-group member-row" id="sb-member-row" style="display:none"><label>メンバー</label><select id="sb-member"></select></div>
-    <div class="form-group"><label>サービス名</label><input type="text" id="sb-name" placeholder="例：Netflix"></div>
+    <div class="form-row">
+      <div class="form-group"><label>ジャンル</label><select id="sb-genre" onchange="onSbGenreChange()"></select></div>
+      <div class="form-group"><label>スタンプ（任意）</label><input type="text" id="sb-stamp" maxlength="4" placeholder="🔁" style="text-align:center;font-size:18px"></div>
+    </div>
+    <div class="form-group"><label>名前</label><input type="text" id="sb-name" placeholder="例：Netflix・電気代・ジム"></div>
     <div class="form-group"><label>月表示用の短縮名（任意）</label><input type="text" id="sb-short" placeholder="例：NF"></div>
     <div class="form-row">
       <div class="form-group"><label id="sb-amount-label">月額（円）</label><input type="number" inputmode="decimal" step="0.01" id="sb-amount" placeholder="1490"></div>
@@ -1786,7 +1793,10 @@
       <div id="sb-actuals"></div>
       <div class="field-note">請求が確定したら、その月の実際の円額を入力します。カレンダーと集計に反映されます。</div>
     </div>
-    <div class="form-group"><label>支払方法</label><select id="sb-wallet"></select></div>
+    <div class="form-group"><label>支払方法</label><select id="sb-wallet"></select>
+      <div class="form-row" style="margin-top:6px"><div class="form-group" style="margin:0"><label>支払方法を変えた場合の適用月</label><input type="month" id="sb-wallet-from"></div></div>
+      <div id="sb-wallet-hist"></div>
+      <div class="field-note">支払方法を変えて保存すると変更前後が残り、適用月より前は変更前の方法で表示・集計します。</div></div>
     <div class="form-group"><label>還元ポイント（任意）</label>
       <div class="form-row">
         <input type="number" inputmode="numeric" id="sb-point" placeholder="150">
@@ -2171,7 +2181,7 @@
      v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
      バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
 <script>
-window.APP_BOOT_VERSION = '57';
+window.APP_BOOT_VERSION = '58';
 // v49: iOS ホーム画面アプリの高さ補正
 // ステータスバー透過（black-translucent）で起動すると、iOS が画面の高さをステータスバー分だけ短く報告し、
 // フッターが持ち上がって下に白い帯ができることがある。画面の実寸（screen）を使って高さを決める。
@@ -2246,7 +2256,7 @@ window.addEventListener('orientationchange', function(){ setTimeout(window.fixVi
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '57';
+const APP_VERSION = '58';
 const SCHEMA_VERSION = 33;
 const STORAGE_KEY = 'financeManager';
 
@@ -3574,7 +3584,8 @@ function dayItems(ds) {
       if (p.noPayment) return; // 支払なしの月はカレンダーに出さない
       if (p.wallet.familyCard) return; // 家族カードは本会員側で引き落とされるので出さない
       if (p.rec) return; // 実績登録済みなら money として表示されるので重複回避
-      const acc = p.wallet.payAccountId ? walletById(p.wallet.payAccountId) : null;
+      const accId = cardPayAccountAt(p.wallet, ds.slice(0,7));   // その月の引落口座（v58）
+      const acc = accId ? walletById(accId) : null;
       items.push({ kind:'cardpay', stamp: walletStamp(p.wallet), color: p.wallet.color||PALETTE[3],
         label: p.wallet.name + ' 支払い（未定）',
         short: (p.wallet.shortName||p.wallet.name),
@@ -3767,7 +3778,7 @@ const ITEM_ORDER_DEFS = [
   { key:'tax',    label:'税金・保険' },
   { key:'card',   label:'クレカ引落' },
   { key:'money',  label:'お金の記録' },
-  { key:'subsc',  label:'サブスク' },
+  { key:'subsc',  label:'定期的な支払い' },
   { key:'invest', label:'投資・積立' },
   { key:'charge', label:'チャージ' },
   { key:'point',  label:'ポイント還元' },
@@ -4046,8 +4057,9 @@ function renderCalList() {
             : `<div class="cal-list-amount" style="color:var(--text-secondary);font-size:11px">未定</div>`;
         } else if (x.kind==='subsc') {
         const past = ds <= todayStr();
-        amtHTML = `<span class="mono" style="font-size:13px;color:${state.settings.colorExpense};font-weight:600;${past?'':'opacity:'+((state.settings.unfixedOpacity||55)/100)}">${x.subUSD?'-$'+(Math.round(x.subAmount*100)/100).toLocaleString():'-'+fmt(x.subAmount).slice(1)}</span>`
-          + (x.subPoint?`<span class="mono" style="font-size:10.5px;color:${state.settings.colorPoint}">+${Math.round(x.subPoint).toLocaleString()}${x.subPtUnit}</span>`:'');
+        // v58：金額とポイントが横並びになっていたので縦に（クレカ明細と同じ形）
+        amtHTML = `<div class="cal-list-amount" style="text-align:right;line-height:1.3"><div class="mono" style="font-size:13px;color:${state.settings.colorExpense};font-weight:600;${past?'':'opacity:'+((state.settings.unfixedOpacity||55)/100)}">${x.subUSD?'-$'+(Math.round(x.subAmount*100)/100).toLocaleString():'-'+fmt(x.subAmount).slice(1)}</div>`
+          + (x.subPoint?`<div class="mono" style="font-size:10.5px;color:${state.settings.colorPoint}">+${Math.round(x.subPoint).toLocaleString()}${x.subPtUnit}</div>`:'') + '</div>';
       } else if (x.kind==='taxpoint') {
           amtHTML = `<div class="cal-list-amount" style="color:${state.settings.colorPoint};font-weight:600">+${Math.round(x.taxPoint).toLocaleString()}${x.ptUnit}</div>`;
         } else if (x.kind==='cardpay') {
@@ -4119,8 +4131,9 @@ function showDayDetail(ds) {
         }
       } else if (x.kind==='subsc') {
         const past = ds <= todayStr();
-        amtHTML = `<span class="mono" style="font-size:13px;color:${state.settings.colorExpense};font-weight:600;${past?'':'opacity:'+((state.settings.unfixedOpacity||55)/100)}">${x.subUSD?'-$'+(Math.round(x.subAmount*100)/100).toLocaleString():'-'+fmt(x.subAmount).slice(1)}</span>`
-          + (x.subPoint?`<span class="mono" style="font-size:10.5px;color:${state.settings.colorPoint}">+${Math.round(x.subPoint).toLocaleString()}${x.subPtUnit}</span>`:'');
+        // v58：金額とポイントが横並びになっていたので縦に（クレカ明細と同じ形）
+        amtHTML = `<div class="cal-list-amount" style="text-align:right;line-height:1.3"><div class="mono" style="font-size:13px;color:${state.settings.colorExpense};font-weight:600;${past?'':'opacity:'+((state.settings.unfixedOpacity||55)/100)}">${x.subUSD?'-$'+(Math.round(x.subAmount*100)/100).toLocaleString():'-'+fmt(x.subAmount).slice(1)}</div>`
+          + (x.subPoint?`<div class="mono" style="font-size:10.5px;color:${state.settings.colorPoint}">+${Math.round(x.subPoint).toLocaleString()}${x.subPtUnit}</div>`:'') + '</div>';
       } else if (x.kind==='taxpoint') {
         amtHTML = `<span class="mono" style="font-size:13px;color:${state.settings.colorPoint};font-weight:600;${x.pending?'opacity:'+((state.settings.unfixedOpacity||55)/100):''}">+${Math.round(x.taxPoint).toLocaleString()}${x.ptUnit}</span>`
           + (x.pending?'<span style="font-size:10px;color:var(--text-secondary)">獲得予定</span>':'');
@@ -4191,7 +4204,7 @@ const FILTER_DEFS = [
   { key:'card',   label:'💳 クレカ引落' },
   { key:'charge', label:'🪙 チャージ（ポイ活）' },
   { key:'invest', label:'📈 投資・積立' },
-  { key:'subsc',  label:'🔁 サブスク' },
+  { key:'subsc',  label:'🔁 定期的な支払い' },
   { key:'event',  label:'⭐ 予定・メモ' },
 
 ];
@@ -5774,7 +5787,7 @@ function cashSummary(y, m) {
     // サブスク・積立が「今月の入出金」に1円も入っていなかった。
     subscriptionItemsOn(ds).forEach(x=>{
       if (x.kind!=='subsc' || x.subUSD) return;      // ドル払いは円に換算できないので数えない
-      if (!isCardWallet(x.ref && x.ref.walletId)) expense += x.subAmount || 0;
+      if (!isCardWallet(x.walletAt)) expense += x.subAmount || 0;
     });
     investmentItemsOn(ds).forEach(x=>{
       const iv = x.ref || {};
@@ -7235,6 +7248,9 @@ function openWalletModal(id, presetType) {
   document.getElementById('wal-delete-btn').style.display = w?'':'none';
   onWalletTypeChange();
   document.getElementById('wal-payaccount').value = w?(w.payAccountId||''):'';
+  walAccHist = w ? JSON.parse(JSON.stringify(w.payAccountHistory||[])) : [];
+  document.getElementById('wal-acc-from').value = todayStr().slice(0,7);
+  renderWalAccHist();
   walStamp = w ? (w.useTypeStamp!==false ? walletStamp(w) : (w.stamp||'💰')) : (state.settings.typeStamps||defaultTypeStamps())[document.getElementById('wal-type').value];
   const smBtn = document.querySelector(`#modal-wallet .seg-btn[data-wstamp="${walStampMode}"]`);
   if (smBtn) setWalStampMode(walStampMode, smBtn);
@@ -7292,6 +7308,12 @@ function saveWallet() {
     closingDay: document.getElementById('wal-closing').value||'',
     payDay: document.getElementById('wal-payday').value||'',
     payAccountId: document.getElementById('wal-payaccount').value||'' };
+  // 引落口座の変更履歴（v58）
+  data.payAccountHistory = walAccHist.slice();
+  if (walEditing && (walEditing.payAccountId||'') && (walEditing.payAccountId||'')!==data.payAccountId) {
+    data.payAccountHistory.push({ ym: document.getElementById('wal-acc-from').value || todayStr().slice(0,7),
+      from: walEditing.payAccountId, to: data.payAccountId });
+  }
   let target;
   if (walEditing) { Object.assign(walEditing, data); target = walEditing; }
   else {
@@ -7302,6 +7324,9 @@ function saveWallet() {
   syncLinkedWallets(target);
   save(); closeModal('modal-wallet'); renderAll(); showToast('保存しました ✓');
 }
+let walAccHist = [];
+function renderWalAccHist() { const el = document.getElementById('wal-acc-hist'); if (el) el.innerHTML = methodHistoryHTML(walAccHist, 'removeWalAccHist'); }
+function removeWalAccHist(i) { walAccHist.splice(i,1); renderWalAccHist(); }
 // 連携を双方向に保つ（AがBを連携→BもAを連携）
 function syncLinkedWallets(target) {
   const ids = target.linkedIds || [];
@@ -7476,18 +7501,20 @@ function openSubscriptionDetail(id) {
     + (sb.isExpense?'<span class="badge-sm bd-rate">経費</span>':'');
   const periods = (sb.periods||[]).map((p,i)=>`<div class="detail-row"><span class="dr-label">期間 ${i+1}</span><span class="dr-val">${p.from||''} 〜 ${p.to||'（継続中）'}</span></div>`).join('');
   const hist = (sb.history||[]).map(h=>`<div class="detail-row"><span class="dr-label">${h.from||''}〜${h.to||''}</span><span class="dr-val">${fmt(h.amount)}${h.note?` / ${escapeHTML(h.note)}`:''}</span></div>`).join('');
-  openDetail({ stamp:'<span style="font-size:21px">🔁</span>', name: sb.name,
+  const mhist = (sb.walletHistory||[]).map(h=>`<div class="detail-row"><span class="dr-label">${(h.ym||'').replace('-','/')}〜 支払方法</span><span class="dr-val">${escapeHTML(payMethodName(h.from))} → ${escapeHTML(payMethodName(h.to))}</span></div>`).join('');
+  openDetail({ stamp:`<span style="font-size:21px">${escapeHTML(subStamp(sb))}</span>`, name: sb.name,
     sub: `${(sb.cycle||'monthly')==='yearly'?`毎年${MONTHS[(sb.month||1)-1]}`:'毎月'}${sb.day>=99?'末':sb.day}日`,
     badges,
     rows: [
       ['現在の金額', sb.currency==='USD' ? '$'+Math.round(cur).toLocaleString() : fmt(cur)],
-      ['支払方法', w ? w.name : ''],
+      ['ジャンル', subGenre(sb).label],
+      ['支払方法', sb.payCash ? '現金' : (w ? w.name : '')],
       ['還元', sb.point ? `+${Math.round(sb.point).toLocaleString()}${pt?pt.unit:'pt'}${pt?`（${pt.name}）`:''}` : ''],
       ['無料期間', sb.trialTo ? `〜${sb.trialTo.replace(/-/g,'/')}` : ''],
       ['家事按分', sb.isExpense && sb.businessRatio ? sb.businessRatio+'%' : ''],
       ['メンバー', mo ? `${mo.icon} ${mo.name}` : ''],
     ],
-    extraHTML: periods + hist, memo: sb.memo, onEdit: ()=>openSubscriptionModal(id) });
+    extraHTML: periods + hist + mhist, memo: sb.memo, onEdit: ()=>openSubscriptionModal(id) });
 }
 function openInvestmentDetail(id) {
   const iv = state.investments.find(x=>x.id===id); if (!iv) return;
@@ -7832,7 +7859,7 @@ function renderCardPayments() {
     <div class="job-sum-row" style="${p.wallet.familyCard?'opacity:0.5':''}">
       ${stampHTML(walletStamp(p.wallet))}
       <div class="job-sum-name">${escapeHTML(p.wallet.name)}${p.wallet.familyCard?' '+familyCardBadge(p.wallet):''}
-        <div class="job-sum-sub">${p.date.slice(5).replace('-','/')} 引落${p.offset===2?'（翌々月払い）':''}${p.date!==p.rawDate?'（翌営業日）':''}${p.wallet.payAccountId&&walletById(p.wallet.payAccountId)?'／'+escapeHTML(walletById(p.wallet.payAccountId).name):''}</div></div>
+        <div class="job-sum-sub">${p.date.slice(5).replace('-','/')} 引落${p.offset===2?'（翌々月払い）':''}${p.date!==p.rawDate?'（翌営業日）':''}${cardPayAccountAt(p.wallet,p.date.slice(0,7))&&walletById(cardPayAccountAt(p.wallet,p.date.slice(0,7)))?'／'+escapeHTML(walletById(cardPayAccountAt(p.wallet,p.date.slice(0,7))).name):''}</div></div>
       <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
         <div style="text-align:right;${p.wallet.familyCard?'opacity:0.55':''}">
           ${p.noPayment
@@ -9339,11 +9366,12 @@ function subEnded(sb) {
 }
 function onSbCurrencyChange() {
   const v = document.getElementById('sb-currency').value;
-  document.getElementById('sb-actual-section').style.display = (v==='USD')?'':'none';
+  // 実際の請求額は円払いでも入力できる（公共料金など毎月金額が変わるもの用。v58）
+  document.getElementById('sb-actual-section').style.display = '';
   const cyc = document.getElementById('sb-cycle').value;
   document.getElementById('sb-amount-label').textContent =
     (cyc==='yearly'?'年額':'月額') + (v==='USD'?'（ドル）':'（円）');
-  if (v==='USD') renderSbActuals();
+  renderSbActuals();
 }
 let subShared = false;
 function setSubShared(v, el) {
@@ -9430,6 +9458,28 @@ function renderSbHistory() {
   });
 }
 // その月に適用される金額を取得
+// ── 支払方法・引落口座の変更履歴（v58）──
+// 現在の値を持ち、変更は [{ym:'この月から', from, to}] で残す。ある月の値は「その月より後の変更」を戻して求める
+function valueAtYm(current, hist, ym) {
+  let v = current;
+  (hist||[]).slice().sort((a,b)=>(b.ym||'').localeCompare(a.ym||'')).forEach(h=>{ if ((h.ym||'') > ym) v = h.from; });
+  return v;
+}
+function cardPayAccountAt(w, ym) { return w ? valueAtYm(w.payAccountId||'', w.payAccountHistory, ym) : ''; }
+function subWalletAt(sb, ym) { return valueAtYm(sb.payCash ? '__cash' : (sb.walletId||''), sb.walletHistory, ym); }
+function payMethodName(v) {
+  if (v==='__cash') return '現金';
+  const w = v ? walletById(v) : null;
+  return w ? w.name : '未設定';
+}
+function methodHistoryHTML(hist, removeFn) {
+  if (!(hist||[]).length) return '';
+  return `<div style="background:var(--bg);border-radius:8px;padding:6px 10px;margin-top:6px">` + hist.map((h,i)=>`
+    <div style="display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0">
+      <span class="mono" style="color:var(--text-secondary)">${(h.ym||'').replace('-','/')}〜</span>
+      <span style="flex:1">${escapeHTML(payMethodName(h.from))} → ${escapeHTML(payMethodName(h.to))}</span>
+      <button class="pat-del" onclick="${removeFn}(${i})">✕</button></div>`).join('') + '</div>';
+}
 function subAmountAt(sb, ym) {
   let amount = sb.amount||0;
   // 「この月から/この月まで」の範囲に入る履歴だけ適用（期間限定の割引に対応）
@@ -9438,13 +9488,37 @@ function subAmountAt(sb, ym) {
     .forEach(h=>{ if(h.amount) amount = h.amount; });
   return amount;
 }
+// 定期的な支払いのジャンル（v58：サブスクを一般化）
+const SUB_GENRES = [
+  { key:'subsc',     label:'サブスク',     stamp:'🔁' },
+  { key:'utility',   label:'公共料金',     stamp:'💡' },
+  { key:'telecom',   label:'通信費',       stamp:'📱' },
+  { key:'lesson',    label:'習い事・ジム', stamp:'🏋️' },
+  { key:'fee',       label:'会費',         stamp:'🎫' },
+  { key:'insurance', label:'保険',         stamp:'🛡️' },
+  { key:'rent',      label:'家賃・ローン', stamp:'🏠' },
+  { key:'other',     label:'その他',       stamp:'📌' },
+];
+function subGenre(sb) { return SUB_GENRES.find(g=>g.key===(sb.genre||'subsc')) || SUB_GENRES[0]; }
+function subStamp(sb) { return sb.stamp || subGenre(sb).stamp; }
+function onSbGenreChange() {
+  const g = SUB_GENRES.find(x=>x.key===document.getElementById('sb-genre').value) || SUB_GENRES[0];
+  document.getElementById('sb-stamp').placeholder = g.stamp;
+}
+let sbWalletHist = [];
+function renderSbWalletHist() { const el = document.getElementById('sb-wallet-hist'); if (el) el.innerHTML = methodHistoryHTML(sbWalletHist, 'removeSbWalletHist'); }
+function removeSbWalletHist(i) { sbWalletHist.splice(i,1); renderSbWalletHist(); }
 function openSubscriptionModal(id) {
   subEditing = id ? state.subscriptions.find(x=>x.id===id) : null;
   const sb = subEditing;
   const daySel = document.getElementById('sb-day');
   let h=''; for(let d=1;d<=31;d++) h+=`<option value="${d}">${d}日</option>`;
   h+='<option value="99">末日</option>'; daySel.innerHTML=h;
-  document.getElementById('sub-title').textContent = sb?'サブスクを編集':'サブスクを登録';
+  document.getElementById('sub-title').textContent = sb?'定期的な支払いを編集':'定期的な支払いを登録';
+  document.getElementById('sb-genre').innerHTML = SUB_GENRES.map(g=>`<option value="${g.key}">${g.stamp} ${g.label}</option>`).join('');
+  document.getElementById('sb-genre').value = sb ? (sb.genre||'subsc') : 'subsc';
+  document.getElementById('sb-stamp').value = sb ? (sb.stamp||'') : '';
+  onSbGenreChange();
   document.getElementById('sb-name').value = sb?sb.name:'';
   document.getElementById('sb-short').value = sb?(sb.shortName||''):'';
   document.getElementById('sb-amount').value = sb?sb.amount:'';
@@ -9474,6 +9548,14 @@ function openSubscriptionModal(id) {
   document.getElementById('sb-ratio').value = sb?(sb.businessRatio||100):100;
   fillMemberSelect('sb-member', sb?sb.memberId:'');
   fillWalletSelect('sb-wallet', sb ? (sb.walletId||'') : '');
+  // 現金払い（v58）
+  { const sel = document.getElementById('sb-wallet');
+    const o = document.createElement('option'); o.value='__cash'; o.textContent='💴 現金（窓口・振込用紙など）';
+    sel.insertBefore(o, sel.firstElementChild ? sel.firstElementChild.nextSibling : null);   // 「指定なし」の次（optgroup の中に入れない）
+    if (sb && sb.payCash) sel.value='__cash'; }
+  sbWalletHist = sb ? JSON.parse(JSON.stringify(sb.walletHistory||[])) : [];
+  document.getElementById('sb-wallet-from').value = todayStr().slice(0,7);
+  renderSbWalletHist();
   document.getElementById('sb-pointtype').innerHTML = '<option value="">種類</option>' +
     sortByOrder(state.pointTypes).map(p=>`<option value="${p.id}" ${sb&&p.id===sb.pointTypeId?'selected':''}>${escapeHTML(p.name)}</option>`).join('');
   document.getElementById('sb-delete-btn').style.display = sb?'':'none';
@@ -9485,7 +9567,10 @@ function saveSubscription() {
   if (!name) { showToast('サービス名を入力してください'); return; }
   const data = { name, shortName:document.getElementById('sb-short').value.trim(), amount,
     day: parseInt(document.getElementById('sb-day').value)||1,
-    walletId: document.getElementById('sb-wallet').value||'',
+    walletId: (document.getElementById('sb-wallet').value==='__cash') ? '' : (document.getElementById('sb-wallet').value||''),
+    payCash: document.getElementById('sb-wallet').value==='__cash',
+    genre: document.getElementById('sb-genre').value || 'subsc',
+    stamp: document.getElementById('sb-stamp').value.trim(),
     point: parseFloat(document.getElementById('sb-point').value)||0,
     pointTypeId: document.getElementById('sb-pointtype').value||'',
     trialFrom: document.getElementById('sb-trial-from').value||'',
@@ -9503,6 +9588,13 @@ function saveSubscription() {
     businessRatio: sbIsExpense ? (parseFloat(document.getElementById('sb-ratio').value)||100) : 100,
     memberId: (document.getElementById('sb-member')||{}).value || '',
     memo: document.getElementById('sb-memo').value };
+  // 支払方法の変更履歴（v58）
+  data.walletHistory = sbWalletHist.slice();
+  if (subEditing) {
+    const before = subEditing.payCash ? '__cash' : (subEditing.walletId||'');
+    const after = data.payCash ? '__cash' : data.walletId;
+    if (before && before!==after) data.walletHistory.push({ ym: document.getElementById('sb-wallet-from').value || todayStr().slice(0,7), from: before, to: after });
+  }
   if (subEditing) Object.assign(subEditing, data);
   else {
     const maxO = state.subscriptions.length?Math.max(...state.subscriptions.map(x=>x.order||0)):0;
@@ -9544,15 +9636,15 @@ function subscriptionItemsOn(ds) {
     // 初回より前の月は請求なし
     if (sb.firstDate && ds < sb.firstDate) return;
     if (d===day) {
-      const w = sb.walletId?walletById(sb.walletId):null;
+      const wid = subWalletAt(sb, ym);           // その月の支払方法（v58）
       const pt = sb.pointTypeId?pointTypeById(sb.pointTypeId):null;
       const act = subActualAmount(sb, ym);
       const amt = act.amount;
       const isUSD = (sb.currency==='USD') && !act.isActual;
-      out.push({ kind:'subsc', stamp:'🔁', color:PALETTE[6]||PALETTE[1],
+      out.push({ kind:'subsc', stamp:subStamp(sb), color:PALETTE[6]||PALETTE[1],
         label:`${sb.name}`, short:(sb.shortName||sb.name),
-        sub:`${(sb.cycle||'monthly')==='yearly'?'年額':'サブスク'}${w?' / '+w.name:''}${isUSD?' / USD':''}`,
-        amount:0, subAmount:amt, subUSD:isUSD,
+        sub:`${subGenre(sb).label}${(sb.cycle||'monthly')==='yearly'?'（年額）':''}${wid?' / '+payMethodName(wid):''}${isUSD?' / USD':''}${act.isActual?' / 確定額':''}`,
+        amount:0, subAmount:amt, subUSD:isUSD, walletAt: (wid==='__cash' ? '' : wid),
         subPoint:sb.point||0, subPtUnit:(pt?pt.unit:'pt'), memo:sb.memo||'', ref:sb });
     }
   });
@@ -9561,12 +9653,22 @@ function subscriptionItemsOn(ds) {
 function renderSubscriptionList() {
   const el = document.getElementById('subscription-list');
   if (!el) return;
-  if (!state.subscriptions.filter(sb=>inCurrentMember(sb)).length) { el.innerHTML='<div class="empty"><div class="empty-icon">🔁</div><div class="empty-text">「＋」からサブスクを登録できます</div></div>'; return; }
+  if (!state.subscriptions.filter(sb=>inCurrentMember(sb)).length) { el.innerHTML='<div class="empty"><div class="empty-icon">🔁</div><div class="empty-text">「＋」からサブスク・公共料金・ジムなどを登録できます</div></div>'; return; }
   const list = sortByOrder(state.subscriptions.filter(sb=>inCurrentMember(sb)));
   const total = list.filter(sb=>!subEnded(sb) && (sb.cycle||'monthly')==='monthly' && sb.currency!=='USD')
     .reduce((a,sb)=>a+subAmountAt(sb, todayStr().slice(0,7)),0);
+  // ジャンルごとに見出しを付ける（並び替え中は付けない）v58
+  let lastG = null;
   el.innerHTML = `<div style="text-align:right;font-size:12px;color:var(--text-secondary);margin-bottom:8px">月額合計 <b class="mono" style="font-size:14px;color:${state.settings.colorExpense}">${fmt(total)}</b></div>` +
-    list.map((sb,idx)=>{
+    list.slice().sort((a,b)=> isSortMode('subs') ? 0 : (SUB_GENRES.indexOf(subGenre(a)) - SUB_GENRES.indexOf(subGenre(b)))).map((sb,idx,arr)=>{
+    const g = subGenre(sb);
+    const head = (!isSortMode('subs') && g!==lastG) ? `<div style="font-size:11.5px;font-weight:700;color:var(--text-secondary);margin:10px 2px 4px">${g.stamp} ${g.label}</div>` : '';
+    lastG = g;
+    return head + subRowHTML(sb, idx, arr);
+  }).join('');
+  enableDrag('subscription-list', state.subscriptions, 'subs');
+}
+function subRowHTML(sb, idx, list) {
     const w = sb.walletId?walletById(sb.walletId):null;
     const pt = sb.pointTypeId?pointTypeById(sb.pointTypeId):null;
     const inTrial = sb.trialTo && todayStr()<=sb.trialTo;
@@ -9574,14 +9676,12 @@ function renderSubscriptionList() {
     const ended = subEnded(sb);
     return `<div class="job-item drag-item${isSortMode('subs')?'':` tapable" onclick="openSubscriptionDetail('${sb.id}')`}" data-item-id="${sb.id}" style="${ended?'opacity:0.45':''}">
       ${orderBtnsHTML('moveSubscription', sb.id, idx, list.length, 'subs')}
-      <span style="width:28px;text-align:center;font-size:21px;flex-shrink:0">🔁</span>
+      <span style="width:28px;text-align:center;font-size:21px;flex-shrink:0">${escapeHTML(subStamp(sb))}</span>
       <div class="job-item-body"><div class="job-item-name">${escapeHTML(sb.name)}${inTrial?' <span class="badge-sm bd-limit">無料期間中</span>':''}${ended?' <span class="badge-sm bd-type">解約済</span>':''}</div>
-        <div class="job-item-sub">${sb.currency==='USD'?'$'+Math.round(curAmt).toLocaleString():fmt(curAmt)} / ${(sb.cycle||'monthly')==='yearly'?`毎年${MONTHS[(sb.month||1)-1]}`:'毎月'}${sb.day>=99?'末':sb.day}日${w?' / '+escapeHTML(w.name):''}${(sb.history||[]).length?` / 変更${sb.history.length}件`:''}</div>
+        <div class="job-item-sub">${sb.currency==='USD'?'$'+Math.round(curAmt).toLocaleString():fmt(curAmt)} / ${(sb.cycle||'monthly')==='yearly'?`毎年${MONTHS[(sb.month||1)-1]}`:'毎月'}${sb.day>=99?'末':sb.day}日${sb.payCash?' / 現金':(w?' / '+escapeHTML(w.name):'')}${(sb.history||[]).length?` / 変更${sb.history.length}件`:''}</div>
         ${sb.point?`<div class="limit-line">還元 <b>+${Math.round(sb.point).toLocaleString()}${pt?pt.unit:'pt'}</b>${pt?`（${escapeHTML(pt.name)}）`:''}</div>`:''}
         ${sb.trialTo?`<div class="limit-line">無料期間 〜${sb.trialTo.replace(/-/g,'/')}</div>`:''}</div>
     </div>`;
-  }).join('');
-  enableDrag('subscription-list', state.subscriptions, 'subs');
 }
 
 // ── 立て替え ──
@@ -10182,7 +10282,7 @@ function openCardPayment(walletId, ds) {
   document.getElementById('cp-redeem').value = rec ? (rec.redeemAmount||'') : '';
   document.getElementById('cp-date').value = rec ? (rec.date || ds) : ds;  // 直した引落日を保つ
   document.getElementById('cp-memo').value = rec ? (rec.memo||'') : '';
-  fillWalletSelect('cp-wallet', rec ? (rec.walletId||'') : (w.payAccountId||''), '指定なし', BANK_TYPES, w.memberId||'');
+  fillWalletSelect('cp-wallet', rec ? (rec.walletId||'') : (cardPayAccountAt(w, ((ds||todayStr()).slice(0,7)))||''), '指定なし', BANK_TYPES, w.memberId||'');
   document.getElementById('cp-delete-btn').style.display = rec ? '' : 'none';
   cpStatus = rec ? (rec.noPayment ? 'none' : (rec.paid ? 'paid' : 'unpaid')) : 'unpaid';
   const btn = document.querySelector(`#modal-cardpay .seg-btn[data-cps="${cpStatus}"]`);
@@ -11802,7 +11902,7 @@ function scrollToSection(id) { scrollToEl(document.getElementById(id)); }
 // 参照先がDOMに存在するかを検証する。v29のサブスク事故（削除済みIDへの参照でJSが停止）の再発防止。
 // 実行方法：設定 → データ → 「ID参照チェック」、または URL末尾に #debug を付けて開く（結果はコンソール）。
 // UIを削除・改名したら必ずこれを実行すること。JSが後から生成するIDは下の除外リストに登録する。
-const DIAG_DYNAMIC_IDS = new Set(['ios-glass-guard','status-fill','rec-duedate','rec-duetime','lsg-date','ps-subtotal','ps-withtax','rec-amtchg-area','rec-newamount','rec-chgdate','rec-chgnote',
+const DIAG_DYNAMIC_IDS = new Set(['wal-acc-hist','sb-wallet-hist','ios-glass-guard','status-fill','rec-duedate','rec-duetime','lsg-date','ps-subtotal','ps-withtax','rec-amtchg-area','rec-newamount','rec-chgdate','rec-chgnote',
   'dd-subtotal','ex-total','jd-total','rec-amount','rec-break','rec-date','rec-end',
   'rec-enddate','rec-memo','rec-name','rec-pat-chips','rec-preview','rec-start',
   'rec-transport','rec-wage','rec-workhours','rec-hourly-note','save-error-banner','boot-error-banner','rescue-info','fatal-error-banner','fatal-error-msg',
