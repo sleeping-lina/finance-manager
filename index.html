@@ -312,10 +312,28 @@
   .wk-item .wk-item-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .wk-amt { flex-shrink: 0; margin-left: auto; font-weight: 600; font-size: 11.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .wk-band .wk-amt { background: rgba(255,255,255,.85); border-radius: 6px; padding: 0 5px; }
+  /* v59 年月ごとの明細 */
+  .st-year { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; overflow: hidden; }
+  .st-year > summary, .st-month > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .st-year > summary::-webkit-details-marker, .st-month > summary::-webkit-details-marker { display: none; }
+  .st-year > summary { padding: 10px 12px; font-weight: 700; background: var(--bg); }
+  .st-month > summary { padding: 8px 12px 8px 22px; font-size: 13px; border-top: 1px solid var(--border); }
+  .st-year > summary::before, .st-month > summary::before { content: '›'; display: inline-block; transition: transform .15s; color: var(--text-secondary); }
+  .st-year[open] > summary::before, .st-month[open] > summary::before { transform: rotate(90deg); }
+  .st-sum { margin-left: auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .st-line { display: flex; gap: 8px; padding: 5px 12px 5px 40px; font-size: 12px; border-top: 1px dashed var(--border); }
+  .st-line .st-l { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .st-line .st-a { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .st-child { padding-left: 54px; color: var(--text-secondary); font-size: 11px; border-top: none; padding-top: 1px; padding-bottom: 3px; }
   .hb-table { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-top: 4px; }
   .hb-table th, .hb-table td { padding: 2px 3px; border-bottom: 1px solid var(--border); white-space: nowrap; }
   .hb-table th { color: var(--text-secondary); font-weight: 600; text-align: left; }
-  #ios-glass-guard { position: fixed; top: 0; left: 0; right: 0; height: 12px; background: transparent; pointer-events: none; z-index: 9999; }
+  /* v59：ぼかし対策を3通りから選べるように（v57の pointer-events:none では効かなかった。
+     WebKit がタップ判定で最上部の要素を探している可能性があるため、既定はタップを受ける透明な要素にする） */
+  #ios-glass-guard { position: fixed; top: 0; left: 0; right: 0; height: 12px; background: transparent; z-index: 9999; }
+  html.glass-b #ios-glass-guard { position: absolute; height: 14px; background: rgba(255,255,255,0.01); }
+  html.glass-c #ios-glass-guard { height: calc(var(--safe-top) + 2px); background: rgba(0,0,0,0.01); }
+  html.glass-off #ios-glass-guard { display: none; }
   #status-fill { display: none; position: fixed; top: 0; left: 0; right: 0; height: var(--safe-top); background: var(--footer-bg, #fff); pointer-events: none; z-index: 9998; }
   html.status-member #status-fill { display: block; }
   .tabbar::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 160px; background: inherit; pointer-events: none; }
@@ -744,6 +762,13 @@
               <div class="seg-btn" data-wn="full" onclick="setWeekName('full',this)">正式名</div>
               <div class="seg-btn" data-wn="short" onclick="setWeekName('short',this)">短縮名</div>
             </div></div>
+          <div class="settings-row"><span>ヘッダーのぼかし対策（iOS）</span>
+            <div class="seg seg-sm">
+              <div class="seg-btn" data-gg="a" onclick="setGlassGuard('a',this)">A</div>
+              <div class="seg-btn" data-gg="b" onclick="setGlassGuard('b',this)">B</div>
+              <div class="seg-btn" data-gg="c" onclick="setGlassGuard('c',this)">C</div>
+              <div class="seg-btn" data-gg="off" onclick="setGlassGuard('off',this)">オフ</div>
+            </div></div>
           <div class="settings-row"><span>ステータスバーの色</span>
             <div class="seg seg-sm">
               <div class="seg-btn" data-sb="header" onclick="setStatusBarColor('header',this)">ヘッダー</div>
@@ -794,7 +819,7 @@
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v58</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v59</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
           <div id="vp-info" style="margin-top:2px;opacity:.7"></div>
         </div>
       </div>
@@ -1445,6 +1470,21 @@
   </div>
 </div></div>
 
+<!-- v59：年月ごとの明細 -->
+<div class="modal-overlay" id="modal-statement"><div class="modal">
+  <div class="modal-handle-zone"><div class="modal-handle"></div></div>
+  <div class="detail-head">
+    <span class="stamp-wrap" id="st-stamp"></span>
+    <div style="min-width:0">
+      <div class="detail-name" id="st-name">—</div>
+      <div class="detail-sub" id="st-sub"></div>
+    </div>
+  </div>
+  <div id="st-body"></div>
+  <div class="form-actions" style="margin-top:14px">
+    <button class="btn btn-ghost" onclick="closeModal('modal-statement')">閉じる</button>
+  </div>
+</div></div>
 <div class="modal-overlay" id="modal-detail"><div class="modal">
   <div class="modal-handle-zone"><div class="modal-handle"></div></div>
   <div class="detail-head">
@@ -1717,6 +1757,9 @@
       </div>
       <div id="tax-installments"></div>
     </div>
+    <div class="form-group member-row" id="tax-cover-row" style="display:none"><label>誰の分か（まとめ払い・任意）</label>
+      <div id="tax-cover"></div>
+      <div class="field-note">国保などを家族分まとめて払う場合に、誰の分かと内訳の年額を入れます。選んだ人の画面にも表示されます。</div></div>
     <div class="form-group member-row" id="tax-payer-row" style="display:none"><label>支払う人</label>
       <select id="tax-payer"></select>
       <div class="field-note">家族分をまとめて払う場合、実際に支払う人を選びます。</div></div>
@@ -1768,8 +1811,11 @@
       <div class="form-group"><label>周期</label>
         <select id="sb-cycle" onchange="onSbCycleChange()">
           <option value="monthly">毎月</option>
+          <option value="nmonth">◯か月ごと</option>
           <option value="yearly">毎年</option>
         </select></div>
+      <div class="form-group" id="sb-everyn-row" style="display:none"><label>間隔</label>
+        <select id="sb-everyn"><option value="2">2か月ごと</option><option value="3">3か月ごと</option><option value="4">4か月ごと</option><option value="6">6か月ごと</option></select></div>
       <div class="form-group" id="sb-month-row" style="display:none"><label>請求月</label>
         <select id="sb-month"></select></div>
     </div>
@@ -1787,11 +1833,11 @@
       </div></div>
     <div class="subsection" id="sb-actual-section" style="display:none">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <div class="subsection-title" style="margin-bottom:0">実際の請求額（円）</div>
+        <div class="subsection-title" style="margin-bottom:0">月ごとの変更（金額・日付・お休み）</div>
         <button class="btn btn-ghost btn-sm" onclick="addSbActual()">＋ 月を追加</button>
       </div>
       <div id="sb-actuals"></div>
-      <div class="field-note">請求が確定したら、その月の実際の円額を入力します。カレンダーと集計に反映されます。</div>
+      <div class="field-note">その月だけ金額・日付が違うとき、お休みのときに入力します（金額は空欄なら通常の金額）。カレンダーと集計に反映されます。</div>
     </div>
     <div class="form-group"><label>支払方法</label><select id="sb-wallet"></select>
       <div class="form-row" style="margin-top:6px"><div class="form-group" style="margin:0"><label>支払方法を変えた場合の適用月</label><input type="month" id="sb-wallet-from"></div></div>
@@ -2047,6 +2093,8 @@
   <div class="form-grid">
     <div class="form-group member-row" id="inv-member-row" style="display:none"><label>メンバー</label><select id="inv-member"></select></div>
     <div class="form-group"><label>名称</label><input type="text" id="inv-name" placeholder="例：楽天証券 つみたてNISA"></div>
+    <div class="form-group"><label>銘柄（任意）</label><input type="text" id="inv-fund" placeholder="例：eMAXIS Slim 全世界株式" list="inv-fund-list"><datalist id="inv-fund-list"></datalist>
+      <div class="field-note">支払方法ごとに分けて登録した積立でも、同じ銘柄名にすると銘柄ごとの明細でまとめて見られます。</div></div>
     <div class="form-group"><label>アイコン（任意）</label>
       <input type="text" id="inv-stamp" maxlength="4" placeholder="📈" style="width:90px;text-align:center;font-size:20px">
       <div class="field-note">空欄なら 📈 が使われます。</div></div>
@@ -2181,7 +2229,7 @@
      v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
      バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
 <script>
-window.APP_BOOT_VERSION = '58';
+window.APP_BOOT_VERSION = '59';
 // v49: iOS ホーム画面アプリの高さ補正
 // ステータスバー透過（black-translucent）で起動すると、iOS が画面の高さをステータスバー分だけ短く報告し、
 // フッターが持ち上がって下に白い帯ができることがある。画面の実寸（screen）を使って高さを決める。
@@ -2256,7 +2304,7 @@ window.addEventListener('orientationchange', function(){ setTimeout(window.fixVi
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '58';
+const APP_VERSION = '59';
 const SCHEMA_VERSION = 33;
 const STORAGE_KEY = 'financeManager';
 
@@ -3514,7 +3562,7 @@ function dayItems(ds) {
     // 支払いから自動生成された還元は「ポイント還元」のスタンプを使う（v43）
     const autoReward = !!mr.sourceRecId;
     items.push({ kind:'money', mtype:(cat?cat.type:'expense'),
-      stamp:(autoReward ? featureStamp('pointreward') : (cat?cat.stamp:'💰')), color:(cat?cat.color:PALETTE[3]),
+      stamp:(autoReward ? featureStamp('pointreward') : moneyCatStamp(cat)), color:(cat?cat.color:PALETTE[3]),
       label: (mr.name || (cat?cat.name:'記録')) + (mr.fixed===false?'（未定）':''),
       short: (mr.shortName || (cat?cat.shortName:'') || ''),
       sub: (cat?cat.name:'') + (mr.repeat==='monthly'?'（毎月）':'') + (mr.paid?'・支払済':'')
@@ -3758,6 +3806,8 @@ function renderCalendar() {
   else if (calView==='list') renderCalList();
 }
 function bandList() {
+  // 重なる帯の並び（v59）：開始日 → 終了日 → 登録順（配列の順。Array.sort は安定）
+  // ※開始時刻の設定ができたら、終了日の次に開始時刻で比べる
   const bands = state.events.map(ev=>({ title:ev.title, short:(ev.shortName||''), color:ev.color, start:ev.startDate, end:ev.endDate||ev.startDate, evId:ev.id, recDate:null }));
   state.records.forEach(r=>{
     if (!inCurrentMember(r)) return;
@@ -3765,6 +3815,7 @@ function bandList() {
     if (j && j.payType==='piece' && r.endDate && r.endDate>r.date)
       bands.push({ title:r.name||j.name, short:(r.shortName||j.shortName||''), color:j.color, start:r.date, end:r.endDate, evId:null, recDate:r.date, recId:r.id });
   });
+  bands.forEach((b,i)=>{ b.seq = i; });   // 登録順（並べ替えの最後の比較に使う）
   return bands;
 }
 function bandClick(evId, recDate) {
@@ -3904,7 +3955,8 @@ function renderCalMonth() {
       const bg = document.createElement('div'); bg.className='cal-bands';
       let lane = 0;
       // 重なるときは開始日が早い方を上に（同じなら長い方を上に）v57
-      wBands.sort((a,b)=>a.start.localeCompare(b.start) || b.end.localeCompare(a.end));
+      // 開始日が早い順、同じなら終了日が早い順、それも同じなら登録順（v59）
+      wBands.sort(bandOrder);
       wBands.slice(0,3).forEach(b=>{
         let sIdx = week.findIndex(c=>c.ds>=b.start); if (b.start<weekStart) sIdx=0; if(sIdx<0) sIdx=0;
         let eIdx = 6; for(let i=6;i>=0;i--){ if(week[i].ds<=b.end){ eIdx=i; break; } }
@@ -3923,6 +3975,136 @@ function renderCalMonth() {
   }
 }
 // 週表示：1件ごとの金額（v57）。案件は計上日（期日・終了日）だけ
+// ══ 年月ごとの明細（v59）══
+// 仕事・クレカ・定期的な支払い・税金・積立・銘柄ごとに、年 → 月 → 明細 の順で見る
+function statementBtn(kind, id, label) {
+  const safe = String(id).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+  return `<button class="btn btn-ghost btn-block" style="margin-top:10px" onclick="openStatement('${kind}','${safe}')">📅 ${escapeHTML(label||'年月ごとの明細')}</button>`;
+}
+function ymAdd(ym, k) { let y=+ym.slice(0,4), m=+ym.slice(5,7)-1+k; while(m<0){m+=12;y--;} while(m>11){m-=12;y++;} return `${y}-${pad(m+1)}`; }
+function ymRange(from, to) { const out=[]; let c=from; let guard=0; while (c<=to && guard++<240) { out.push(c); c=ymAdd(c,1); } return out; }
+// 月の各日について *ItemsOn を呼び、条件に合う項目を集める
+function itemsInMonth(fn, ym, pick) {
+  const y=+ym.slice(0,4), m=+ym.slice(5,7)-1, out=[];
+  for (let d=1; d<=daysIn(y,m); d++) { const ds=dstr(y,m,d); fn(ds).forEach(x=>{ if (pick(x)) out.push(Object.assign({ ds }, x)); }); }
+  return out;
+}
+function statementData(kind, id) {
+  const now = todayStr().slice(0,7);
+  const lines = [];   // {ym, date, label, amount, plan, children:[]}
+  let title='', stamp='📅', sub='', sign=-1;
+  if (kind==='job') {
+    const j = jobById(id); if (!j) return null;
+    title = j.name; stamp = stampHTML(j.stamp); sub = '入金（給与・報酬）'; sign = 1;
+    let first = now;
+    state.records.filter(r=>r.jobId===j.id).forEach(r=>{ const pd = computePayDate(j, recBaseDate(r)) || recBaseDate(r); if (pd.slice(0,7)<first) first = pd.slice(0,7); });
+    (state.payslips||[]).filter(p=>p.jobId===j.id).forEach(p=>{ if (p.payYm<first) first = p.payYm; });
+    if (j.payType==='monthly') first = j.startDate ? j.startDate.slice(0,7) : ymAdd(now,-11);
+    ymRange(first, ymAdd(now, 2)).forEach(ym=>{
+      const ps = payslipFor(j.id, ym);
+      if (ps) {
+        lines.push({ ym, date: ps.payDate || jobPayDateFor(j, ym), label: ps.paid ? '入金（受取済）' : '実受取（未受取）', amount: ps.net||0, plan: !ps.paid,
+          children: (ps.items||[]).map(i=>({ label: i.name, amount: (i.sign<0?-1:1)*(i.amount||0) })) });
+        return;
+      }
+      const cov = defaultCoverPeriod(j, ym);
+      const all = estimateForPeriod(j, cov.from, cov.to);
+      const pe = payEstimate(j, ym);
+      if (!pe.net && !all.recs.length) return;
+      lines.push({ ym, date: jobPayDateFor(j, ym), label: '入金見込み', amount: pe.net, plan: true,
+        children: all.recs.slice().sort((a,b)=>recBaseDate(a).localeCompare(recBaseDate(b))).map(r=>({
+          label: `${r.date.slice(5).replace('-','/')}${r.endDate&&r.endDate!==r.date?'〜'+r.endDate.slice(5).replace('-','/'):''} ${r.name||''}${recIsDone(r)?'':'（予定）'}`, amount: r.amount||0 })) });
+    });
+  }
+  else if (kind==='card') {
+    const w = walletById(id); if (!w) return null;
+    title = w.name; stamp = stampHTML(walletStamp(w)); sub = 'カードの引落';
+    const first = w.activeFrom || ymAdd(now, -23);
+    ymRange(first, ymAdd(now, 1)).forEach(ym=>{
+      const y=+ym.slice(0,4), m=+ym.slice(5,7)-1;
+      cardPaymentsInMonth(y,m).filter(p=>p.wallet.id===w.id && !p.noPayment).forEach(p=>{
+        const accId = cardPayAccountAt(w, ym);
+        lines.push({ ym, date: p.date, label: (p.rec ? (p.rec.paid ? '引落済' : '引落予定') : '金額未入力') + (accId&&walletById(accId)?` / ${walletById(accId).name}`:''),
+          amount: p.amount||0, plan: !(p.rec && p.rec.paid) });
+      });
+    });
+  }
+  else if (kind==='sub') {
+    const sb = state.subscriptions.find(x=>x.id===id); if (!sb) return null;
+    title = sb.name; stamp = escapeHTML(subStamp(sb)); sub = subGenre(sb).label;
+    const starts = [sb.firstDate && sb.firstDate.slice(0,7), ...(sb.periods||[]).map(p=>p.from)].filter(Boolean).sort();
+    const first = starts[0] && starts[0] > ymAdd(now,-36) ? starts[0] : ymAdd(now, -11);
+    ymRange(first, ymAdd(now, 2)).forEach(ym=>{
+      itemsInMonth(subscriptionItemsOn, ym, x=>x.kind==='subsc' && x.ref===sb).forEach(x=>{
+        lines.push({ ym, date: x.ds, label: `${payMethodName(subWalletAt(sb, ym))}${x.subUSD?'（USD）':''}${/確定額/.test(x.sub)?'・確定額':''}`,
+          amount: x.subUSD ? 0 : x.subAmount, usd: x.subUSD ? x.subAmount : 0, plan: x.ds > todayStr() });
+      });
+    });
+  }
+  else if (kind==='tax') {
+    const t = state.taxes.find(x=>x.id===id); if (!t) return null;
+    title = t.name; stamp = taxStamp(t); sub = `${t.year}年度`;
+    (t.installments||[]).forEach(i=>{
+      const d = i.paidDate || i.dueDate; if (!d) return;
+      lines.push({ ym: d.slice(0,7), date: d, label: `第${i.no}期${i.paid?'（支払済）':'（納期限）'}`, amount: i.amount||0, plan: !i.paid });
+    });
+  }
+  else if (kind==='invest' || kind==='fund') {
+    const ivs = kind==='invest' ? state.investments.filter(x=>x.id===id) : state.investments.filter(x=>(x.fund||'')===id);
+    if (!ivs.length) return null;
+    title = kind==='invest' ? ivs[0].name : id; stamp = '📈'; sub = kind==='invest' ? (INV_KIND_LABEL[ivs[0].kind]||'積立') : `銘柄 ／ ${ivs.length}件の積立`;
+    const froms = ivs.map(iv=>iv.activeFrom).filter(Boolean).sort();
+    const first = froms[0] || ymAdd(now, -11);
+    // 全部に終了月があり、それが2か月先より前なら最後の終了月まで
+    const tos = ivs.map(iv=>iv.activeTo||'9999-12').sort();
+    const maxTo = tos[tos.length-1];
+    const last = maxTo < ymAdd(now, 2) ? maxTo : ymAdd(now, 2);
+    ymRange(first, last).forEach(ym=>{
+      itemsInMonth(investmentItemsOn, ym, x=>x.kind==='invest' && ivs.includes(x.ref) && x.stamp==='📈').forEach(x=>{
+        const iv = x.ref;
+        const how = iv.payMode==='card' ? `カード（${(walletById(iv.cardId)||{}).name||''}）`
+          : ((walletById(iv.walletId)||{}).name || '') + (iv.payMode==='before' && iv.beforeDay ? `（前月${iv.beforeDay}${iv.beforeDay2&&iv.beforeDay2!==iv.beforeDay?'〜'+iv.beforeDay2:''}日引落）` : '');
+        lines.push({ ym, date: x.ds, label: (kind==='fund' ? iv.name + ' / ' : '') + how, amount: x.investAmount||0, plan: x.ds > todayStr() });
+      });
+    });
+  }
+  return { title, stamp, sub, sign, lines };
+}
+function openStatement(kind, id) {
+  const data = statementData(kind, id);
+  if (!data) return;
+  document.getElementById('st-stamp').innerHTML = data.stamp;
+  document.getElementById('st-name').textContent = data.title;
+  document.getElementById('st-sub').textContent = data.sub + '（年月ごとの明細）';
+  const op = (state.settings.unfixedOpacity||55)/100;
+  const col = data.sign>0 ? state.settings.colorPayday : state.settings.colorExpense;
+  const money = v => `${data.sign>0?'':'-'}${fmt(Math.abs(v)).slice(1)}`;
+  const byYear = {};
+  data.lines.forEach(l=>{ const y=l.ym.slice(0,4); (byYear[y]=byYear[y]||{}); (byYear[y][l.ym]=byYear[y][l.ym]||[]).push(l); });
+  const years = Object.keys(byYear).sort().reverse();
+  const nowY = todayStr().slice(0,4), nowYm = todayStr().slice(0,7);
+  if (!years.length) { document.getElementById('st-body').innerHTML = '<div class="empty"><div class="empty-text">明細はまだありません</div></div>'; openModal('modal-statement'); return; }
+  document.getElementById('st-body').innerHTML = years.map(y=>{
+    const months = Object.keys(byYear[y]).sort().reverse();
+    const ySum = months.reduce((a,ym)=>a+byYear[y][ym].reduce((b,l)=>b+(l.amount||0),0),0);
+    const yUsd = months.reduce((a,ym)=>a+byYear[y][ym].reduce((b,l)=>b+(l.usd||0),0),0);
+    return `<details class="st-year"${y===nowY?' open':''}><summary>${y}年<span class="st-sum" style="color:${col}">${money(ySum)}${yUsd?` ＋ $${Math.round(yUsd*100)/100}`:''}</span></summary>` +
+      months.map(ym=>{
+        const ls = byYear[y][ym];
+        const mSum = ls.reduce((a,l)=>a+(l.amount||0),0);
+        const allPlan = ls.every(l=>l.plan);
+        return `<details class="st-month"${ym===nowYm?' open':''}><summary>${+ym.slice(5,7)}月<span style="font-size:11px;color:var(--text-secondary)">${ls.length}件</span>
+            <span class="st-sum" style="color:${col};${allPlan?`opacity:${op}`:''}">${money(mSum)}</span></summary>` +
+          ls.sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(l=>`
+            <div class="st-line" style="${l.plan?`opacity:${Math.max(op,0.7)}`:''}"><span class="st-l">${(l.date||'').slice(5).replace('-','/')}　${escapeHTML(l.label)}${l.plan?' <span class="badge-sm bd-limit">予定</span>':''}</span>
+              <span class="st-a" style="color:${col}">${l.usd?'-$'+(Math.round(l.usd*100)/100):money(l.amount||0)}</span></div>` +
+            (l.children||[]).map(c=>`<div class="st-line st-child"><span class="st-l">${escapeHTML(c.label)}</span><span class="st-a">${c.amount<0?'−':''}${fmt(Math.abs(c.amount)).slice(1)}</span></div>`).join('')
+          ).join('') + '</details>';
+      }).join('') + '</details>';
+  }).join('');
+  openModal('modal-statement');
+}
+function bandOrder(a, b) { return a.start.localeCompare(b.start) || a.end.localeCompare(b.end) || (a.seq||0)-(b.seq||0); }
 function weekItemAmount(x, ds) {
   if (state.settings.amountShow==='off') return null;
   const S = state.settings, parts = [];
@@ -3997,7 +4179,7 @@ function renderCalWeek() {
     const total = dayTotal(ds);
     // この日にかかる複数日バンド（開始日が早い方を上に。v57）
     const dayBands = bands.filter(b=>b.start<=ds && ds<=b.end && b.start!==b.end)
-      .sort((a,b)=>a.start.localeCompare(b.start) || b.end.localeCompare(a.end));
+      .sort(bandOrder);
     // 単日アイテム（バンドで表示されるものは除く）
     const singles = items.filter(x=>!(x.span) && x.kind!=='event');
     const singleEvents = items.filter(x=>x.kind==='event' && (x.ref.endDate||x.ref.startDate)===x.ref.startDate);
@@ -6000,6 +6182,7 @@ function setUnfixedOpacity(v){ state.settings.unfixedOpacity=parseInt(v)||55; sa
 function setCalTextLen(v){ state.settings.calTextLen=parseInt(v)||6; save(); document.getElementById('cal-textlen-val').textContent=state.settings.calTextLen+'文字'; renderCalendar(); }
 // v57：「週表示に内容を表示」は廃止（常に表示）。代わりに週表示の名前（正式名／短縮名）
 function setWeekName(v, el){ state.settings.weekName=v; save(); syncSettingsUI(); renderAll(); }
+function setGlassGuard(v, el){ state.settings.glassGuard=v; save(); syncSettingsUI(); renderMemberBar(); renderAll(); }
 function setStatusBarColor(v, el){ state.settings.statusBarColor=v; save(); syncSettingsUI(); renderMemberBar(); renderAll(); }
 function setAmountFormat(v, el){ state.settings.amountFormat=v; save(); syncSettingsUI(); renderAll(); }
 function syncSettingsUI(){
@@ -6010,6 +6193,7 @@ function syncSettingsUI(){
   document.querySelectorAll('.seg-btn[data-cd]').forEach(b=>b.classList.toggle('active', b.dataset.cd===state.settings.calDisplay));
   document.querySelectorAll('.seg-btn[data-wn]').forEach(b=>b.classList.toggle('active', b.dataset.wn===(state.settings.weekName||'full')));
   document.querySelectorAll('.seg-btn[data-sb]').forEach(b=>b.classList.toggle('active', b.dataset.sb===(state.settings.statusBarColor||'header')));
+  document.querySelectorAll('.seg-btn[data-gg]').forEach(b=>b.classList.toggle('active', b.dataset.gg===(state.settings.glassGuard||'a')));
   const tl = document.getElementById('cal-textlen');
   if (tl) { tl.value = state.settings.calTextLen||6; document.getElementById('cal-textlen-val').textContent = (state.settings.calTextLen||6)+'文字'; }
   document.querySelectorAll('.seg-btn[data-ll]').forEach(b=>b.classList.toggle('active', b.dataset.ll===(state.settings.limitLabelStyle||'slash')));
@@ -6520,6 +6704,9 @@ function moneyText(cat, amount, ptTypeId) {
   }
   return prefix + fmt(amount).slice(1);
 }
+// v59：「ポイント還元」カテゴリのスタンプは機能のスタンプ（設定→表示→機能のスタンプ）に一本化
+function isRewardCat(c) { return !!c && (c.id==='mc_pt' || c.type==='point'); }
+function moneyCatStamp(c) { return !c ? '💰' : (isRewardCat(c) ? featureStamp('pointreward') : (c.stamp||'💰')); }
 function openMoneyCatModal(id) {
   mcEditing = id ? moneyCatById(id) : null;
   mcType = mcEditing?mcEditing.type:'expense';
@@ -6536,6 +6723,10 @@ function openMoneyCatModal(id) {
 }
 function refreshMcPickers() {
   renderStampArea('mc-stamp-area', mcStamp, s=>{mcStamp=s;refreshMcPickers();});
+  if (isRewardCat(mcEditing) || mcType==='point') {
+    document.getElementById('mc-stamp-area').innerHTML = `<div style="display:flex;align-items:center;gap:8px">${stampHTML(featureStamp('pointreward'))}
+      <span class="field-note" style="margin:0">ポイント還元のスタンプは「設定 → 表示 → 機能のスタンプ」でまとめて変えられます。</span></div>`;
+  }
   renderColorPicker('mc-color-picker', mcColor, c=>{mcColor=c;refreshMcPickers();});
 }
 function saveMoneyCat() {
@@ -6565,7 +6756,7 @@ function renderMoneyCatList() {
   el.innerHTML = catsSorted.map((c,idx)=>`
     <div class="job-item drag-item${isSortMode('cats')?'':` tapable" onclick="openMoneyCatDetail('${c.id}')`}" data-item-id="${c.id}">
       ${orderBtnsHTML('moveMoneyCat', c.id, idx, catsSorted.length, 'cats')}
-      ${stampHTML(c.stamp)}
+      ${stampHTML(moneyCatStamp(c))}
       <div class="job-item-body"><div class="job-item-name">${escapeHTML(c.name)}</div>
         <div class="job-item-sub">${TYPE_LBL[c.type]||'支出（円）'}</div></div>
     </div>`).join('');
@@ -6726,7 +6917,7 @@ function renderHomeMoney() {
     const effDue = mr.dueDate ? adjustPayDate(mr.dueDate, mr.dueHolidayRule||'none') : '';
     const dueInfo = (effDue && effDue!==mr._date) ? `・期限 ${(+effDue.slice(5,7))}/${(+effDue.slice(8,10))}` : '';
     const paidInfo = (mr.paid && mr.paidDate) ? `・${(+mr.paidDate.slice(5,7))}/${(+mr.paidDate.slice(8,10))}支払済` : '';
-    return `<div class="job-sum-row">${stampHTML(cat?cat.stamp:'💰')}
+    return `<div class="job-sum-row">${stampHTML(moneyCatStamp(cat))}
       <div class="job-sum-name">${escapeHTML(mr.name||(cat?cat.name:''))}${mr.fixed===false?'<span style="font-size:10px;color:var(--text-secondary)">（未定）</span>':''}
         <div class="job-sum-sub">${mr._date.slice(5).replace('-','/')}　${cat?escapeHTML(cat.name):''}${pt?('・'+escapeHTML(pt.name)):''}${mr.repeat==='monthly'?'・毎月':''}${paidInfo}${dueInfo}</div></div>
       <div style="display:flex;align-items:center;gap:8px">
@@ -7394,7 +7585,7 @@ function openWalletDetail(id) {
       [walletEndedLabel(w), walletEndedValue(w)],
       ['利用期間', (w.activeFrom||w.activeTo) ? `${w.activeFrom||''} 〜 ${w.activeTo||''}` : ''],
     ],
-    extraHTML: limitLineHTML(w)||'',
+    extraHTML: (limitLineHTML(w)||'') + (w.type==='card' ? statementBtn('card', id) : ''),
     memo: w.note,
     onEdit: ()=>openWalletModal(id),
     onDelete: ()=>deleteWalletById(id, 'modal-detail'),
@@ -7434,12 +7625,12 @@ function openJobDetail(id) {
   const hist = (j.history||[]).slice().reverse().map(h=>`<div class="detail-row"><span class="dr-label">${(h.date||'').replace(/-/g,'/')}〜${h.note?'<br><span style="font-size:10.5px">'+escapeHTML(h.note)+'</span>':''}</span><span class="dr-val" style="font-size:12px">${escapeHTML(jobChangeText(h))}</span></div>`).join('');
   openDetail({ stamp: stampHTML(j.stamp), name: j.name, sub: payTypeLabel(j.payType),
     rows, memo: j.memo, onEdit: ()=>openJobModal(id),
-    extraHTML: hist ? `<div style="margin-top:10px;font-size:11.5px;color:var(--text-secondary)">設定の変更履歴</div>${hist}` : '' });
+    extraHTML: (hist ? `<div style="margin-top:10px;font-size:11.5px;color:var(--text-secondary)">設定の変更履歴</div>${hist}` : '') + statementBtn('job', id) });
 }
 function openMoneyCatDetail(id) {
   const c = moneyCatById(id); if (!c) return;
   const TYPE_LBL = { expense:'支出（円）', income:'入金・受取（円）', point:'ポイント獲得', pointuse:'ポイント利用' };
-  openDetail({ stamp: stampHTML(c.stamp), name: c.name, sub: TYPE_LBL[c.type]||'支出（円）',
+  openDetail({ stamp: stampHTML(moneyCatStamp(c)), name: c.name, sub: TYPE_LBL[c.type]||'支出（円）',
     rows: [['種類', TYPE_LBL[c.type]||'支出（円）']], onEdit: ()=>openMoneyCatModal(id) });
 }
 // 税金・投資のアイコン（未設定なら種類ごとの既定）
@@ -7471,8 +7662,9 @@ function openTaxDetail(id) {
       ['申告区分', t.declType],
       ['対象者', mo ? `${mo.icon} ${mo.name}` : ''],
       ['支払者', payer ? `${payer.icon} ${payer.name}` : ''],
+      ['まとめ払いの内訳', taxCoverText(t)],
     ],
-    extraHTML: detail, memo: t.memo, onEdit: ()=>openTaxModal(id) });
+    extraHTML: detail + statementBtn('tax', id), memo: t.memo, onEdit: ()=>openTaxModal(id) });
 }
 function openAccountDetail(id) {
   const a = accountListAll().find(x=>x.id===id); if (!a) return;
@@ -7503,7 +7695,7 @@ function openSubscriptionDetail(id) {
   const hist = (sb.history||[]).map(h=>`<div class="detail-row"><span class="dr-label">${h.from||''}〜${h.to||''}</span><span class="dr-val">${fmt(h.amount)}${h.note?` / ${escapeHTML(h.note)}`:''}</span></div>`).join('');
   const mhist = (sb.walletHistory||[]).map(h=>`<div class="detail-row"><span class="dr-label">${(h.ym||'').replace('-','/')}〜 支払方法</span><span class="dr-val">${escapeHTML(payMethodName(h.from))} → ${escapeHTML(payMethodName(h.to))}</span></div>`).join('');
   openDetail({ stamp:`<span style="font-size:21px">${escapeHTML(subStamp(sb))}</span>`, name: sb.name,
-    sub: `${(sb.cycle||'monthly')==='yearly'?`毎年${MONTHS[(sb.month||1)-1]}`:'毎月'}${sb.day>=99?'末':sb.day}日`,
+    sub: `${subCycleText(sb)}${sb.day>=99?'末':sb.day}日`,
     badges,
     rows: [
       ['現在の金額', sb.currency==='USD' ? '$'+Math.round(cur).toLocaleString() : fmt(cur)],
@@ -7514,7 +7706,7 @@ function openSubscriptionDetail(id) {
       ['家事按分', sb.isExpense && sb.businessRatio ? sb.businessRatio+'%' : ''],
       ['メンバー', mo ? `${mo.icon} ${mo.name}` : ''],
     ],
-    extraHTML: periods + hist + mhist, memo: sb.memo, onEdit: ()=>openSubscriptionModal(id) });
+    extraHTML: periods + hist + mhist + statementBtn('sub', id), memo: sb.memo, onEdit: ()=>openSubscriptionModal(id) });
 }
 function openInvestmentDetail(id) {
   const iv = state.investments.find(x=>x.id===id); if (!iv) return;
@@ -7535,7 +7727,7 @@ function openInvestmentDetail(id) {
       ['期間', (iv.activeFrom||iv.activeTo) ? `${iv.activeFrom||''} 〜 ${iv.activeTo||'（継続中）'}` : ''],
       ['メンバー', mo ? `${mo.icon} ${mo.name}` : ''],
     ],
-    extraHTML: hist, memo: iv.memo, onEdit: ()=>openInvestmentModal(id) });
+    extraHTML: hist + statementBtn('invest', id) + (iv.fund ? statementBtn('fund', iv.fund, `銘柄「${iv.fund}」の明細（まとめて）`) : ''), memo: iv.memo, onEdit: ()=>openInvestmentModal(id) });
 }
 function openPointRuleDetail(id) {
   const r = pointRuleById(id); if (!r) return;
@@ -8073,6 +8265,9 @@ function openTaxModal(id) {
     (document.getElementById('tax-member')||{}).value || (t?(t.memberId||''):''));
   document.getElementById('tax-delete-btn').style.display = t?'':'none';
   taxInstallments = t ? JSON.parse(JSON.stringify(t.installments||[])) : [];
+  taxCover = t ? JSON.parse(JSON.stringify(t.coverMembers||[])) : [];
+  document.getElementById('tax-cover-row').style.display = state.members.length>=2 ? '' : 'none';
+  renderTaxCover();
   if (!t) {
     // 新規のときは名称を空にしてからプリセットを反映
     document.getElementById('tax-name').value = '';
@@ -8100,10 +8295,39 @@ function saveTax() {
     payerId: (document.getElementById('tax-payer')||{}).value||'',
     forMemberId: (document.getElementById('tax-for')||{}).value||'',
     prepay: document.getElementById('tax-prepay').value||'',
-    installments: taxInstallments.filter(x=>x.dueDate) };
+    installments: taxInstallments.filter(x=>x.dueDate),
+    coverMembers: taxCover.filter(c=>c.memberId).map(c=>({ memberId:c.memberId, amount: parseFloat(c.amount)||0 })) };
   if (taxEditing) Object.assign(taxEditing, data);
   else state.taxes.push(Object.assign({id:'tx'+Date.now()}, data));
   save(); closeModal('modal-tax'); renderAll(); showToast('保存しました ✓');
+}
+// まとめ払いの内訳（v59）
+let taxCover = [];
+function renderTaxCover() {
+  const el = document.getElementById('tax-cover'); if (!el) return;
+  const members = sortByOrder(state.members||[]);
+  const sum = taxCover.reduce((a,c)=>a+(parseFloat(c.amount)||0),0);
+  const total = parseFloat((document.getElementById('tax-total')||{}).value)||0;
+  el.innerHTML = members.map(mb=>{
+    const c = taxCover.find(x=>x.memberId===mb.id);
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <label style="display:flex;align-items:center;gap:6px;flex:1;font-size:13px;color:var(--text)"><input type="checkbox" class="tc-on" data-mid="${mb.id}" ${c?'checked':''} style="width:auto"> ${mb.icon||''} ${escapeHTML(mb.name)}</label>
+      <input type="number" inputmode="numeric" class="tc-amt" data-mid="${mb.id}" value="${c&&c.amount?c.amount:''}" placeholder="内訳の年額" style="width:130px" ${c?'':'disabled'}>
+    </div>`;
+  }).join('') + (taxCover.length ? `<div class="field-note" style="margin:0">内訳の合計 ${fmt(sum)}${total?`（年間の総額 ${fmt(total)}${sum&&sum!==total?' と '+fmt(Math.abs(total-sum))+' 違います':''}）`:''}</div>` : '');
+  el.querySelectorAll('.tc-on').forEach(cb=>cb.onchange = ()=>{
+    const mid = cb.dataset.mid;
+    if (cb.checked) { if (!taxCover.some(x=>x.memberId===mid)) taxCover.push({ memberId:mid, amount:'' }); }
+    else taxCover = taxCover.filter(x=>x.memberId!==mid);
+    renderTaxCover();
+  });
+  el.querySelectorAll('.tc-amt').forEach(inp=>inp.onchange = ()=>{
+    const c = taxCover.find(x=>x.memberId===inp.dataset.mid); if (c) c.amount = inp.value;
+    renderTaxCover();
+  });
+}
+function taxCoverText(t) {
+  return (t.coverMembers||[]).map(c=>{ const mb = memberById(c.memberId); return `${mb?(mb.icon||'')+mb.name:'?'}${c.amount?' '+fmt(c.amount):''}`; }).join('、');
 }
 function deleteTax() {
   if (!taxEditing) return;
@@ -8164,7 +8388,7 @@ function renderTaxList() {
       ${orderBtnsHTML('moveTax', t.id, state.taxes.indexOf(t), state.taxes.length, 'taxes')}
       <span style="width:28px;text-align:center;font-size:22px;flex-shrink:0">${pre.stamp}</span>
       <div class="job-item-body"><div class="job-item-name">${escapeHTML(t.name)}</div>
-        <div class="job-item-sub">${t.year}年度 / ${t.mode==='lump'?'一括':n+'期分割'} / 計${fmt(total)} / ${paidCnt}件支払済${t.walletId?' / 口座振替':''}</div>
+        <div class="job-item-sub">${t.year}年度 / ${t.mode==='lump'?'一括':n+'期分割'} / 計${fmt(total)} / ${paidCnt}件支払済${t.walletId?' / 口座振替':''}${(t.coverMembers||[]).length?` / まとめ払い（${t.coverMembers.length}人）`:''}</div>
           ${(t.installments||[]).filter(i=>i.paid).map(i=>{
             const w = i.walletId?walletById(i.walletId):null;
             const p = i.pointTypeId?pointTypeById(i.pointTypeId):null;
@@ -8751,7 +8975,8 @@ function expensesByAccount(year) {
     for (let mo=0; mo<12; mo++) {
       const ym = year+'-'+pad(mo+1);
       if (!subActiveAt(sb, ym)) continue;
-      if (cyc==='yearly' && (mo+1)!==(sb.month||1)) continue;
+      if (!subChargesInMonth(sb, mo+1)) continue;
+      if (((sb.overrides||{})[ym]||{}).skip) continue;
       const dim = daysIn(year,mo);
       const isFirst = sb.firstDate && sb.firstDate.slice(0,7)===ym;
       const d = isFirst ? sb.firstDate : dstr(year,mo,sb.day>=99?dim:Math.min(sb.day,dim));
@@ -9172,6 +9397,8 @@ function inCurrentMember(rec) {
   if (cur==='all') return true;
   // 「共有」の項目は誰を選んでも表示
   if (rec && rec.shared) return true;
+  // まとめ払い（v59）：誰の分かに含まれていれば表示（国保など）
+  if (rec && Array.isArray(rec.coverMembers) && rec.coverMembers.some(c=>c.memberId===cur)) return true;
   const mid = rec && rec.memberId ? rec.memberId : selfMemberId();
   return mid === cur;
 }
@@ -9288,6 +9515,10 @@ function applyMemberTheme(mo) {
   document.documentElement.style.setProperty('--footer-bg', color || '#fff');
   // v57: ステータスバー部分の色（ヘッダーと同じ／メンバー色）
   document.documentElement.classList.toggle('status-member', state.settings.statusBarColor==='member');
+  // v59：ぼかし対策の方式（A=既定・B・C・オフ）
+  ['glass-b','glass-c','glass-off'].forEach(c=>document.documentElement.classList.remove(c));
+  const gm = state.settings.glassGuard || 'a';
+  if (gm!=='a') document.documentElement.classList.add('glass-'+gm);
   // ヘッダー・月ナビは念のため明示的にリセット
   const top = document.querySelector('.topbar');
   const mbar = document.getElementById('month-bar');
@@ -9388,9 +9619,12 @@ function addSbActual() {
   if (sbActuals[ym]===undefined) sbActuals[ym] = '';
   renderSbActuals();
 }
+let sbOverrides = {};
 function renderSbActuals() {
   const el = document.getElementById('sb-actuals');
   if (!el) return;
+  // v59：日付の変更・お休みだけの月も一覧に出す
+  Object.keys(sbOverrides).forEach(k=>{ if (sbActuals[k]===undefined) sbActuals[k] = ''; });
   const keys = Object.keys(sbActuals).sort().reverse();
   if (!keys.length) { el.innerHTML='<div class="field-note" style="margin:0 0 6px">まだ入力がありません</div>'; return; }
   el.innerHTML = keys.map(ym=>`
@@ -9401,18 +9635,41 @@ function renderSbActuals() {
           <input type="number" inputmode="numeric" class="sa-amt" value="${sbActuals[ym]||''}" placeholder="2200" style="flex:1">
           <button class="pat-del" onclick="removeSbActual('${ym}')">✕</button>
         </div></div>
+      <div><label>日付を変える（任意）</label><input type="date" class="sa-date" value="${(sbOverrides[ym]||{}).date||''}"></div>
+      <div><label>&nbsp;</label><label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text)"><input type="checkbox" class="sa-skip" ${(sbOverrides[ym]||{}).skip?'checked':''} style="width:auto"> この月はお休み（請求なし）</label></div>
     </div>`).join('');
   el.querySelectorAll('[data-ym]').forEach(row=>{
     const ym = row.dataset.ym;
     row.querySelector('.sa-amt').oninput = e=>{ sbActuals[ym] = parseFloat(e.target.value)||''; };
+    row.querySelector('.sa-date').onchange = e=>{ sbOverrides[ym] = Object.assign({}, sbOverrides[ym], { date: e.target.value }); };
+    row.querySelector('.sa-skip').onchange = e=>{ sbOverrides[ym] = Object.assign({}, sbOverrides[ym], { skip: e.target.checked }); };
     row.querySelector('.sa-ym').onchange = e=>{
       const nv = e.target.value;
-      if (nv && nv!==ym) { sbActuals[nv] = sbActuals[ym]; delete sbActuals[ym]; renderSbActuals(); }
+      if (nv && nv!==ym) { sbActuals[nv] = sbActuals[ym]; delete sbActuals[ym];
+        if (sbOverrides[ym]) { sbOverrides[nv] = sbOverrides[ym]; delete sbOverrides[ym]; }
+        renderSbActuals(); }
     };
   });
 }
-function removeSbActual(ym){ delete sbActuals[ym]; renderSbActuals(); }
+function removeSbActual(ym){ delete sbActuals[ym]; delete sbOverrides[ym]; renderSbActuals(); }
 // その月の実額（なければ元の金額）
+// その月に請求があるか（毎月／◯か月ごと／毎年）v59
+function subChargesInMonth(sb, m1) {
+  const cyc = sb.cycle||'monthly';
+  if (cyc==='yearly') return m1===(sb.month||1);
+  if (cyc==='nmonth') { const n = sb.everyN||2; return (((m1-(sb.month||1)) % n) + n) % n === 0; }
+  return true;
+}
+function subCycleText(sb) {
+  const cyc = sb.cycle||'monthly';
+  if (cyc==='yearly') return `毎年${MONTHS[(sb.month||1)-1]}`;
+  if (cyc==='nmonth') {
+    const n = sb.everyN||2;
+    const ms = []; for (let k=0;k<12;k++){ const mm=((sb.month||1)-1+k*n)%12+1; if(!ms.includes(mm)) ms.push(mm); if (ms.length>=12/n) break; }
+    return `${n}か月ごと（${ms.sort((a,b)=>a-b).join('・')}月）`;
+  }
+  return '毎月';
+}
 function subActualAmount(sb, ym) {
   const a = (sb.actuals||{})[ym];
   if (a) return { amount: a, isActual: true };
@@ -9421,9 +9678,11 @@ function subActualAmount(sb, ym) {
 function onSbCycleChange() {
   const v = document.getElementById('sb-cycle').value;
   const cl = document.getElementById('sb-amount-label');
-  if (cl) cl.textContent = (v==='yearly'?'年額':'月額') + (document.getElementById('sb-currency').value==='USD'?'（ドル）':'（円）');
+  if (cl) cl.textContent = (v==='yearly'?'年額':v==='nmonth'?'1回の金額':'月額') + (document.getElementById('sb-currency').value==='USD'?'（ドル）':'（円）');
   const row = document.getElementById('sb-month-row');
-  row.style.display = (v==='yearly')?'':'none';
+  row.style.display = (v==='yearly'||v==='nmonth')?'':'none';
+  document.getElementById('sb-everyn-row').style.display = (v==='nmonth')?'':'none';
+  const ml = row.querySelector('label'); if (ml) ml.textContent = (v==='nmonth') ? '請求がある月（どれか1つ）' : '請求月';
   const sel = document.getElementById('sb-month');
   if (!sel.options.length) {
     sel.innerHTML = MONTHS.map((mn,i)=>`<option value="${i+1}">${mn}</option>`).join('');
@@ -9539,6 +9798,9 @@ function openSubscriptionModal(id) {
   onSbCurrencyChange();
   onSbCycleChange();
   document.getElementById('sb-month').value = sb?String(sb.month||1):'1';
+  document.getElementById('sb-everyn').value = sb?String(sb.everyN||2):'2';
+  sbOverrides = sb ? JSON.parse(JSON.stringify(sb.overrides||{})) : {};
+  renderSbActuals();
   sbHistory = sb?JSON.parse(JSON.stringify(sb.history||[])):[];
   renderSbHistory();
   sbIsExpense = sb?!!sb.isExpense:false;
@@ -9577,6 +9839,8 @@ function saveSubscription() {
     trialTo: document.getElementById('sb-trial-to').value||'',
     cycle: document.getElementById('sb-cycle').value,
     month: parseInt(document.getElementById('sb-month').value)||1,
+    everyN: parseInt(document.getElementById('sb-everyn').value)||2,
+    overrides: Object.fromEntries(Object.entries(sbOverrides).filter(([k,v])=>v && (v.date || v.skip))),
     currency: document.getElementById('sb-currency').value,
     history: sbHistory.filter(h=>h.from&&h.amount),
     actuals: Object.fromEntries(Object.entries(sbActuals).filter(([k,v])=>v)),
@@ -9628,10 +9892,13 @@ function subscriptionItemsOn(ds) {
     // トライアル中は請求なし
     if (sb.trialTo && ds <= sb.trialTo) return;
     // 毎年の場合は指定月のみ
-    if ((sb.cycle||'monthly')==='yearly' && (m+1)!==(sb.month||1)) return;
+    if (!subChargesInMonth(sb, m+1)) return;
+    // 月ごとの変更（v59）：お休み（請求なし）・日付の変更（例：習い事の2回目の日に現金で払う）
+    const ov = (sb.overrides||{})[ym] || {};
+    if (ov.skip) return;
     // 初回だけ日付が違う場合
     const isFirstMonth = sb.firstDate && sb.firstDate.slice(0,7)===ym;
-    const day = isFirstMonth ? +sb.firstDate.slice(8,10)
+    const day = ov.date ? +ov.date.slice(8,10) : isFirstMonth ? +sb.firstDate.slice(8,10)
       : (sb.day>=99 ? dim : Math.min(sb.day,dim));
     // 初回より前の月は請求なし
     if (sb.firstDate && ds < sb.firstDate) return;
@@ -9643,7 +9910,7 @@ function subscriptionItemsOn(ds) {
       const isUSD = (sb.currency==='USD') && !act.isActual;
       out.push({ kind:'subsc', stamp:subStamp(sb), color:PALETTE[6]||PALETTE[1],
         label:`${sb.name}`, short:(sb.shortName||sb.name),
-        sub:`${subGenre(sb).label}${(sb.cycle||'monthly')==='yearly'?'（年額）':''}${wid?' / '+payMethodName(wid):''}${isUSD?' / USD':''}${act.isActual?' / 確定額':''}`,
+        sub:`${subGenre(sb).label}${(sb.cycle||'monthly')==='yearly'?'（年額）':''}${ov.date?' / 日付変更':''}${wid?' / '+payMethodName(wid):''}${isUSD?' / USD':''}${act.isActual?' / 確定額':''}`,
         amount:0, subAmount:amt, subUSD:isUSD, walletAt: (wid==='__cash' ? '' : wid),
         subPoint:sb.point||0, subPtUnit:(pt?pt.unit:'pt'), memo:sb.memo||'', ref:sb });
     }
@@ -9678,7 +9945,7 @@ function subRowHTML(sb, idx, list) {
       ${orderBtnsHTML('moveSubscription', sb.id, idx, list.length, 'subs')}
       <span style="width:28px;text-align:center;font-size:21px;flex-shrink:0">${escapeHTML(subStamp(sb))}</span>
       <div class="job-item-body"><div class="job-item-name">${escapeHTML(sb.name)}${inTrial?' <span class="badge-sm bd-limit">無料期間中</span>':''}${ended?' <span class="badge-sm bd-type">解約済</span>':''}</div>
-        <div class="job-item-sub">${sb.currency==='USD'?'$'+Math.round(curAmt).toLocaleString():fmt(curAmt)} / ${(sb.cycle||'monthly')==='yearly'?`毎年${MONTHS[(sb.month||1)-1]}`:'毎月'}${sb.day>=99?'末':sb.day}日${sb.payCash?' / 現金':(w?' / '+escapeHTML(w.name):'')}${(sb.history||[]).length?` / 変更${sb.history.length}件`:''}</div>
+        <div class="job-item-sub">${sb.currency==='USD'?'$'+Math.round(curAmt).toLocaleString():fmt(curAmt)} / ${subCycleText(sb)}${sb.day>=99?'末':sb.day}日${sb.payCash?' / 現金':(w?' / '+escapeHTML(w.name):'')}${(sb.history||[]).length?` / 変更${sb.history.length}件`:''}</div>
         ${sb.point?`<div class="limit-line">還元 <b>+${Math.round(sb.point).toLocaleString()}${pt?pt.unit:'pt'}</b>${pt?`（${escapeHTML(pt.name)}）`:''}</div>`:''}
         ${sb.trialTo?`<div class="limit-line">無料期間 〜${sb.trialTo.replace(/-/g,'/')}</div>`:''}</div>
     </div>`;
@@ -10094,6 +10361,8 @@ function openInvestmentModal(id) {
   });
   document.getElementById('inv-title').textContent = iv?'投資・積立を編集':'投資・積立を登録';
   document.getElementById('inv-name').value = iv?iv.name:'';
+  document.getElementById('inv-fund').value = iv?(iv.fund||''):'';
+  document.getElementById('inv-fund-list').innerHTML = [...new Set(state.investments.map(x=>x.fund).filter(Boolean))].map(f=>`<option value="${escapeHTML(f)}">`).join('');
   document.getElementById('inv-stamp').value = iv?(iv.stamp||''):'';
   document.getElementById('inv-kind').value = iv?iv.kind:'nisa';
   document.getElementById('inv-amount').value = iv?iv.amount:'';
@@ -10127,7 +10396,7 @@ function saveInvestment() {
   const ivStampVal = document.getElementById('inv-stamp').value.trim();
   const amount = parseFloat(document.getElementById('inv-amount').value)||0;
   if (!name || !amount) { showToast('名称と金額を入力してください'); return; }
-  const data = { name, stamp: ivStampVal, kind:document.getElementById('inv-kind').value, amount,
+  const data = { name, stamp: ivStampVal, fund: document.getElementById('inv-fund').value.trim(), kind:document.getElementById('inv-kind').value, amount,
     day: parseInt(document.getElementById('inv-day').value)||1,
     walletId: document.getElementById('inv-wallet').value||'',
     payMode: document.getElementById('inv-paymode').value,
@@ -11902,7 +12171,7 @@ function scrollToSection(id) { scrollToEl(document.getElementById(id)); }
 // 参照先がDOMに存在するかを検証する。v29のサブスク事故（削除済みIDへの参照でJSが停止）の再発防止。
 // 実行方法：設定 → データ → 「ID参照チェック」、または URL末尾に #debug を付けて開く（結果はコンソール）。
 // UIを削除・改名したら必ずこれを実行すること。JSが後から生成するIDは下の除外リストに登録する。
-const DIAG_DYNAMIC_IDS = new Set(['wal-acc-hist','sb-wallet-hist','ios-glass-guard','status-fill','rec-duedate','rec-duetime','lsg-date','ps-subtotal','ps-withtax','rec-amtchg-area','rec-newamount','rec-chgdate','rec-chgnote',
+const DIAG_DYNAMIC_IDS = new Set(['inv-fund-list','tax-cover','wal-acc-hist','sb-wallet-hist','ios-glass-guard','status-fill','rec-duedate','rec-duetime','lsg-date','ps-subtotal','ps-withtax','rec-amtchg-area','rec-newamount','rec-chgdate','rec-chgnote',
   'dd-subtotal','ex-total','jd-total','rec-amount','rec-break','rec-date','rec-end',
   'rec-enddate','rec-memo','rec-name','rec-pat-chips','rec-preview','rec-start',
   'rec-transport','rec-wage','rec-workhours','rec-hourly-note','save-error-banner','boot-error-banner','rescue-info','fatal-error-banner','fatal-error-msg',
