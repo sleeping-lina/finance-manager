@@ -345,6 +345,14 @@ try { if (/[?&]sb=black/.test(location.search)) document.getElementById('meta-sb
   /* v60：年月ごとの明細・月ごとの入力は、詳細シートより手前に出す */
   #modal-statement { z-index: 130; }
   #modal-submonth { z-index: 140; }
+  .gear-btn { background: rgba(255,255,255,.12); border: none; border-radius: 10px; width: 36px; height: 36px; font-size: 18px; line-height: 1; cursor: pointer; padding: 0; flex-shrink: 0; }
+  .gear-btn.active { background: rgba(44,213,160,.35); }
+  #poi-subtabs { margin-top: 0; }
+  .tx-row { display: flex; justify-content: space-between; gap: 10px; padding: 7px 2px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .tx-row .tx-l { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .tx-row .tx-v { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .tx-head { font-size: 12px; font-weight: 700; color: var(--text-secondary); margin: 14px 2px 4px; }
+  .tx-job { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
   #ios-glass-guard { position: fixed; top: 0; left: 0; width: 100%; height: var(--blurFixH, 11px); background-color: #ffffff01; opacity: .1; pointer-events: none; z-index: 10000; }
   html.glass-off #ios-glass-guard { display: none; }
   #status-fill { display: none; position: fixed; top: 0; left: 0; right: 0; height: var(--safe-top); background: var(--footer-bg, #fff); pointer-events: none; z-index: 9998; }
@@ -422,9 +430,13 @@ try { if (/[?&]sb=black/.test(location.search)) document.getElementById('meta-sb
       <span class="topbar-logo">Finance<span>Mgr</span></span>
       <span class="version-badge" id="version-badge">…</span>
     </div>
-    <div class="topbar-total">
-      <div class="topbar-total-label">今月合計</div>
-      <div class="topbar-total-amount" id="topbar-total">¥0</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="topbar-total">
+        <div class="topbar-total-label">今月合計</div>
+        <div class="topbar-total-amount" id="topbar-total">¥0</div>
+      </div>
+      <!-- v61：設定はタブからここ（歯車）へ -->
+      <button id="gear-btn" class="gear-btn" onclick="showPage('settings', null)" aria-label="設定">⚙️</button>
     </div>
   </header>
 
@@ -511,124 +523,27 @@ try { if (/[?&]sb=black/.test(location.search)) document.getElementById('meta-sb
         <div class="card-title">記録する</div>
         <div class="form-grid" id="input-form-area"></div>
       </div>
-    </div>
-
-    <div class="page" id="page-poikatsu">
-      <div class="page-head">
-        <div><div class="page-title">ポイ活</div><div class="page-sub">還元率・経路・付与ルール</div></div>
-      </div>
-      <div class="subtabs">
-        <div class="subtab active" onclick="showSub('poi','routes',this)">チャージ経路</div>
-        <div class="subtab" onclick="showSub('poi','rates',this)">還元率一覧</div>
-        <div class="subtab" onclick="showSub('poi','rules',this)">付与ルール</div>
-        <div class="subtab" onclick="showSub('poi','points',this)">ポイント</div>
-      </div>
-
-      <div class="subpage active" id="sub-poi-routes">
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <div class="card-title" style="margin-bottom:0">チャージ経路</div>
-            <div style="display:flex;gap:6px;align-items:center">
-              <div class="seg seg-sm">
-                <div class="seg-btn active" data-rs="route" onclick="setRouteSort('route',this)">順</div>
-                <div class="seg-btn" data-rs="rate" onclick="setRouteSort('rate',this)">還元率</div>
-              </div>
-              <span id="routes-head" style="display:flex;gap:5px"></span>
-            </div>
-          </div>
-          <div id="poi-route-list"></div>
+      <!-- v61：設定の「仕事」にあった一覧をここへ -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div class="card-title" style="margin-bottom:0">仕事の管理</div>
+          <div style="display:flex;gap:5px" id="jobs-head"></div>
         </div>
-      </div>
-
-      <div class="subpage" id="sub-poi-rates">
-        <div class="card">
-          <div class="card-title">カード・決済の還元率</div>
-          <div id="poi-rate-index"></div>
-          <div id="poi-wallet-list"></div>
-          <div class="field-note">登録・編集は「設定 → 資金・決済」から行えます。</div>
-        </div>
-      </div>
-
-      <div class="subpage" id="sub-poi-rules">
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div class="card-title" style="margin-bottom:0">付与タイミングのルール</div>
-            <div style="display:flex;gap:5px" id="prules-head"></div>
-          </div>
-          <div id="poi-pointrule-list"></div>
-          <div class="field-note">「楽天カード利用分は翌15日」のように、利用先ごとの付与タイミングを登録できます。</div>
-        </div>
-      </div>
-
-      <div class="subpage" id="sub-poi-points">
-        <div id="poi-expiry-alert"></div>
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div class="card-title" style="margin-bottom:0">ポイント・マイルの種類</div>
-            <div style="display:flex;gap:5px" id="pts-head"></div>
-          </div>
-          <div id="poi-pointtype-list"></div>
-        </div>
+        <div id="job-list"></div>
       </div>
     </div>
 
-    <div class="page" id="page-settings">
-      <div class="page-head"><div><div class="page-title">設定</div><div class="page-sub">登録とアプリ設定</div></div></div>
+    <!-- v61：「お金」タブ（設定にあった固定費・税金・積立・預金・カードと口座、ポイ活タブをここにまとめた） -->
+    <div class="page" id="page-money">
+      <div class="page-head"><div><div class="page-title">お金</div><div class="page-sub">固定費・税金・積立・カードと口座・ポイ活</div></div></div>
       <div class="subtabs">
-        <div class="subtab active" onclick="showSub('set','money',this)">資金・決済</div>
-        <div class="subtab" onclick="showSub('set','members',this)">家族</div>
-        <div class="subtab" onclick="showSub('set','jobs',this)">仕事</div>
-        <div class="subtab" onclick="showSub('set','fixed',this)">固定費・資産</div>
-        <div class="subtab" onclick="showSub('set','cats',this)">カテゴリ</div>
-        <div class="subtab" onclick="showSub('set','tax',this)">確定申告</div>
-        <div class="subtab" onclick="showSub('set','display',this)">表示</div>
-        <div class="subtab" onclick="showSub('set','data',this)">データ</div>
+        <div class="subtab active" onclick="showSub('mon','fixed',this)">固定費</div>
+        <div class="subtab" onclick="showSub('mon','taxes',this)">税金・保険料</div>
+        <div class="subtab" onclick="showSub('mon','invest',this)">積立・預金</div>
+        <div class="subtab" onclick="showSub('mon','wallets',this)">カード・口座</div>
+        <div class="subtab" onclick="showSub('mon','poi',this)">ポイ活</div>
       </div>
-
-      <div class="subpage active" id="sub-set-money">
-        <div class="card">
-          <div class="card-title">資金・決済手段</div>
-          <div id="wallet-index"></div>
-          <div id="wallet-list"></div>
-        </div>
-      </div>
-
-      <div class="subpage" id="sub-set-members">
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div class="card-title" style="margin-bottom:0">メンバー</div>
-            <div style="display:flex;gap:5px" id="members-head"></div>
-          </div>
-          <div id="member-list"></div>
-          <div class="field-note">メンバーを登録すると、上部で切り替えて記録を絞り込めます。</div>
-        </div>
-        <div class="card">
-          <div class="card-title">記録の一括操作</div>
-          <div class="settings-row" style="cursor:pointer" onclick="openBulkMoveModal()">
-            <span>記録のメンバーをまとめて変更</span><span style="font-size:11px;color:var(--mint-dim)">開く</span></div>
-          <div class="settings-row" style="cursor:pointer" onclick="openBulkCopyModal()">
-            <span>資金・決済手段を他のメンバーにコピー</span><span style="font-size:11px;color:var(--mint-dim)">開く</span></div>
-        </div>
-      </div>
-
-      <div class="subpage" id="sub-set-jobs">
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div class="card-title" style="margin-bottom:0">仕事の管理</div>
-            <div style="display:flex;gap:5px" id="jobs-head"></div>
-          </div>
-          <div id="job-list"></div>
-        </div>
-      </div>
-
-      <div class="subpage" id="sub-set-fixed">
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div class="card-title" style="margin-bottom:0">税金・保険料・年金</div>
-            <div style="display:flex;gap:5px" id="taxes-head"></div>
-          </div>
-          <div id="tax-list"></div>
-        </div>
+      <div class="subpage active" id="sub-mon-fixed">
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <div class="card-title" style="margin-bottom:0">定期的な支払い</div>
@@ -636,6 +551,17 @@ try { if (/[?&]sb=black/.test(location.search)) document.getElementById('meta-sb
           </div>
           <div id="subscription-list"></div>
         </div>
+      </div>
+      <div class="subpage" id="sub-mon-taxes">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="card-title" style="margin-bottom:0">税金・保険料・年金</div>
+            <div style="display:flex;gap:5px" id="taxes-head"></div>
+          </div>
+          <div id="tax-list"></div>
+        </div>
+      </div>
+      <div class="subpage" id="sub-mon-invest">
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <div class="card-title" style="margin-bottom:0">投資・積立（NISA・iDeCoなど）</div>
@@ -651,32 +577,95 @@ try { if (/[?&]sb=black/.test(location.search)) document.getElementById('meta-sb
           <div id="poi-deposit-list"></div>
         </div>
       </div>
-
-      <div class="subpage" id="sub-set-cats">
+      <div class="subpage" id="sub-mon-wallets">
         <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div class="card-title" style="margin-bottom:0">お金・ポイントのカテゴリ</div>
-            <div style="display:flex;gap:5px" id="cats-head"></div>
-          </div>
-          <div id="moneycat-list"></div>
-        </div>
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div class="card-title" style="margin-bottom:0">チャージのテンプレート</div>
-            <div style="display:flex;gap:5px" id="tpls-head"></div>
-          </div>
-          <div id="charge-tpl-list"></div>
+          <div class="card-title">資金・決済手段</div>
+          <div id="wallet-index"></div>
+          <div id="wallet-list"></div>
         </div>
       </div>
+      <div class="subpage" id="sub-mon-poi">
+        <div class="subtabs" id="poi-subtabs">
+          <div class="subtab active" onclick="showSub('poi','routes',this)">チャージ経路</div>
+          <div class="subtab" onclick="showSub('poi','rates',this)">還元率一覧</div>
+          <div class="subtab" onclick="showSub('poi','rules',this)">付与ルール</div>
+          <div class="subtab" onclick="showSub('poi','points',this)">ポイント</div>
+        </div>
+        <div class="subpage active" id="sub-poi-routes">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <div class="card-title" style="margin-bottom:0">チャージ経路</div>
+              <div style="display:flex;gap:6px;align-items:center">
+                <div class="seg seg-sm">
+                  <div class="seg-btn active" data-rs="route" onclick="setRouteSort('route',this)">順</div>
+                  <div class="seg-btn" data-rs="rate" onclick="setRouteSort('rate',this)">還元率</div>
+                </div>
+                <span id="routes-head" style="display:flex;gap:5px"></span>
+              </div>
+            </div>
+            <div id="poi-route-list"></div>
+          </div>
+        </div>
+        <div class="subpage" id="sub-poi-rates">
+          <div class="card">
+            <div class="card-title">カード・決済の還元率</div>
+            <div id="poi-rate-index"></div>
+            <div id="poi-wallet-list"></div>
+            <div class="field-note">登録・編集は「設定 → 資金・決済」から行えます。</div>
+          </div>
+        </div>
+        <div class="subpage" id="sub-poi-rules">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <div class="card-title" style="margin-bottom:0">付与タイミングのルール</div>
+              <div style="display:flex;gap:5px" id="prules-head"></div>
+            </div>
+            <div id="poi-pointrule-list"></div>
+            <div class="field-note">「楽天カード利用分は翌15日」のように、利用先ごとの付与タイミングを登録できます。</div>
+          </div>
+        </div>
+        <div class="subpage" id="sub-poi-points">
+          <div id="poi-expiry-alert"></div>
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <div class="card-title" style="margin-bottom:0">ポイント・マイルの種類</div>
+              <div style="display:flex;gap:5px" id="pts-head"></div>
+            </div>
+            <div id="poi-pointtype-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-      <div class="subpage" id="sub-set-tax">
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <div class="card-title" style="margin-bottom:0">対象年</div>
+    <!-- v61：「申告」タブ（確定申告。設定から独立） -->
+    <div class="page" id="page-tax">
+      <div class="page-head"><div><div class="page-title">申告</div><div class="page-sub">確定申告の準備（収入・経費・控除・まとめ）</div></div></div>
+      <div class="subtabs">
+        <div class="subtab active" onclick="showSub('tx','income',this)">① 収入</div>
+        <div class="subtab" onclick="showSub('tx','expense',this)">② 経費</div>
+        <div class="subtab" onclick="showSub('tx','deduct',this)">③ 控除</div>
+        <div class="subtab" onclick="showSub('tx','summary',this)">④ まとめ</div>
+      </div>
+      <div class="card" style="padding:10px 14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <div class="card-title" style="margin-bottom:0">対象年</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <div class="seg seg-sm" id="tax-basis-seg">
+              <div class="seg-btn" data-tb="accrual" onclick="setTaxBasis('accrual',this)">働いた日</div>
+              <div class="seg-btn" data-tb="cash" onclick="setTaxBasis('cash',this)">入金日</div>
+            </div>
             <select id="tax-year-sel" onchange="setTaxYear(this.value)" style="width:auto;padding:6px 10px"></select>
           </div>
-          <div id="tax-summary"></div>
         </div>
+        <div id="tax-summary" style="margin-top:10px"></div>
+      </div>
+      <div class="subpage active" id="sub-tx-income">
+        <div class="card">
+          <div class="card-title">収入（仕事ごと）</div>
+          <div id="tax-income-list"></div>
+        </div>
+      </div>
+      <div class="subpage" id="sub-tx-expense">
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <div class="card-title" style="margin-bottom:0">経費（科目別）</div>
@@ -695,12 +684,69 @@ try { if (/[?&]sb=black/.test(location.search)) document.getElementById('meta-sb
             <div class="field-note">チェックを外した科目は選択肢に出ません。よく使うものだけ残せます。</div>
           </div>
         </div>
+      </div>
+      <div class="subpage" id="sub-tx-deduct">
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <div class="card-title" style="margin-bottom:0">所得控除</div>
             <div style="display:flex;gap:5px" id="deduct-head"></div>
           </div>
           <div id="tax-deduction-list"></div>
+        </div>
+      </div>
+      <div class="subpage" id="sub-tx-summary">
+        <div class="card">
+          <div class="card-title">申告書に書き写す数字</div>
+          <div id="tax-final"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">必要な書類のチェック</div>
+          <div id="tax-docs"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-settings">
+      <div class="page-head"><div><div class="page-title">設定</div><div class="page-sub">家族・カテゴリ・表示・データ</div></div></div>
+      <div class="subtabs">
+        <div class="subtab active" onclick="showSub('set','members',this)">家族</div>
+        <div class="subtab" onclick="showSub('set','cats',this)">カテゴリ</div>
+        <div class="subtab" onclick="showSub('set','display',this)">表示</div>
+        <div class="subtab" onclick="showSub('set','data',this)">データ</div>
+      </div>
+
+      <div class="subpage active" id="sub-set-members">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="card-title" style="margin-bottom:0">メンバー</div>
+            <div style="display:flex;gap:5px" id="members-head"></div>
+          </div>
+          <div id="member-list"></div>
+          <div class="field-note">メンバーを登録すると、上部で切り替えて記録を絞り込めます。</div>
+        </div>
+        <div class="card">
+          <div class="card-title">記録の一括操作</div>
+          <div class="settings-row" style="cursor:pointer" onclick="openBulkMoveModal()">
+            <span>記録のメンバーをまとめて変更</span><span style="font-size:11px;color:var(--mint-dim)">開く</span></div>
+          <div class="settings-row" style="cursor:pointer" onclick="openBulkCopyModal()">
+            <span>資金・決済手段を他のメンバーにコピー</span><span style="font-size:11px;color:var(--mint-dim)">開く</span></div>
+        </div>
+      </div>
+
+      <div class="subpage" id="sub-set-cats">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="card-title" style="margin-bottom:0">お金・ポイントのカテゴリ</div>
+            <div style="display:flex;gap:5px" id="cats-head"></div>
+          </div>
+          <div id="moneycat-list"></div>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div class="card-title" style="margin-bottom:0">チャージのテンプレート</div>
+            <div style="display:flex;gap:5px" id="tpls-head"></div>
+          </div>
+          <div id="charge-tpl-list"></div>
         </div>
       </div>
 
@@ -830,7 +876,7 @@ try { if (/[?&]sb=black/.test(location.search)) document.getElementById('meta-sb
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v60</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v61</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
           <div id="vp-info" style="margin-top:2px;opacity:.7"></div>
         </div>
       </div>
@@ -841,8 +887,8 @@ try { if (/[?&]sb=black/.test(location.search)) document.getElementById('meta-sb
     <div class="tab active" onclick="showPage('calendar', this)"><span class="tab-icon">🗓</span><span class="tab-label">カレンダー</span></div>
     <div class="tab" onclick="showPage('home', this)"><span class="tab-icon">📊</span><span class="tab-label">ホーム</span></div>
     <div class="tab" onclick="showPage('input', this)"><span class="tab-icon">💼</span><span class="tab-label">仕事</span></div>
-    <div class="tab" onclick="showPage('poikatsu', this)"><span class="tab-icon">🪙</span><span class="tab-label">ポイ活</span></div>
-    <div class="tab" onclick="showPage('settings', this)"><span class="tab-icon">⚙️</span><span class="tab-label">設定</span></div>
+    <div class="tab" onclick="showPage('money', this)"><span class="tab-icon">🪙</span><span class="tab-label">お金</span></div>
+    <div class="tab" onclick="showPage('tax', this)"><span class="tab-icon">🧾</span><span class="tab-label">申告</span></div>
   </nav>
 </div>
 
@@ -978,6 +1024,14 @@ try { if (/[?&]sb=black/.test(location.search)) document.getElementById('meta-sb
       <div class="form-group" id="job-duetime-row" style="display:none"><label>期日の既定の時刻（案件）</label>
         <input type="time" id="job-duetime" placeholder="18:00">
         <div class="field-note">案件の記録で期日の日付を入れたとき、時刻が空ならこの時刻が入ります。</div></div>
+      <div class="form-group"><label>確定申告での区分</label>
+        <select id="job-inctype">
+          <option value="">自動（時給・月額＝給与／案件＝雑所得）</option>
+          <option value="salary">給与</option>
+          <option value="misc">雑所得（業務）</option>
+          <option value="business">事業所得</option>
+          <option value="none">申告に入れない</option>
+        </select></div>
       <div class="form-group"><label>源泉所得税の税率（%・任意）</label>
         <input type="number" inputmode="decimal" step="0.001" id="job-whrate" placeholder="例：10.21">
         <div class="field-note">給与明細や契約にある税率を入れてください。実受取の明細に「源泉所得税（◯%）」を自動で入れます（時給制は交通費を除いた額、案件は報酬額にかけて1円未満切り捨て）。</div></div>
@@ -2260,7 +2314,7 @@ try { if (/[?&]sb=black/.test(location.search)) document.getElementById('meta-sb
      v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
      バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
 <script>
-window.APP_BOOT_VERSION = '60';
+window.APP_BOOT_VERSION = '61';
 // v49: iOS ホーム画面アプリの高さ補正
 // ステータスバー透過（black-translucent）で起動すると、iOS が画面の高さをステータスバー分だけ短く報告し、
 // フッターが持ち上がって下に白い帯ができることがある。画面の実寸（screen）を使って高さを決める。
@@ -2335,7 +2389,7 @@ window.addEventListener('orientationchange', function(){ setTimeout(window.fixVi
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '60';
+const APP_VERSION = '61';
 const SCHEMA_VERSION = 33;
 const STORAGE_KEY = 'financeManager';
 
@@ -2418,7 +2472,7 @@ function defaultState() {
   return { schemaVersion: SCHEMA_VERSION, jobs: [], records: [], events: [], checks: [],
     moneyCats: defaultMoneyCats(), moneyRecs: [],
     wallets: defaultWallets(), charges: [], chargeTemplates: [], pointTypes: defaultPointTypes(),
-    chargeRoutes: [], deposits: [], taxes: [], pointRules: [], lends: [], lendSettlements: [], investments: [], subscriptions: [],
+    taxDocs: {}, chargeRoutes: [], deposits: [], taxes: [], pointRules: [], lends: [], lendSettlements: [], investments: [], subscriptions: [],
     payslips: [],
     members: [], deductions: [], accounts: [], lendPresets: {whos:[],names:[]},
     settings: { hoursFormat:'decimal', amountShow:'on', amountFormat:'k',
@@ -3140,6 +3194,7 @@ function migrate(data) {
   data.pointRules = data.pointRules||[];
   data.lends = data.lends||[];
   data.lendSettlements = Array.isArray(data.lendSettlements) ? data.lendSettlements : [];   // まとめて精算の記録（v54）
+  data.taxDocs = (data.taxDocs && typeof data.taxDocs==='object') ? data.taxDocs : {};   // 申告の書類チェック（v61）
   data.investments = data.investments||[];
   data.subscriptions = data.subscriptions||[];
   data.members = data.members||[];
@@ -3342,9 +3397,16 @@ function showPage(id, el) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   if (el) el.classList.add('active');
+  const gb = document.getElementById('gear-btn'); if (gb) gb.classList.toggle('active', id==='settings');
   updateMonthNav();
   renderAll();
   resetScroll();
+}
+// 「お金」タブの中の小タブへ直接移動する（v61）
+function goMoney(key) {
+  showPage('money', document.querySelectorAll('.tabbar .tab')[3]);
+  const t = [...document.querySelectorAll('#page-money > .subtabs .subtab')].find(x=>(x.getAttribute('onclick')||'').includes(`'mon','${key}'`));
+  showSub('mon', key, t||null);
 }
 function openModal(id){
   const ov = document.getElementById(id);
@@ -3441,7 +3503,7 @@ function openYmPicker() {
 function applyYm(){ calYear=ymY; calMonth=ymM; state.homeYear=calYear; state.homeMonth=calMonth; save(); closeModal('modal-ym'); renderAll(); updateMonthNav(); }
 // 固定月ナビの表示制御
 // サブタブ切替
-const subState = { poi:'cards', set:'jobs' };
+const subState = { poi:'routes', set:'members', mon:'fixed', tx:'income' };
 function showSub(group, key, el) {
   subState[group] = key;
   const prefix = 'sub-'+group+'-';
@@ -5600,6 +5662,7 @@ function openJobModal(id) {
   document.getElementById('job-taxded').value  = jobEditing?(jobEditing.taxDeductRate??''):'';
   document.getElementById('job-whrate').value  = jobEditing?(jobEditing.withholdingRate??''):'';
   document.getElementById('job-duetime').value = jobEditing?(jobEditing.dueTimeDefault||''):'';
+  document.getElementById('job-inctype').value = jobEditing?(jobEditing.incomeType||''):'';
   document.getElementById('job-closing-m').value = jobEditing?(jobEditing.closingDay||''):'';
   renderJobDeductions();
   document.getElementById('job-name').value = jobEditing?jobEditing.name:'';
@@ -5701,6 +5764,7 @@ function saveJob() {
     taxDeductRate: numOrNull(document.getElementById('job-taxded').value),
     withholdingRate: numOrNull(document.getElementById('job-whrate').value),
     dueTimeDefault: document.getElementById('job-duetime').value || '',
+    incomeType: document.getElementById('job-inctype').value || '',
     shortName: document.getElementById('job-short').value.trim(),
     paydayShortName: document.getElementById('job-payday-short').value.trim(),
     wage:parseFloat(document.getElementById('job-wage').value)||0,
@@ -5896,8 +5960,8 @@ function renderInputTab() {
   const el = document.getElementById('input-form-area');
   const jobs = state.jobs.filter(j=>j.active&&j.payType!=='monthly'&&inCurrentMember(j));
   if (!jobs.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">💼</div><div class="empty-text">記録できる仕事がありません。<br>設定タブから仕事を登録してください。<br><span style="font-size:11px">（月額固定の仕事は自動計上のため入力不要です）</span></div></div>'+
-      '<button class="btn btn-primary btn-block" onclick="showPage(\'settings\',document.querySelectorAll(\'.tab\')[3])">設定へ</button>';
+    el.innerHTML = '<div class="empty"><div class="empty-icon">💼</div><div class="empty-text">記録できる仕事がありません。<br>下の「仕事の管理」から仕事を登録してください。<br><span style="font-size:11px">（月額固定の仕事は自動計上のため入力不要です）</span></div></div>'+
+      '<button class="btn btn-primary btn-block" onclick="openJobModal()">＋ 仕事を登録</button>';
     return;
   }
   el.innerHTML = '<div class="form-group"><label>どの仕事の記録？</label><div>'+jobs.map(j=>`
@@ -6156,12 +6220,14 @@ function renderHome() {
   const bar=document.getElementById('bar-chart'), labels=document.getElementById('bar-labels');
   bar.innerHTML=''; labels.innerHTML='';
   const monthsArr=[...Array(6)].map((_,i)=>{ let mm=m-5+i,yy=y; while(mm<0){mm+=12;yy--;} while(mm>11){mm-=12;yy++;} return {yy,mm}; });
-  const maxV = Math.max(1,...monthsArr.map(o=>monthTotal(o.yy,o.mm)));
-  monthsArr.forEach(o=>{
+  // v61：「今月の働き」と同じ計算（済んだ仕事だけ）にそろえる。v60までは予定の仕事も棒に含めていた
+  const wbm = monthsArr.map(o=>workByJob(o.yy,o.mm));
+  const maxV = Math.max(1,...wbm.map(list=>list.reduce((a,x)=>a+(x.done||0),0)));
+  monthsArr.forEach((o,oi)=>{
     const grp=document.createElement('div'); grp.className='bar-group';
     const stack=document.createElement('div'); stack.className='bar-stack';
     state.jobs.filter(j=>inCurrentMember(j)).forEach(j=>{
-      const v = jobMonthAmount(j, o.yy, o.mm);
+      const v = ((wbm[oi].find(x=>x.job.id===j.id)||{}).done)||0;
       if(v>0){ const seg=document.createElement('div'); seg.className='bar-seg';
         // 合計が最大値を超えないよう上限を設ける（レイアウト崩れ防止）
         seg.style.height=Math.min(80, Math.round(v/maxV*80))+'px';
@@ -9111,14 +9177,167 @@ function otherIncomeInYear(year) {
   }
   return t;
 }
-function incomeInYear(year) {
-  let t = 0;
-  state.records.forEach(r=>{
-    if (!inCurrentMember(r)) return;
-    const d = recBaseDate(r);
-    if (d && +d.slice(0,4)===year) t += r.amount||0;
+// ══ 確定申告の収入（v61で作り直し）══
+// v60までは「勤務記録の合計」だけで、月額固定が入らない／時給制の交通費も収入に入る／
+// 給与と報酬を区別しない／源泉所得税・社会保険料を集計しない、という問題があった。
+// ここでは仕事ごとに、明細（実受取があればそれ、無ければ見込み）を支払月単位で集める。
+function jobIncomeType(j) {
+  if (j.incomeType) return j.incomeType;
+  return (j.payType==='piece') ? 'misc' : 'salary';
+}
+const INCOME_TYPE_LABEL = { salary:'給与', misc:'雑所得（業務）', business:'事業所得', none:'申告に入れない' };
+// 明細の項目を申告用に仕分ける
+function classifyPayItems(items, type) {
+  const o = { pay:0, transport:0, withholding:0, social:0, resident:0, otherDed:0 };
+  (items||[]).forEach(it=>{
+    const a = parseFloat(it.amount)||0, n = it.name||'';
+    if ((it.sign<0?-1:1) > 0) {
+      if (type==='salary' && /通勤|交通費/.test(n)) o.transport += a;   // 給与の通勤手当は非課税（上限内）として分ける
+      else o.pay += a;
+    } else {
+      if (it.auto==='incometax' || /源泉|所得税/.test(n)) o.withholding += a;
+      else if (/住民税/.test(n)) o.resident += a;
+      else if (/健康保険|厚生年金|雇用保険|介護保険|社会保険|年金保険/.test(n)) o.social += a;
+      else if (type!=='salary' && (it.auto==='taxded' || /消費税控除/.test(n))) o.pay -= a;   // 報酬の消費税控除分は受け取っていないので収入から引く
+      else o.otherDed += a;
+    }
   });
-  return t + otherIncomeInYear(year);
+  return o;
+}
+// 報酬（雑・事業）の計上：'accrual'＝働いた日（対象期間の最終日が属する年）／'cash'＝入金日
+function taxBasis() { return state.settings.taxBasis==='cash' ? 'cash' : 'accrual'; }
+function taxIncomeByJob(year) {
+  const out = [];
+  state.jobs.filter(j=>inCurrentMember(j)).forEach(j=>{
+    const type = jobIncomeType(j);
+    if (type==='none') return;
+    const g = { job:j, type, pay:0, transport:0, withholding:0, social:0, resident:0, otherDed:0, months:[], actual:0, estimate:0 };
+    // 給与は支給日の年。報酬は設定に従う。前後の年の支払月も見て、年に入るものだけ拾う
+    for (let k=-2; k<=14; k++) {
+      const ym = ymAdd(`${year}-01`, k);
+      const ps = payslipFor(j.id, ym);
+      const payDate = (ps && ps.payDate) ? ps.payDate : jobPayDateFor(j, ym);
+      const cov = (ps && ps.coverFrom) ? { from:ps.coverFrom, to:ps.coverTo } : defaultCoverPeriod(j, ym);
+      const keyDate = (type==='salary' || taxBasis()==='cash') ? payDate : cov.to;
+      if (+keyDate.slice(0,4)!==year) continue;
+      let items, isActual = false, planned = 0;
+      if (ps) { items = ps.items||[]; isActual = true; }
+      else { const pe = payEstimate(j, ym); items = pe.items; planned = pe.planned||0; if (!items.length) continue; }
+      const c = classifyPayItems(items, type);
+      if (!c.pay && !c.transport) continue;
+      ['pay','transport','withholding','social','resident','otherDed'].forEach(f=>{ g[f] += c[f]; });
+      if (isActual) g.actual++; else g.estimate++;
+      g.months.push({ ym, payDate, isActual, pay:c.pay, transport:c.transport, withholding:c.withholding, social:c.social, psId: ps ? ps.id : '' });
+    }
+    if (g.months.length) out.push(g);
+  });
+  return out;
+}
+function incomeInYear(year) {
+  return taxIncomeByJob(year).reduce((a,g)=>a+g.pay,0) + otherIncomeInYear(year);
+}
+function setTaxBasis(v, el) { state.settings.taxBasis = v; save(); renderTaxReport(); }
+// 必要書類のチェック（年ごと）
+function toggleTaxDoc(year, key) {
+  state.taxDocs = state.taxDocs || {};
+  state.taxDocs[year] = state.taxDocs[year] || {};
+  state.taxDocs[year][key] = !state.taxDocs[year][key];
+  save(); renderTaxReport();
+}
+// iDeCo の積立を小規模企業共済等掛金控除として自動で拾う
+function idecoInYear(year) {
+  const out = [];
+  state.investments.filter(iv=>iv.kind==='ideco' && inCurrentMember(iv)).forEach(iv=>{
+    const d = statementData('invest', iv.id); if (!d) return;
+    const ls = d.lines.filter(l=>+l.ym.slice(0,4)===year);
+    const sum = ls.reduce((a,l)=>a+(l.amount||0),0);
+    if (sum) out.push({ id:'ideco:'+iv.id, _isTax:true, _isAuto:true, type:'ideco', name:iv.name+'（積立から自動）', amount:sum, year, certified:true,
+      memberId: iv.memberId||'', forMemberId: iv.memberId||'', items: ls.map(l=>({ date:l.date, name: l.plan?'予定':'掛金', amount:l.amount, note:'' })) });
+  });
+  return out;
+}
+function renderTaxIncome(year, groups) {
+  const el = document.getElementById('tax-income-list'); if (!el) return;
+  const S = state.settings;
+  if (!groups.length) { el.innerHTML = '<div class="empty"><div class="empty-text">この年の収入はまだありません</div></div>'; return; }
+  const types = ['salary','misc','business'];
+  el.innerHTML = types.filter(t=>groups.some(g=>g.type===t)).map(t=>{
+    const gs = groups.filter(g=>g.type===t);
+    return `<div class="tx-head">${INCOME_TYPE_LABEL[t]}${t==='salary'?'（支給日が'+year+'年のもの）':(taxBasis()==='cash'?'（入金日が'+year+'年のもの）':'（働いた期間が'+year+'年のもの）')}</div>` + gs.map(g=>{
+      const open = isGrpOpen('txj-'+g.job.id);
+      return `<div class="tx-job">
+        <div style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="toggleGroup('txj-${g.job.id}')">
+          <span class="jt-stamp">${stampHTML(g.job.stamp)}</span>
+          <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13.5px">${escapeHTML(g.job.name)}</div>
+            <div style="font-size:10.5px;color:var(--text-secondary)">実受取 ${g.actual}か月${g.estimate?` ／ <span style="color:#C0392B">見込み ${g.estimate}か月</span>`:''}</div></div>
+          <span class="mono" style="font-weight:700;color:${S.colorIncome}">${fmt(g.pay)}</span>
+        </div>
+        <div class="tx-row" style="margin-top:6px"><span class="tx-l">${t==='salary'?'支払金額（交通費を除く）':'収入金額'}</span><span class="tx-v">${fmt(g.pay)}</span></div>
+        <div class="tx-row"><span class="tx-l">源泉徴収税額</span><span class="tx-v">${fmt(g.withholding)}</span></div>
+        ${t==='salary' ? `<div class="tx-row"><span class="tx-l">社会保険料（給与から天引き）</span><span class="tx-v">${fmt(g.social)}</span></div>
+          ${g.transport?`<div class="tx-row"><span class="tx-l">通勤手当（非課税として除外）</span><span class="tx-v" style="font-weight:400">${fmt(g.transport)}</span></div>`:''}` : ''}
+        ${g.otherDed?`<div class="tx-row"><span class="tx-l">その他の差し引き${t==='salary'?'':'（手数料などは経費に入れてください）'}</span><span class="tx-v" style="font-weight:400">${fmt(g.otherDed)}</span></div>`:''}
+        <div style="display:${open?'block':'none'};margin-top:6px">
+          ${g.months.map(mm=>`<div class="tx-row tapable" style="font-size:12px;${mm.isActual?'':'opacity:.7'}" onclick="${mm.psId?`openPayslipDetail('${mm.psId}')`:`openPayslip('${g.job.id}','${mm.ym}')`}">
+            <span class="tx-l">${mm.payDate.replace(/-/g,'/')} ${mm.isActual?'':'<span class="badge-sm bd-limit">見込み</span>'}</span>
+            <span class="tx-v" style="font-weight:400">${fmt(mm.pay)}${mm.withholding?` ／ 源泉 ${fmt(mm.withholding)}`:''}</span></div>`).join('')}
+        </div>
+        <div style="font-size:10.5px;color:var(--text-secondary);margin-top:5px">${open?'▲ 月ごとを閉じる':'▼ 月ごとを見る（タップで明細を開く）'}</div>
+      </div>`;
+    }).join('');
+  }).join('') + `<div class="field-note">見込みの月は、実受取（明細）を入力すると正確になります。区分は仕事の設定の「確定申告での区分」で変えられます。</div>`;
+}
+function renderTaxFinal(year, groups, expTotal, deducts, otherInc) {
+  const el = document.getElementById('tax-final'); if (!el) return;
+  const cur = currentMemberId();
+  const sal = groups.filter(g=>g.type==='salary'), misc = groups.filter(g=>g.type==='misc'), biz = groups.filter(g=>g.type==='business');
+  const sum = (arr,f)=>arr.reduce((a,g)=>a+(g[f]||0),0);
+  const row = (l,v,sub)=>`<div class="tx-row"><span class="tx-l">${l}${sub?`<br><span style="font-size:10.5px;color:var(--text-secondary)">${sub}</span>`:''}</span><span class="tx-v">${v}</span></div>`;
+  const mine = deducts.filter(d=>{ const o = d.forMemberId || d.memberId || selfMemberId(); return cur==='all' || o===cur; });
+  const byType = {};
+  mine.forEach(d=>{ byType[d.type] = (byType[d.type]||0) + (d.amount||0); });
+  const est = groups.some(g=>g.estimate>0);
+  let html = '';
+  if (sal.length) {
+    html += `<div class="tx-head">給与（源泉徴収票と見比べる）</div>`
+      + sal.map(g=>row(escapeHTML(g.job.name)+' 支払金額', fmt(g.pay), `源泉徴収税額 ${fmt(g.withholding)} ／ 社会保険料 ${fmt(g.social)}`)).join('')
+      + (sal.length>1 ? row('給与 合計', fmt(sum(sal,'pay')), `源泉徴収税額 ${fmt(sum(sal,'withholding'))} ／ 社会保険料 ${fmt(sum(sal,'social'))}`) : '');
+  }
+  const nonSal = misc.concat(biz);
+  if (nonSal.length || expTotal) {
+    const rev = sum(nonSal,'pay');
+    html += `<div class="tx-head">${biz.length && !misc.length ? '事業所得' : '雑所得（業務）'}</div>`
+      + row('収入金額', fmt(rev), nonSal.map(g=>`${escapeHTML(g.job.name)} ${fmt(g.pay)}`).join('、'))
+      + row('必要経費', fmt(expTotal), '②経費の合計')
+      + row('差引（所得金額）', fmt(rev - expTotal))
+      + row('源泉徴収税額', fmt(sum(nonSal,'withholding')));
+  }
+  if (otherInc) html += `<div class="tx-head">その他</div>` + row('「所得にする」を選んだ入金', fmt(otherInc), '年金などは区分が別です。申告書の該当欄に入れてください');
+  html += `<div class="tx-head">所得控除（支払った額）</div>`
+    + (Object.keys(byType).length ? DEDUCTION_TYPES.filter(t=>byType[t.key]).map(t=>row(t.label, fmt(byType[t.key]))).join('') : '<div class="field-note">③控除に登録がありません</div>')
+    + (sum(sal,'social') ? row('給与から天引きされた社会保険料', fmt(sum(sal,'social')), '源泉徴収票の「社会保険料等の金額」に含まれます（上の社会保険料控除とは別に入力）') : '');
+  html += `<div class="tx-head">源泉徴収税額の合計</div>` + row('すでに納めた所得税', fmt(sum(groups,'withholding')), '申告で精算されます');
+  html += `<div class="field-note" style="margin-top:10px">${est?'<b style="color:#C0392B">見込みの月が含まれています。</b>実受取を入力すると確定します。<br>':''}
+    給与所得控除・基礎控除・税額は、国税庁の確定申告書等作成コーナー（e-Tax）が自動で計算します。ここの数字を各欄に入力してください。
+    記録した分の集計なので、源泉徴収票・支払調書・控除証明書の金額と必ず見比べてください。</div>`;
+  el.innerHTML = html;
+  // 書類チェック
+  const dl = document.getElementById('tax-docs'); if (!dl) return;
+  const docs = [];
+  sal.forEach(g=>docs.push({ key:'gensen-'+g.job.id, label:`源泉徴収票（${g.job.name}）` }));
+  nonSal.forEach(g=>docs.push({ key:'shiharai-'+g.job.id, label:`支払調書または入金の記録（${g.job.name}）` }));
+  if (byType.social) docs.push({ key:'social', label:'国民年金の控除証明書・国保の納付額が分かるもの' });
+  if (byType.ideco) docs.push({ key:'ideco', label:'小規模企業共済等掛金払込証明書（iDeCo）' });
+  if (byType.lifeins) docs.push({ key:'lifeins', label:'生命保険料控除証明書' });
+  if (byType.earthquake) docs.push({ key:'earthquake', label:'地震保険料控除証明書' });
+  if (byType.medical) docs.push({ key:'medical', label:'医療費の領収書・医療費通知' });
+  if (byType.donation) docs.push({ key:'donation', label:'寄附金の受領証明書（ふるさと納税）' });
+  if (expTotal) docs.push({ key:'receipts', label:'経費の領収書・レシート' });
+  docs.push({ key:'mynumber', label:'マイナンバーカード（e-Tax の本人確認）' }, { key:'bank', label:'還付金を受け取る口座' });
+  const done = (state.taxDocs||{})[year] || {};
+  dl.innerHTML = docs.map(x=>`<label class="tx-row" style="align-items:center;cursor:pointer"><span class="tx-l" style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" ${done[x.key]?'checked':''} onchange="toggleTaxDoc(${year},'${x.key}')"> ${escapeHTML(x.label)}</span></label>`).join('')
+    + `<div class="field-note">${docs.filter(x=>done[x.key]).length} / ${docs.length} そろいました</div>`;
 }
 function renderTaxReport() {
   const year = state.settings.taxYear || new Date().getFullYear();
@@ -9132,8 +9351,10 @@ function renderTaxReport() {
   }
   const map = expensesByAccount(year);
   const expTotal = Object.values(map).reduce((a,x)=>a+x.total,0);
-  const income = incomeInYear(year);
+  const incGroups = taxIncomeByJob(year);
   const otherInc = otherIncomeInYear(year);
+  const income = incGroups.reduce((a,g)=>a+g.pay,0) + otherInc;
+  document.querySelectorAll('.seg-btn[data-tb]').forEach(b=>b.classList.toggle('active', b.dataset.tb===taxBasis()));
   const cur = currentMemberId();
   // 税金・保険料で「所得控除」に設定されたものを仮想レコード化
   const taxDeducts = [];
@@ -9151,7 +9372,7 @@ function renderTaxReport() {
       forMemberId:t.forMemberId||t.payerId||t.memberId||'', items:paid.map(i=>({
         date:i.paidDate||i.dueDate, name:`第${i.no}期`, amount:i.amount, note:'' })) });
   });
-  const deducts = [...taxDeducts, ...state.deductions].filter(d=>{
+  const deducts = [...taxDeducts, ...idecoInYear(year), ...state.deductions].filter(d=>{
     if (d.year!==year) return false;
     if (cur==='all') return true;
     // 支払った本人の欄にも、申告する人の欄にも表示する
@@ -9165,6 +9386,8 @@ function renderTaxReport() {
     if (cur!=='all' && ownerId!==cur) return a;
     return a + (d.amount||0);
   },0);
+  renderTaxIncome(year, incGroups);
+  renderTaxFinal(year, incGroups, expTotal, deducts, otherInc);
   // サマリー
   const sum = document.getElementById('tax-summary');
   if (sum) {
@@ -9180,7 +9403,7 @@ function renderTaxReport() {
       </div>
       <div style="display:flex;gap:8px">
         <div style="flex:1;background:var(--bg);border-radius:9px;padding:9px 11px">
-          <div style="font-size:10px;color:var(--text-secondary)">所得（収入−経費）</div>
+          <div style="font-size:10px;color:var(--text-secondary)">収入−経費</div>
           <div class="mono" style="font-size:15px;font-weight:600">${fmt(profit)}</div></div>
         <div style="flex:1;background:var(--bg);border-radius:9px;padding:9px 11px">
           <div style="font-size:10px;color:var(--text-secondary)">所得控除</div>
@@ -9263,7 +9486,7 @@ function renderTaxReport() {
                     ${(ownMo||forMo)?`<div style="font-size:10.5px;color:${isOther&&forMo?forMo.color:'var(--text-secondary)'};font-weight:${isOther?'600':'400'}">${ownMo?escapeHTML(ownMo.name):''}${isOther?` → ${forMo.icon} ${escapeHTML(forMo.name)}が申告`:''}</div>`:''}
                   </div>
                   <span class="mono" style="font-size:12.5px;font-weight:600;flex-shrink:0">${fmt(d.amount)}</span>
-                  <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px" onclick="${d._isTax?`openTaxModal('${d.id.slice(4)}')`:`openDeductionModal('${d.id}')`}">編集</button>
+                  <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px" onclick="${d._isAuto?`openInvestmentModal('${d.id.slice(6)}')`:d._isTax?`openTaxModal('${d.id.slice(4)}')`:`openDeductionModal('${d.id}')`}">編集</button>
                 </div>
                 ${(d.items||[]).length?`<div style="margin-top:4px;padding-left:6px">
                   ${d.items.map(it=>`<div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-secondary);padding:2px 0">
@@ -12248,14 +12471,15 @@ function scrollToEl(target) {
 // 見出しはHTMLから自動で拾うので、カードを増やしてもここを直す必要はない。
 // カードが1枚だけのページ（資金・決済／仕事／データ）には出さない。
 function buildSettingsIndex() {
-  document.querySelectorAll('#page-settings .subpage').forEach(sub=>{
+  document.querySelectorAll('#page-settings .subpage, #page-money > .subpage').forEach(sub=>{
+    if (sub.id==='sub-mon-poi') return;
     if (sub.querySelector(':scope > .sec-index')) return; // 生成済み
     const cards = [...sub.querySelectorAll(':scope > .card')];
     const entries = [];
     cards.forEach((card, i)=>{
       const t = card.querySelector('.card-title') || card.querySelector('.grp-title');
       if (!t) return;
-      if (!card.id) card.id = 'seccard-' + sub.id.replace('sub-set-','') + '-' + i;
+      if (!card.id) card.id = 'seccard-' + sub.id.replace(/^sub-/,'') + '-' + i;
       // グループ見出しはカウント数などの子要素を含むので、テキストだけを取り出す
       const label = (t.childNodes[0] && t.childNodes[0].nodeValue ? t.childNodes[0].nodeValue : t.textContent).trim()
         || t.textContent.trim();
@@ -12275,7 +12499,7 @@ function scrollToSection(id) { scrollToEl(document.getElementById(id)); }
 // 参照先がDOMに存在するかを検証する。v29のサブスク事故（削除済みIDへの参照でJSが停止）の再発防止。
 // 実行方法：設定 → データ → 「ID参照チェック」、または URL末尾に #debug を付けて開く（結果はコンソール）。
 // UIを削除・改名したら必ずこれを実行すること。JSが後から生成するIDは下の除外リストに登録する。
-const DIAG_DYNAMIC_IDS = new Set(['meta-sb','inv-fund-list','tax-cover','wal-acc-hist','sb-wallet-hist','ios-glass-guard','status-fill','rec-duedate','rec-duetime','lsg-date','ps-subtotal','ps-withtax','rec-amtchg-area','rec-newamount','rec-chgdate','rec-chgnote',
+const DIAG_DYNAMIC_IDS = new Set(['gear-btn','meta-sb','inv-fund-list','tax-cover','wal-acc-hist','sb-wallet-hist','ios-glass-guard','status-fill','rec-duedate','rec-duetime','lsg-date','ps-subtotal','ps-withtax','rec-amtchg-area','rec-newamount','rec-chgdate','rec-chgnote',
   'dd-subtotal','ex-total','jd-total','rec-amount','rec-break','rec-date','rec-end',
   'rec-enddate','rec-memo','rec-name','rec-pat-chips','rec-preview','rec-start',
   'rec-transport','rec-wage','rec-workhours','rec-hourly-note','save-error-banner','boot-error-banner','rescue-info','fatal-error-banner','fatal-error-msg',
