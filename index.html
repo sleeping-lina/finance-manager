@@ -2,15 +2,25 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-<title>FinanceManager v4</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" id="meta-vp">
+<title>FinanceManager</title>
 <link rel="apple-touch-icon" href="data:image/png;base64,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">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" id="meta-sb">
 <script>
-// v60：URLの末尾に ?sb=black を付けて開くと、ステータスバーを「不透明」にする（別アプリと同じ条件にするための切り替え）。
-// この指定はホーム画面に追加した時点のものが使われるので、?sb=black 付きのURLを開いてから追加し直す
-try { if (/[?&]sb=black/.test(location.search)) document.getElementById('meta-sb').setAttribute('content','black'); } catch(e) {}
+// v63：URLの末尾に ?sb=black を付けて開くと、ぼかしが出ない別アプリ（audiobook-checker）と同じ条件にする。
+//   ・ステータスバー「不透明（black）」
+//   ・viewport-fit=cover を外す（画面をステータスバーの下に入り込ませない）
+// v60 はステータスバーだけ変えていて viewport-fit=cover が残っていたため、画面がステータスバーの下に入り込み、ガラス効果がかかっていた。
+// ステータスバーの指定はホーム画面に追加した時点のものが使われるので、?sb=black 付きのURLを Safari で開いてから追加する。
+// （追加したアプリはそのURLで起動するので、以後もこの条件で動く）
+try {
+  if (/[?&]sb=black/.test(location.search)) {
+    document.getElementById('meta-sb').setAttribute('content','black');
+    document.getElementById('meta-vp').setAttribute('content','width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+    document.documentElement.classList.add('sb-opaque');
+  }
+} catch(e) {}
 </script>
 <meta name="apple-mobile-web-app-title" content="FinanceMgr">
 <meta name="theme-color" content="#1A2340">
@@ -877,7 +887,7 @@ try { if (/[?&]sb=black/.test(location.search)) document.getElementById('meta-sb
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v62</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v63</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
           <div id="vp-info" style="margin-top:2px;opacity:.7"></div>
         </div>
       </div>
@@ -2315,7 +2325,7 @@ try { if (/[?&]sb=black/.test(location.search)) document.getElementById('meta-sb
      v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
      バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
 <script>
-window.APP_BOOT_VERSION = '62';
+window.APP_BOOT_VERSION = '63';
 // v49: iOS ホーム画面アプリの高さ補正
 // ステータスバー透過（black-translucent）で起動すると、iOS が画面の高さをステータスバー分だけ短く報告し、
 // フッターが持ち上がって下に白い帯ができることがある。画面の実寸（screen）を使って高さを決める。
@@ -2336,7 +2346,10 @@ window.fixViewport = function () {
     var h = ih, fix = false;
     // ステータスバー透過のホーム画面アプリだけ補正（Safari・旧設定のアプリは触らない）
     if (standalone && safeTop > 0 && full > ih && full - ih <= 120) { h = full; fix = true; }
-    de.style.setProperty('--app-h', h + 'px');
+    // v63：補正しないときは高さを固定しない（100dvh に任せる）。
+    // 以前は常に innerHeight の値で固定していたため、入力中にキーボードが出て innerHeight が小さくなったまま
+    // 保存すると、画面の下半分が消えて背景色（メンバー色）だけになることがあった
+    if (fix) de.style.setProperty('--app-h', h + 'px'); else de.style.removeProperty('--app-h');
     if (fix) de.classList.add('vp-fix'); else de.classList.remove('vp-fix');
     window.__vpInfo = { standalone: standalone, safeTop: safeTop, innerHeight: ih, screenHeight: full, appH: h, fix: fix };
     var vi = document.getElementById('vp-info');
@@ -2350,6 +2363,8 @@ window.fixViewport = function () {
 };
 document.addEventListener('DOMContentLoaded', function(){ window.fixViewport(); });
 window.addEventListener('resize', function(){ window.fixViewport(); });
+document.addEventListener('focusout', function(){ setTimeout(window.fixViewport, 300); });
+if (window.visualViewport) window.visualViewport.addEventListener('resize', function(){ setTimeout(window.fixViewport, 100); });
 window.addEventListener('orientationchange', function(){ setTimeout(window.fixViewport, 300); });
 (function(){
   var KEY = 'financeManager';
@@ -2395,7 +2410,7 @@ window.addEventListener('orientationchange', function(){ setTimeout(window.fixVi
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '62';
+const APP_VERSION = '63';
 const SCHEMA_VERSION = 33;
 const STORAGE_KEY = 'financeManager';
 
@@ -3421,7 +3436,11 @@ function openModal(id){
   const m = ov.querySelector('.modal');
   if (m) { m.scrollTop = 0; requestAnimationFrame(()=>{ m.scrollTop = 0; }); }
 }
-function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function closeModal(id){
+  document.getElementById(id).classList.remove('open');
+  // キーボードが閉じた後の高さで測り直す（v63）
+  if (window.fixViewport) setTimeout(window.fixViewport, 350);
+}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); }));
 // モーダルを下スワイプで閉じる
 (function(){
@@ -12556,7 +12575,7 @@ function scrollToSection(id) { scrollToEl(document.getElementById(id)); }
 // 参照先がDOMに存在するかを検証する。v29のサブスク事故（削除済みIDへの参照でJSが停止）の再発防止。
 // 実行方法：設定 → データ → 「ID参照チェック」、または URL末尾に #debug を付けて開く（結果はコンソール）。
 // UIを削除・改名したら必ずこれを実行すること。JSが後から生成するIDは下の除外リストに登録する。
-const DIAG_DYNAMIC_IDS = new Set(['input-form-area','gear-btn','meta-sb','inv-fund-list','tax-cover','wal-acc-hist','sb-wallet-hist','ios-glass-guard','status-fill','rec-duedate','rec-duetime','lsg-date','ps-subtotal','ps-withtax','rec-amtchg-area','rec-newamount','rec-chgdate','rec-chgnote',
+const DIAG_DYNAMIC_IDS = new Set(['meta-vp','input-form-area','gear-btn','meta-sb','inv-fund-list','tax-cover','wal-acc-hist','sb-wallet-hist','ios-glass-guard','status-fill','rec-duedate','rec-duetime','lsg-date','ps-subtotal','ps-withtax','rec-amtchg-area','rec-newamount','rec-chgdate','rec-chgnote',
   'dd-subtotal','ex-total','jd-total','rec-amount','rec-break','rec-date','rec-end',
   'rec-enddate','rec-memo','rec-name','rec-pat-chips','rec-preview','rec-start',
   'rec-transport','rec-wage','rec-workhours','rec-hourly-note','save-error-banner','boot-error-banner','rescue-info','fatal-error-banner','fatal-error-msg',
