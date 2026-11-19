@@ -353,6 +353,11 @@ try { if (/[?&]sb=black/.test(location.search)) document.getElementById('meta-sb
   .tx-row .tx-v { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600; }
   .tx-head { font-size: 12px; font-weight: 700; color: var(--text-secondary); margin: 14px 2px 4px; }
   .tx-job { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
+  /* v62：お金・申告の小タブは折り返して画面内に収める（横スクロールしない） */
+  #page-money > .subtabs, #page-tax > .subtabs, #poi-subtabs { display: grid; overflow-x: visible; gap: 5px; }
+  #page-money > .subtabs { grid-template-columns: repeat(5, 1fr); }
+  #page-tax > .subtabs, #poi-subtabs { grid-template-columns: repeat(4, 1fr); }
+  #page-money > .subtabs .subtab, #page-tax > .subtabs .subtab, #poi-subtabs .subtab { padding: 7px 2px; text-align: center; font-size: 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   #ios-glass-guard { position: fixed; top: 0; left: 0; width: 100%; height: var(--blurFixH, 11px); background-color: #ffffff01; opacity: .1; pointer-events: none; z-index: 10000; }
   html.glass-off #ios-glass-guard { display: none; }
   #status-fill { display: none; position: fixed; top: 0; left: 0; right: 0; height: var(--safe-top); background: var(--footer-bg, #fff); pointer-events: none; z-index: 9998; }
@@ -519,10 +524,6 @@ try { if (/[?&]sb=black/.test(location.search)) document.getElementById('meta-sb
         <div id="job-tab-filter" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
         <div id="job-tab-recs"></div>
       </div>
-      <div class="card">
-        <div class="card-title">記録する</div>
-        <div class="form-grid" id="input-form-area"></div>
-      </div>
       <!-- v61：設定の「仕事」にあった一覧をここへ -->
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
@@ -535,12 +536,12 @@ try { if (/[?&]sb=black/.test(location.search)) document.getElementById('meta-sb
 
     <!-- v61：「お金」タブ（設定にあった固定費・税金・積立・預金・カードと口座、ポイ活タブをここにまとめた） -->
     <div class="page" id="page-money">
-      <div class="page-head"><div><div class="page-title">お金</div><div class="page-sub">固定費・税金・積立・カードと口座・ポイ活</div></div></div>
+      <div class="page-head"><div><div class="page-title">お金</div><div class="page-sub">固定費／税金・保険料／積立・預金／口座・カード／ポイ活</div></div></div>
       <div class="subtabs">
         <div class="subtab active" onclick="showSub('mon','fixed',this)">固定費</div>
-        <div class="subtab" onclick="showSub('mon','taxes',this)">税金・保険料</div>
-        <div class="subtab" onclick="showSub('mon','invest',this)">積立・預金</div>
-        <div class="subtab" onclick="showSub('mon','wallets',this)">カード・口座</div>
+        <div class="subtab" onclick="showSub('mon','taxes',this)">税金</div>
+        <div class="subtab" onclick="showSub('mon','invest',this)">積立</div>
+        <div class="subtab" onclick="showSub('mon','wallets',this)">口座</div>
         <div class="subtab" onclick="showSub('mon','poi',this)">ポイ活</div>
       </div>
       <div class="subpage active" id="sub-mon-fixed">
@@ -586,8 +587,8 @@ try { if (/[?&]sb=black/.test(location.search)) document.getElementById('meta-sb
       </div>
       <div class="subpage" id="sub-mon-poi">
         <div class="subtabs" id="poi-subtabs">
-          <div class="subtab active" onclick="showSub('poi','routes',this)">チャージ経路</div>
-          <div class="subtab" onclick="showSub('poi','rates',this)">還元率一覧</div>
+          <div class="subtab active" onclick="showSub('poi','routes',this)">チャージ</div>
+          <div class="subtab" onclick="showSub('poi','rates',this)">還元率</div>
           <div class="subtab" onclick="showSub('poi','rules',this)">付与ルール</div>
           <div class="subtab" onclick="showSub('poi','points',this)">ポイント</div>
         </div>
@@ -876,7 +877,7 @@ try { if (/[?&]sb=black/.test(location.search)) document.getElementById('meta-sb
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v61</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v62</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
           <div id="vp-info" style="margin-top:2px;opacity:.7"></div>
         </div>
       </div>
@@ -2314,7 +2315,7 @@ try { if (/[?&]sb=black/.test(location.search)) document.getElementById('meta-sb
      v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
      バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
 <script>
-window.APP_BOOT_VERSION = '61';
+window.APP_BOOT_VERSION = '62';
 // v49: iOS ホーム画面アプリの高さ補正
 // ステータスバー透過（black-translucent）で起動すると、iOS が画面の高さをステータスバー分だけ短く報告し、
 // フッターが持ち上がって下に白い帯ができることがある。画面の実寸（screen）を使って高さを決める。
@@ -2339,7 +2340,12 @@ window.fixViewport = function () {
     if (fix) de.classList.add('vp-fix'); else de.classList.remove('vp-fix');
     window.__vpInfo = { standalone: standalone, safeTop: safeTop, innerHeight: ih, screenHeight: full, appH: h, fix: fix };
     var vi = document.getElementById('vp-info');
-    if (vi) vi.textContent = '画面 ' + ih + '/' + full + (standalone ? ' ホーム画面' : ' ブラウザ') + ' 上' + Math.round(safeTop) + (fix ? ' 高さ補正あり' : '');
+    if (vi) {
+      var gh = getComputedStyle(document.documentElement).getPropertyValue('--blurFixH').trim() || '11px';
+      var sbm = (document.getElementById('meta-sb')||{}).content || '';
+      vi.textContent = '画面 ' + ih + '/' + full + (standalone ? ' ホーム画面' : ' ブラウザ') + ' 上' + Math.round(safeTop) + (fix ? ' 高さ補正あり' : '')
+        + ' ／ ぼかし対策 ' + (document.documentElement.classList.contains('glass-off') ? 'オフ' : gh) + ' ／ ' + sbm;
+    }
   } catch (e) {}
 };
 document.addEventListener('DOMContentLoaded', function(){ window.fixViewport(); });
@@ -2389,7 +2395,7 @@ window.addEventListener('orientationchange', function(){ setTimeout(window.fixVi
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '61';
+const APP_VERSION = '62';
 const SCHEMA_VERSION = 33;
 const STORAGE_KEY = 'financeManager';
 
@@ -4677,8 +4683,9 @@ function openRecordModal(jobId, ds, recId) {
             document.getElementById('rec-start').value=p.start||j.defStart||'09:00';
             document.getElementById('rec-end').value=p.end||j.defEnd||'17:00';
             document.getElementById('rec-break').value=p.breakMin||0;
-            document.getElementById('rec-wage').value=p.wage||j.wage;
-            document.getElementById('rec-transport').value=(p.transport===''||p.transport===undefined)?(j.transport||0):p.transport;
+            const jd = jobSettingAt(j, document.getElementById('rec-date').value || ds);   // その日の基本の時給・交通費（v62）
+            document.getElementById('rec-wage').value=p.wage||jd.wage;
+            document.getElementById('rec-transport').value=(p.transport===''||p.transport===undefined||p.transport===null)?(jd.transport||0):p.transport;
             updateRecPreview();
           }
         };
@@ -5005,6 +5012,25 @@ function renderPsDiff() {
 }
 // 時給制の見込みの内訳（v57）：時給（シフトパターン）ごとの 時給×時間、交通費、1日ずつの明細。
 // 記録に入っている時給が、その日のパターンの時給と違う日には ⚠ を付ける（計算が合わないときの確認用）
+// その日・そのパターンで本来使う時給（v62）：パターンの時給が空欄なら基本（変更履歴込み）
+function expectedWage(job, r) {
+  const ja = jobSettingAt(job, r.date);
+  const pat = r.patternId ? (ja.patterns||[]).find(p=>p.id===r.patternId) : null;
+  return (pat && pat.wage) ? pat.wage : (ja.wage||0);
+}
+// ⚠の日の勤務記録を、設定の時給で計算し直す（金額＝実働×時給＋交通費）
+function fixHourlyWages(jobId, from, to) {
+  const job = jobById(jobId); if (!job) return;
+  const targets = state.records.filter(r=>r.jobId===jobId && r.date>=from && r.date<=to && r.wageUsed && r.hours
+    && Math.abs(expectedWage(job, r) - r.wageUsed) > 0.001);
+  if (!targets.length) { showToast('直す記録はありません'); return; }
+  confirmAction('時給を設定に合わせる', `${targets.length}日分の勤務記録を、設定の時給で計算し直します（金額＝実働×時給＋交通費）。よろしいですか？`, '計算し直す', ()=>{
+    targets.forEach(r=>{ const w = expectedWage(job, r); r.wageUsed = w; r.amount = r.hours*w + (r.transport||0); });
+    save(); renderAll();
+    if (document.getElementById('modal-payslip').classList.contains('open')) { renderPsDiff(); }
+    showToast(`${targets.length}日分を直しました ✓`);
+  });
+}
 function hourlyBreakdownHTML(job, recs) {
   if (!recs.length) return '';
   const groups = new Map();
@@ -5018,7 +5044,7 @@ function hourlyBreakdownHTML(job, recs) {
     if (!groups.has(key)) groups.set(key, { name: pat ? pat.name : (r.patternId ? '（削除したパターン）' : '基本設定'), wage, hours:0, base:0, days:0 });
     const g = groups.get(key); g.hours += r.hours||0; g.base += base; g.days++;
     if (r.transport) { tSum += r.transport; tDays++; }
-    const expWage = pat ? (pat.wage || ja.wage) : ja.wage;
+    const expWage = expectedWage(job, r);
     const warn = expWage && r.wageUsed && Math.abs(expWage - r.wageUsed) > 0.001 ? `⚠ 設定の時給 ${fmt(expWage)}` : '';
     return `<tr${recIsDone(r)?'':' style="opacity:.6"'}><td>${r.date.slice(5).replace('-','/')}</td><td>${escapeHTML(pat?pat.name:'')}</td>
       <td style="text-align:right">${fmtH(r.hours||0)}</td><td style="text-align:right">${fmt(wage)}</td>
@@ -5034,6 +5060,7 @@ function hourlyBreakdownHTML(job, recs) {
     <div style="font-weight:700;margin-bottom:2px">内訳（予定も含む）</div>
     ${lines}
     ${tSum?`<div style="display:flex;justify-content:space-between"><span>交通費（${tDays}日）</span><span class="mono">${fmt(tSum)}</span></div>`:''}
+    ${rows.includes('⚠') ? `<button class="btn btn-ghost btn-sm btn-block" style="margin-top:6px;color:#C0392B" onclick="fixHourlyWages('${job.id}','${recs.map(r=>r.date).sort()[0]}','${recs.map(r=>r.date).sort().reverse()[0]}')">⚠の日を設定の時給で計算し直す</button>` : ''}
     <details style="margin-top:4px"><summary style="cursor:pointer;color:var(--text-secondary)">1日ずつ見る</summary>
       <table class="hb-table"><thead><tr><th>日</th><th>パターン</th><th>時間</th><th>時給</th><th>交通費</th><th>金額</th></tr></thead><tbody>${rows}</tbody></table>
     </details></div>`;
@@ -5714,6 +5741,12 @@ function applyPayTypeFields(){
 }
 function addPattern(){ jobPatterns.push({id:'p'+Date.now()+Math.floor(Math.random()*999), name:'', wage:'', start:'09:00', end:'17:00', breakMin:'', transport:''}); renderPatternEditor(); }
 function removePattern(pid){ jobPatterns = jobPatterns.filter(p=>p.id!==pid); renderPatternEditor(); }
+// v62：シフトパターンの時給を空欄に（＝基本と同じ）。保存時にパターンの時給の変更履歴も消す
+function clearPatternWages() {
+  jobPatterns.forEach(p=>{ p.wage = ''; });
+  renderPatternEditor();
+  showToast('保存すると、すべてのパターンが基本の時給（変更履歴を含む）を使います');
+}
 function renderPatternEditor() {
   const el = document.getElementById('pattern-editor');
   if (!jobPatterns.length) { el.innerHTML='<div class="field-note" style="margin:0 0 6px">パターンなし（基本設定のみで運用）</div>'; return; }
@@ -5725,15 +5758,17 @@ function renderPatternEditor() {
       </div>
       <div style="margin:6px 0"><label>カレンダー用の短縮名（任意）</label><input type="text" class="p-short" value="${escapeHTML(p.shortName||'')}" placeholder="例：早"></div>
       <div class="pat-grid">
-        <div><label>時給（円）</label><input type="number" inputmode="numeric" class="p-wage" value="${p.wage||''}" placeholder="1100"></div>
-        <div><label>交通費/日</label><input type="number" inputmode="numeric" class="p-transport" value="${p.transport||''}" placeholder="500"></div>
+        <div><label>時給（円）</label><input type="number" inputmode="numeric" class="p-wage" value="${p.wage||''}" placeholder="基本と同じ"></div>
+        <div><label>交通費/日</label><input type="number" inputmode="numeric" class="p-transport" value="${p.transport||''}" placeholder="基本と同じ"></div>
         <div><label>休憩（分）</label><input type="number" inputmode="numeric" class="p-break" value="${p.breakMin||''}" placeholder="60"></div>
       </div>
       <div class="pat-grid-2">
         <div><label>定時 開始</label><input type="time" class="p-start" value="${p.start||'09:00'}"></div>
         <div><label>定時 終了</label><input type="time" class="p-end" value="${p.end||'17:00'}"></div>
       </div>
-    </div>`).join('');
+    </div>`).join('') + (jobPatterns.some(p=>p.wage) ? `
+    <button class="btn btn-ghost btn-sm btn-block" style="margin-top:6px" onclick="clearPatternWages()">時給を全パターン「基本と同じ」にする</button>` : '')
+    + `<div class="field-note">時給・交通費を空欄にすると「基本」と同じ値を使います（基本の変更履歴もそのまま反映）。時給が共通ならパターンには入れないのがおすすめです。</div>`;
   el.querySelectorAll('.pat-row').forEach(row=>{
     const p = jobPatterns.find(x=>x.id===row.dataset.pid);
     row.querySelector('.p-name').oninput = e=>p.name=e.target.value;
@@ -5796,7 +5831,8 @@ function saveJob() {
       [['wage','時給'],['transport','交通費']].forEach(([f,lb])=>{
         const norm = v => (v===undefined || v===null || v==='') ? null : v;
         const a = norm(op[f]), b = norm(np[f]);
-        if (a!==b && a!==null) changes[`p.${op.id}.${f}`] = { from:a, to:b, label:`${np.name||op.name||'パターン'} ${lb}` };
+        // 空欄にした（＝基本と同じにした）ときは履歴にしない（v62）
+        if (a!==b && a!==null && b!==null) changes[`p.${op.id}.${f}`] = { from:a, to:b, label:`${np.name||op.name||'パターン'} ${lb}` };
       });
     });
     data.history = jobHistory.slice();
@@ -5804,6 +5840,13 @@ function saveJob() {
       data.history.push({ date: document.getElementById('job-chg-date').value || todayStr(), changes,
         note: document.getElementById('job-chg-note').value.trim() });
     }
+    // 空欄（基本と同じ）にしたパターンの項目は、過去の変更履歴も消す。残すと過去の日だけ古い値に戻ってしまう（v62）
+    (data.patterns||[]).forEach(np=>{
+      ['wage','transport'].forEach(f=>{
+        if (np[f]===undefined || np[f]===null || np[f]==='') data.history.forEach(h=>{ if (h.changes) delete h.changes[`p.${np.id}.${f}`]; });
+      });
+    });
+    data.history = data.history.filter(h=>h.changes && Object.keys(h.changes).length);
     data.history.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
     Object.assign(jobEditing, data);
   }
@@ -5958,6 +6001,7 @@ function renderJobTab() {
 }
 function renderInputTab() {
   const el = document.getElementById('input-form-area');
+  if (!el) return;   // v62：「記録する」カードは廃止（仕事ごとのカードの「＋記録」から入力）
   const jobs = state.jobs.filter(j=>j.active&&j.payType!=='monthly'&&inCurrentMember(j));
   if (!jobs.length) {
     el.innerHTML = '<div class="empty"><div class="empty-icon">💼</div><div class="empty-text">記録できる仕事がありません。<br>下の「仕事の管理」から仕事を登録してください。<br><span style="font-size:11px">（月額固定の仕事は自動計上のため入力不要です）</span></div></div>'+
@@ -6297,6 +6341,7 @@ function applyGlassGuard(){
   const h = (state.settings.glassH===undefined || state.settings.glassH===null) ? 11 : state.settings.glassH;
   document.documentElement.style.setProperty('--blurFixH', h+'px');
   document.documentElement.classList.toggle('glass-off', h<=0);
+  if (window.fixViewport) window.fixViewport();   // 設定画面の診断行を更新
 }
 function setStatusBarColor(v, el){ state.settings.statusBarColor=v; save(); syncSettingsUI(); renderMemberBar(); renderAll(); }
 function setAmountFormat(v, el){ state.settings.amountFormat=v; save(); syncSettingsUI(); renderAll(); }
@@ -7730,23 +7775,35 @@ function isWalletEnded(w) {
 function openJobDetail(id) {
   const j = state.jobs.find(x=>x.id===id); if (!j) return;
   const mo = (state.members.length>=2 && j.memberId) ? memberById(j.memberId) : null;
+  const acc = j.walletId ? walletById(j.walletId) : null;
+  const tm = (st,en,br)=> (st||en) ? `${st||''}〜${en||''}${br?`（休憩${br}分）`:''}` : '';
   const rows = [
     ['支払い方式', payTypeLabel(j.payType)],
-    ['時給', j.payType==='hourly' ? fmt(j.wage) : ''],
+    ['入金先', acc ? acc.name : ''],
+    ['確定申告', INCOME_TYPE_LABEL[jobIncomeType(j)]||''],
+    ['時給（基本）', j.payType==='hourly' ? fmt(j.wage) : ''],
+    ['定時（基本）', j.payType==='hourly' ? tm(j.defStart, j.defEnd, j.breakMin) : ''],
     ['月額', j.payType==='monthly' ? fmt(j.salary) : ''],
-    ['勤務パターン', (j.patterns&&j.patterns.length) ? j.patterns.length+'件' : ''],
     ['締め日', j.closingDay ? (j.closingDay>=31?'末日':j.closingDay+'日') : ''],
     ['支払日', j.payType==='monthly' ? `${['当月','翌月'][j.monthlyPayOffset||0]}${j.payday||25}日` : (j.closingDay ? `${['当月','翌月','翌々月'][j.payMonthOffset||0]}${(j.payDay||25)>=31?'末日':(j.payDay||25)+'日'}` : '')],
-    ['交通費', j.transport ? fmt(j.transport)+' / 回' : ''],
-    ['控除', (j.deductions&&j.deductions.length) ? j.deductions.length+'件（手取り計算あり）' : ''],
+    ['交通費（基本）', j.transport ? fmt(j.transport)+' / 日' : ''],
+    ['源泉所得税', isNum(j.withholdingRate) ? j.withholdingRate+'%' : ''],
+    ['消費税・控除分', j.payType==='piece' ? `${jobTaxRates(j).rate}% ／ ${jobTaxRates(j).dedRate}%` : ''],
+    ['期日の既定の時刻', j.payType==='piece' ? (j.dueTimeDefault||'') : ''],
+    ['明細の項目', (j.deductions&&j.deductions.length) ? j.deductions.length+'件' : ''],
     ['勤務期間', jobPeriodText(j)],
     ['状態', j.active ? '' : '無効'],
     ['メンバー', mo ? `${mo.icon} ${mo.name}` : ''],
   ];
   const hist = (j.history||[]).slice().reverse().map(h=>`<div class="detail-row"><span class="dr-label">${(h.date||'').replace(/-/g,'/')}〜${h.note?'<br><span style="font-size:10.5px">'+escapeHTML(h.note)+'</span>':''}</span><span class="dr-val" style="font-size:12px">${escapeHTML(jobChangeText(h))}</span></div>`).join('');
+  // シフトパターン（v62）：空欄は「基本と同じ」
+  const pats = (j.patterns||[]).map(p=>`<div class="detail-row"><span class="dr-label"><b style="color:var(--text-primary)">${escapeHTML(p.name||'パターン')}</b>${p.shortName?`（${escapeHTML(p.shortName)}）`:''}<br>
+      <span style="font-size:11px">${tm(p.start,p.end,p.breakMin)}</span></span>
+      <span class="dr-val" style="font-size:12px">時給 ${p.wage?fmt(p.wage):'基本と同じ'}<br>交通費 ${(p.transport===''||p.transport===undefined||p.transport===null)?'基本と同じ':fmt(p.transport)}</span></div>`).join('');
   openDetail({ stamp: stampHTML(j.stamp), name: j.name, sub: payTypeLabel(j.payType),
     rows, memo: j.memo, onEdit: ()=>openJobModal(id),
-    extraHTML: (hist ? `<div style="margin-top:10px;font-size:11.5px;color:var(--text-secondary)">設定の変更履歴</div>${hist}` : '') + statementBtn('job', id) });
+    extraHTML: (pats ? `<div style="margin-top:10px;font-size:11.5px;color:var(--text-secondary)">シフトパターン</div>${pats}` : '')
+      + (hist ? `<div style="margin-top:10px;font-size:11.5px;color:var(--text-secondary)">設定の変更履歴</div>${hist}` : '') + statementBtn('job', id) });
 }
 function openMoneyCatDetail(id) {
   const c = moneyCatById(id); if (!c) return;
@@ -12499,7 +12556,7 @@ function scrollToSection(id) { scrollToEl(document.getElementById(id)); }
 // 参照先がDOMに存在するかを検証する。v29のサブスク事故（削除済みIDへの参照でJSが停止）の再発防止。
 // 実行方法：設定 → データ → 「ID参照チェック」、または URL末尾に #debug を付けて開く（結果はコンソール）。
 // UIを削除・改名したら必ずこれを実行すること。JSが後から生成するIDは下の除外リストに登録する。
-const DIAG_DYNAMIC_IDS = new Set(['gear-btn','meta-sb','inv-fund-list','tax-cover','wal-acc-hist','sb-wallet-hist','ios-glass-guard','status-fill','rec-duedate','rec-duetime','lsg-date','ps-subtotal','ps-withtax','rec-amtchg-area','rec-newamount','rec-chgdate','rec-chgnote',
+const DIAG_DYNAMIC_IDS = new Set(['input-form-area','gear-btn','meta-sb','inv-fund-list','tax-cover','wal-acc-hist','sb-wallet-hist','ios-glass-guard','status-fill','rec-duedate','rec-duetime','lsg-date','ps-subtotal','ps-withtax','rec-amtchg-area','rec-newamount','rec-chgdate','rec-chgnote',
   'dd-subtotal','ex-total','jd-total','rec-amount','rec-break','rec-date','rec-end',
   'rec-enddate','rec-memo','rec-name','rec-pat-chips','rec-preview','rec-start',
   'rec-transport','rec-wage','rec-workhours','rec-hourly-note','save-error-banner','boot-error-banner','rescue-info','fatal-error-banner','fatal-error-msg',
