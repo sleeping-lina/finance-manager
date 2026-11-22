@@ -40,7 +40,7 @@ try {
   html { background: var(--footer-bg, #fff); }
   body { font-family: 'Noto Sans JP', sans-serif; background: transparent; color: var(--text-primary); font-size: 14px; -webkit-font-smoothing: antialiased; }
   .app { height: 100vh; height: 100dvh; height: var(--app-h, 100dvh); display: flex; flex-direction: column; overflow: hidden; }
-  .topbar { flex-shrink: 0; z-index: 50; background: var(--navy); color: #fff; padding: calc(var(--safe-top) + 10px) 16px 10px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar { flex-shrink: 0; z-index: 50; background: var(--navy); color: #fff; padding: calc(var(--safe-top) + var(--hdr-pad, 10px)) 16px var(--hdr-pad, 10px); display: flex; align-items: center; justify-content: space-between; }
   .topbar-logo { font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: -0.4px; }
   .topbar-logo span { color: var(--mint); }
   .version-badge { font-family: 'DM Mono', monospace; font-size: 10px; color: rgba(255,255,255,0.45); background: rgba(255,255,255,0.08); padding: 2px 7px; border-radius: 5px; margin-left: 7px; }
@@ -837,6 +837,17 @@ try {
               <input type="range" id="glass-h" min="0" max="80" step="1" style="width:110px" oninput="setGlassHeight(this.value)">
               <span id="glass-h-val" class="mono" style="font-size:12px;min-width:38px;text-align:right">11px</span>
             </div></div>
+          <div class="settings-row"><span>ヘッダーの高さ</span>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input type="range" id="hdr-pad" min="2" max="16" step="1" style="width:110px" oninput="setHeaderPad(this.value)">
+              <span id="hdr-pad-val" class="mono" style="font-size:12px;min-width:38px;text-align:right">10px</span>
+            </div></div>
+          <div class="settings-row"><span>フッターの下の余白</span>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input type="range" id="tab-pad" min="0" max="40" step="1" style="width:90px" oninput="setTabPad(this.value)">
+              <span id="tab-pad-val" class="mono" style="font-size:12px;min-width:38px;text-align:right">自動</span>
+              <button class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:11px" onclick="setTabPad(null)">自動</button>
+            </div></div>
           <div class="settings-row"><span>ステータスバーの色</span>
             <div class="seg seg-sm">
               <div class="seg-btn" data-sb="header" onclick="setStatusBarColor('header',this)">ヘッダー</div>
@@ -887,7 +898,7 @@ try {
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v63</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v64</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
           <div id="vp-info" style="margin-top:2px;opacity:.7"></div>
         </div>
       </div>
@@ -1573,6 +1584,10 @@ try {
       <div class="detail-name" id="st-name">—</div>
       <div class="detail-sub" id="st-sub"></div>
     </div>
+  </div>
+  <div style="display:flex;gap:6px;justify-content:flex-end;margin:-4px 0 8px">
+    <button class="btn btn-ghost btn-sm" onclick="stToggleAll(true)">すべて開く</button>
+    <button class="btn btn-ghost btn-sm" onclick="stToggleAll(false)">すべて閉じる</button>
   </div>
   <div id="st-body"></div>
   <div class="form-actions" style="margin-top:14px">
@@ -2325,7 +2340,7 @@ try {
      v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
      バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
 <script>
-window.APP_BOOT_VERSION = '63';
+window.APP_BOOT_VERSION = '64';
 // v49: iOS ホーム画面アプリの高さ補正
 // ステータスバー透過（black-translucent）で起動すると、iOS が画面の高さをステータスバー分だけ短く報告し、
 // フッターが持ち上がって下に白い帯ができることがある。画面の実寸（screen）を使って高さを決める。
@@ -2410,7 +2425,7 @@ window.addEventListener('orientationchange', function(){ setTimeout(window.fixVi
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '63';
+const APP_VERSION = '64';
 const SCHEMA_VERSION = 33;
 const STORAGE_KEY = 'financeManager';
 
@@ -4097,7 +4112,7 @@ function renderCalMonth() {
 // 仕事・クレカ・定期的な支払い・税金・積立・銘柄ごとに、年 → 月 → 明細 の順で見る
 function statementBtn(kind, id, label) {
   const safe = String(id).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
-  return `<button class="btn btn-ghost btn-block" style="margin-top:10px" onclick="openStatement('${kind}','${safe}')">📅 ${escapeHTML(label||'年月ごとの明細')}</button>`;
+  return `<button class="btn btn-ghost btn-block" style="margin-top:10px;white-space:normal;height:auto;line-height:1.4;padding-top:9px;padding-bottom:9px;overflow-wrap:anywhere" onclick="openStatement('${kind}','${safe}')">📅 ${escapeHTML(label||'年月ごとの明細')}</button>`;
 }
 function ymAdd(ym, k) { let y=+ym.slice(0,4), m=+ym.slice(5,7)-1+k; while(m<0){m+=12;y--;} while(m>11){m-=12;y++;} return `${y}-${pad(m+1)}`; }
 function ymRange(from, to) { const out=[]; let c=from; let guard=0; while (c<=to && guard++<240) { out.push(c); c=ymAdd(c,1); } return out; }
@@ -4189,6 +4204,7 @@ function statementData(kind, id) {
   }
   return { title, stamp, sub, sign, lines };
 }
+function stToggleAll(open) { document.querySelectorAll('#st-body details').forEach(d=>{ d.open = open; }); }
 function openStatement(kind, id) {
   const data = statementData(kind, id);
   if (!data) return;
@@ -5042,13 +5058,23 @@ function fixHourlyWages(jobId, from, to) {
   const job = jobById(jobId); if (!job) return;
   const targets = state.records.filter(r=>r.jobId===jobId && r.date>=from && r.date<=to && r.wageUsed && r.hours
     && Math.abs(expectedWage(job, r) - r.wageUsed) > 0.001);
-  if (!targets.length) { showToast('直す記録はありません'); return; }
-  confirmAction('時給を設定に合わせる', `${targets.length}日分の勤務記録を、設定の時給で計算し直します（金額＝実働×時給＋交通費）。よろしいですか？`, '計算し直す', ()=>{
+  if (!targets.length) { showToast('時給が設定と違う記録はありません'); return; }
+  const span = `${targets.map(r=>r.date).sort()[0].replace(/-/g,'/')}〜${targets.map(r=>r.date).sort().reverse()[0].replace(/-/g,'/')}`;
+  confirmAction('時給を設定に合わせる', `${span} のうち、時給が設定（変更履歴を含む）と違う ${targets.length}日分を計算し直します（金額＝実働×時給＋交通費）。カレンダー・見込みにすぐ反映されます。入力済みの実受取（明細）は変わりません。よろしいですか？`, '計算し直す', ()=>{
     targets.forEach(r=>{ const w = expectedWage(job, r); r.wageUsed = w; r.amount = r.hours*w + (r.transport||0); });
     save(); renderAll();
     if (document.getElementById('modal-payslip').classList.contains('open')) { renderPsDiff(); }
+    if (document.getElementById('modal-detail').classList.contains('open') && dtJobId===jobId) openJobDetail(jobId);
     showToast(`${targets.length}日分を直しました ✓`);
   });
+}
+// 仕事の全期間の勤務記録を、設定の時給（変更履歴込み）で計算し直す（v64）
+function fixAllHourlyWages(jobId) {
+  const job = jobById(jobId); if (!job) return;
+  const recs = state.records.filter(r=>r.jobId===jobId && r.hours);
+  if (!recs.length) { showToast('勤務記録がありません'); return; }
+  const dates = recs.map(r=>r.date).sort();
+  fixHourlyWages(jobId, dates[0], dates[dates.length-1]);
 }
 function hourlyBreakdownHTML(job, recs) {
   if (!recs.length) return '';
@@ -5870,7 +5896,12 @@ function saveJob() {
     Object.assign(jobEditing, data);
   }
   else state.jobs.push(Object.assign({id:'j'+Date.now(), history:[]}, data));
-  save(); closeModal('modal-job'); renderAll(); showToast('保存しました ✓');
+  save(); closeModal('modal-job'); renderAll();
+  // 時給の変更を残したあと、時給が設定と違う勤務記録があれば知らせる（v64）
+  const jj = jobEditing ? jobById(jobEditing.id) : null;
+  const wrong = (jj && jj.payType==='hourly') ? state.records.filter(r=>r.jobId===jj.id && r.hours && r.wageUsed && Math.abs(expectedWage(jj, r)-r.wageUsed)>0.001).length : 0;
+  if (wrong) { fixAllHourlyWages(jj.id); }
+  else showToast('保存しました ✓');
 }
 function deleteJob() {
   if(!jobEditing) return;
@@ -6356,6 +6387,17 @@ function setCalTextLen(v){ state.settings.calTextLen=parseInt(v)||6; save(); doc
 function setWeekName(v, el){ state.settings.weekName=v; save(); syncSettingsUI(); renderAll(); }
 // v60：ぼかし対策は高さだけ調整（0でオフ）。別アプリと同じ方式
 function setGlassHeight(v){ state.settings.glassH = Math.max(0, Math.min(80, parseInt(v)||0)); save(); applyGlassGuard(); syncSettingsUI(); }
+// v64：ヘッダーの高さ・フッターの下の余白を自分で調整（ホーム画面アプリの種類で位置が違うため）
+function setHeaderPad(v){ state.settings.headerPad = Math.max(2, Math.min(16, parseInt(v)||10)); save(); applyLayoutPads(); syncSettingsUI(); }
+function setTabPad(v){ state.settings.tabPad = (v===null || v==='') ? null : Math.max(0, Math.min(40, parseInt(v)||0)); save(); applyLayoutPads(); syncSettingsUI(); }
+function applyLayoutPads(){
+  const de = document.documentElement;
+  const hp = state.settings.headerPad;
+  if (hp===undefined || hp===null) de.style.removeProperty('--hdr-pad'); else de.style.setProperty('--hdr-pad', hp+'px');
+  const tp = state.settings.tabPad;
+  // 「自動」は端末の安全領域（ホームバーの高さ）に任せる
+  if (tp===undefined || tp===null) de.style.removeProperty('--safe-bottom'); else de.style.setProperty('--safe-bottom', tp+'px');
+}
 function applyGlassGuard(){
   const h = (state.settings.glassH===undefined || state.settings.glassH===null) ? 11 : state.settings.glassH;
   document.documentElement.style.setProperty('--blurFixH', h+'px');
@@ -6372,6 +6414,10 @@ function syncSettingsUI(){
   document.querySelectorAll('.seg-btn[data-cd]').forEach(b=>b.classList.toggle('active', b.dataset.cd===state.settings.calDisplay));
   document.querySelectorAll('.seg-btn[data-wn]').forEach(b=>b.classList.toggle('active', b.dataset.wn===(state.settings.weekName||'full')));
   document.querySelectorAll('.seg-btn[data-sb]').forEach(b=>b.classList.toggle('active', b.dataset.sb===(state.settings.statusBarColor||'header')));
+  { const hp = state.settings.headerPad ?? 10; const r = document.getElementById('hdr-pad'); if (r) r.value = hp;
+    const v = document.getElementById('hdr-pad-val'); if (v) v.textContent = hp+'px';
+    const tp = state.settings.tabPad; const r2 = document.getElementById('tab-pad'); if (r2) r2.value = (tp===null||tp===undefined) ? 20 : tp;
+    const v2 = document.getElementById('tab-pad-val'); if (v2) v2.textContent = (tp===null||tp===undefined) ? '自動' : tp+'px'; }
   { const gh = (state.settings.glassH===undefined || state.settings.glassH===null) ? 11 : state.settings.glassH;
     const r = document.getElementById('glass-h'); if (r) r.value = gh;
     const v = document.getElementById('glass-h-val'); if (v) v.textContent = gh>0 ? gh+'px' : 'オフ'; }
@@ -7791,8 +7837,12 @@ function isWalletEnded(w) {
 
 // ── 各一覧の詳細シート（v34） ──
 // 追加するときは openDetail({...}) を呼ぶだけ。rows は値が空なら自動で省かれる。
+let dtJobId = '';
 function openJobDetail(id) {
   const j = state.jobs.find(x=>x.id===id); if (!j) return;
+  dtJobId = id;
+  // 時給が設定と違う勤務記録の数（v64）
+  const wrongCnt = j.payType==='hourly' ? state.records.filter(r=>r.jobId===id && r.hours && r.wageUsed && Math.abs(expectedWage(j, r)-r.wageUsed)>0.001).length : 0;
   const mo = (state.members.length>=2 && j.memberId) ? memberById(j.memberId) : null;
   const acc = j.walletId ? walletById(j.walletId) : null;
   const tm = (st,en,br)=> (st||en) ? `${st||''}〜${en||''}${br?`（休憩${br}分）`:''}` : '';
@@ -7821,7 +7871,8 @@ function openJobDetail(id) {
       <span class="dr-val" style="font-size:12px">時給 ${p.wage?fmt(p.wage):'基本と同じ'}<br>交通費 ${(p.transport===''||p.transport===undefined||p.transport===null)?'基本と同じ':fmt(p.transport)}</span></div>`).join('');
   openDetail({ stamp: stampHTML(j.stamp), name: j.name, sub: payTypeLabel(j.payType),
     rows, memo: j.memo, onEdit: ()=>openJobModal(id),
-    extraHTML: (pats ? `<div style="margin-top:10px;font-size:11.5px;color:var(--text-secondary)">シフトパターン</div>${pats}` : '')
+    extraHTML: (wrongCnt ? `<button class="btn btn-ghost btn-block" style="margin-top:10px;color:#C0392B;white-space:normal;height:auto;padding-top:9px;padding-bottom:9px" onclick="fixAllHourlyWages('${id}')">⚠ 時給が設定と違う勤務記録が ${wrongCnt}日分あります → 設定の時給で計算し直す</button>` : '')
+      + (pats ? `<div style="margin-top:10px;font-size:11.5px;color:var(--text-secondary)">シフトパターン</div>${pats}` : '')
       + (hist ? `<div style="margin-top:10px;font-size:11.5px;color:var(--text-secondary)">設定の変更履歴</div>${hist}` : '') + statementBtn('job', id) });
 }
 function openMoneyCatDetail(id) {
@@ -9871,6 +9922,7 @@ function applyMemberTheme(mo) {
   document.documentElement.classList.toggle('status-member', state.settings.statusBarColor==='member');
   // v59：ぼかし対策の方式（A=既定・B・C・オフ）
   applyGlassGuard();
+  applyLayoutPads();
   // ヘッダー・月ナビは念のため明示的にリセット
   const top = document.querySelector('.topbar');
   const mbar = document.getElementById('month-bar');
@@ -12575,7 +12627,7 @@ function scrollToSection(id) { scrollToEl(document.getElementById(id)); }
 // 参照先がDOMに存在するかを検証する。v29のサブスク事故（削除済みIDへの参照でJSが停止）の再発防止。
 // 実行方法：設定 → データ → 「ID参照チェック」、または URL末尾に #debug を付けて開く（結果はコンソール）。
 // UIを削除・改名したら必ずこれを実行すること。JSが後から生成するIDは下の除外リストに登録する。
-const DIAG_DYNAMIC_IDS = new Set(['meta-vp','input-form-area','gear-btn','meta-sb','inv-fund-list','tax-cover','wal-acc-hist','sb-wallet-hist','ios-glass-guard','status-fill','rec-duedate','rec-duetime','lsg-date','ps-subtotal','ps-withtax','rec-amtchg-area','rec-newamount','rec-chgdate','rec-chgnote',
+const DIAG_DYNAMIC_IDS = new Set(['hdr-pad','tab-pad','meta-vp','input-form-area','gear-btn','meta-sb','inv-fund-list','tax-cover','wal-acc-hist','sb-wallet-hist','ios-glass-guard','status-fill','rec-duedate','rec-duetime','lsg-date','ps-subtotal','ps-withtax','rec-amtchg-area','rec-newamount','rec-chgdate','rec-chgnote',
   'dd-subtotal','ex-total','jd-total','rec-amount','rec-break','rec-date','rec-end',
   'rec-enddate','rec-memo','rec-name','rec-pat-chips','rec-preview','rec-start',
   'rec-transport','rec-wage','rec-workhours','rec-hourly-note','save-error-banner','boot-error-banner','rescue-info','fatal-error-banner','fatal-error-msg',
