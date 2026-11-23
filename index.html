@@ -355,7 +355,7 @@ try {
   /* v60：年月ごとの明細・月ごとの入力は、詳細シートより手前に出す */
   #modal-statement { z-index: 130; }
   #modal-submonth { z-index: 140; }
-  .gear-btn { background: rgba(255,255,255,.12); border: none; border-radius: 10px; width: 36px; height: 36px; font-size: 18px; line-height: 1; cursor: pointer; padding: 0; flex-shrink: 0; }
+  .gear-btn { background: rgba(255,255,255,.12); border: none; border-radius: 8px; width: 28px; height: 28px; font-size: 14px; line-height: 1; cursor: pointer; padding: 0; flex-shrink: 0; }
   .gear-btn.active { background: rgba(44,213,160,.35); }
   #poi-subtabs { margin-top: 0; }
   .tx-row { display: flex; justify-content: space-between; gap: 10px; padding: 7px 2px; border-bottom: 1px solid var(--border); font-size: 13px; }
@@ -478,6 +478,7 @@ try {
             <div class="cal-switch-btn" onclick="setCalView('week',this)">週</div>
             <div class="cal-switch-btn" onclick="setCalView('list',this)">一覧</div>
             <div class="cal-switch-btn" onclick="setCalView('check',this)">✓</div>
+            <div class="cal-switch-btn" id="cal-sw-lend" onclick="setCalView('lend',this)">🤝</div>
           </div>
         </div>
         <div id="cal-month-view">
@@ -493,11 +494,11 @@ try {
           </div>
           <div id="check-month-list"></div>
           <div id="check-always-section" style="display:none"><div id="check-always-list"></div></div>
-          <!-- v52：立て替えは「記録」タブからチェックリストへ移した -->
-          <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border)">
-            <div style="font-size:13px;font-weight:700;margin-bottom:8px">🤝 立て替え</div>
-            <div id="input-lend-area"></div>
-          </div>
+        </div>
+        <!-- v65：立て替えはチェックリストから独立（カレンダーの 🤝 ／ メンバーバー右端のボタン） -->
+        <div id="cal-lend-view" style="display:none">
+          <div style="font-size:13px;font-weight:700;margin-bottom:8px">🤝 立て替え</div>
+          <div id="input-lend-area"></div>
         </div>
       </div>
       <button class="btn btn-primary btn-block" onclick="openAddMenu(todayStr())">＋ 予定・収入を追加</button>
@@ -898,7 +899,7 @@ try {
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v64</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v65</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
           <div id="vp-info" style="margin-top:2px;opacity:.7"></div>
         </div>
       </div>
@@ -2340,7 +2341,7 @@ try {
      v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
      バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
 <script>
-window.APP_BOOT_VERSION = '64';
+window.APP_BOOT_VERSION = '65';
 // v49: iOS ホーム画面アプリの高さ補正
 // ステータスバー透過（black-translucent）で起動すると、iOS が画面の高さをステータスバー分だけ短く報告し、
 // フッターが持ち上がって下に白い帯ができることがある。画面の実寸（screen）を使って高さを決める。
@@ -2425,7 +2426,7 @@ window.addEventListener('orientationchange', function(){ setTimeout(window.fixVi
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '64';
+const APP_VERSION = '65';
 const SCHEMA_VERSION = 33;
 const STORAGE_KEY = 'financeManager';
 
@@ -3514,6 +3515,11 @@ let calMonth = new Date().getMonth(), calYear = new Date().getFullYear();
 let calView = 'month';
 function changeCalMonth(d){ changeMonthGlobal(d); }
 function goToday(){ goTodayGlobal(); }
+// 立て替えを一発で開く（v65）
+function openLendView() {
+  showPage('calendar', document.querySelectorAll('.tabbar .tab')[0]);
+  setCalView('lend', document.getElementById('cal-sw-lend'));
+}
 function setCalView(v, el){ calView=v;
   state.settings.calSubTab = v; save();
   document.querySelectorAll('.cal-switch-btn').forEach(b=>b.classList.remove('active')); if(el) el.classList.add('active');
@@ -3521,6 +3527,7 @@ function setCalView(v, el){ calView=v;
   document.getElementById('cal-week-view').style.display = v==='week'?'':'none';
   document.getElementById('cal-list-view').style.display = v==='list'?'':'none';
   document.getElementById('cal-check-view').style.display = v==='check'?'':'none';
+  document.getElementById('cal-lend-view').style.display = v==='lend'?'':'none';
   renderCalendar(); renderChecklist();
   document.getElementById('content').scrollTop = 0; }
 // （カレンダー個別のスワイプはページ全体スワイプに統合）
@@ -5068,6 +5075,24 @@ function fixHourlyWages(jobId, from, to) {
     showToast(`${targets.length}日分を直しました ✓`);
   });
 }
+// その日・そのパターンで本来使う交通費（v65）：パターンの交通費が空欄なら基本（変更履歴込み）
+function expectedTransport(job, r) {
+  const ja = jobSettingAt(job, r.date);
+  const pat = r.patternId ? (ja.patterns||[]).find(p=>p.id===r.patternId) : null;
+  return (pat && pat.transport!=='' && pat.transport!==undefined && pat.transport!==null) ? +pat.transport : (+ja.transport||0);
+}
+// 交通費が設定と違う勤務記録を直す（その日だけ交通費を変えた場合もあるので、時給とは別のボタン）
+function fixAllHourlyTransport(jobId) {
+  const job = jobById(jobId); if (!job) return;
+  const targets = state.records.filter(r=>r.jobId===jobId && r.hours && Math.abs(expectedTransport(job, r)-(r.transport||0))>0.001);
+  if (!targets.length) { showToast('交通費が設定と違う記録はありません'); return; }
+  confirmAction('交通費を設定に合わせる', `交通費が設定（変更履歴を含む）と違う ${targets.length}日分を、設定の交通費に直します。その日だけ交通費を変えた記録も含まれます。よろしいですか？`, '直す', ()=>{
+    targets.forEach(r=>{ const t = expectedTransport(job, r); r.amount = (r.amount||0) - (r.transport||0) + t; r.transport = t; });
+    save(); renderAll();
+    if (document.getElementById('modal-detail').classList.contains('open') && dtJobId===jobId) openJobDetail(jobId);
+    showToast(`${targets.length}日分を直しました ✓`);
+  });
+}
 // 仕事の全期間の勤務記録を、設定の時給（変更履歴込み）で計算し直す（v64）
 function fixAllHourlyWages(jobId) {
   const job = jobById(jobId); if (!job) return;
@@ -5760,6 +5785,9 @@ function openJobModal(id) {
   renderPatternEditor();
   refreshJobPickers();
   openModal('modal-job');
+  // 今の設定の欄が埋まってから、履歴と今の設定の違いを表示し直す（v65）。設定の欄を変えたときも表示し直す
+  renderJobHistory();
+  Object.values(JOB_FORM_ID).forEach(fid=>{ const f = document.getElementById(fid); if (f && !f.dataset.jhBound) { f.dataset.jhBound = '1'; f.addEventListener('change', ()=>{ if (document.getElementById('modal-job').classList.contains('open')) renderJobHistory(); }); } });
 }
 function refreshJobPickers(){
   renderStampArea('job-stamp-area', jobStamp, s=>{jobStamp=s;refreshJobPickers();});
@@ -5892,7 +5920,7 @@ function saveJob() {
       });
     });
     data.history = data.history.filter(h=>h.changes && Object.keys(h.changes).length);
-    data.history.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    normalizeJobHistory(data.history);   // 前後の「変更前の値」をつなぎ直す（v65）
     Object.assign(jobEditing, data);
   }
   else state.jobs.push(Object.assign({id:'j'+Date.now(), history:[]}, data));
@@ -5946,25 +5974,111 @@ function jobChangeValueText(k, v) {
 function jobChangeText(h) {
   return Object.entries(h.changes||{}).map(([k,v])=>`${v.label||JOB_TRACKED_LABEL[k]||k} ${jobChangeValueText(k,v.from)} → ${jobChangeValueText(k,v.to)}`).join('、');
 }
+// ── 変更履歴の編集（v65）──
+// 履歴は「この日から 値A → 値B」の並び。途中に抜けがあっても、日付と変更後の値を入れて追加するだけで
+// 前後の「変更前の値」を自動でつなぎ直す（normalizeJobHistory）。今の設定は変えない。
+const JOB_HIST_FIELDS = [['wage','時給'],['transport','交通費'],['salary','月額'],['withholdingRate','源泉税率'],['taxRate','消費税率'],['taxDeductRate','控除割合'],['walletId','受取口座']];
+const JOB_FORM_ID = { wage:'job-wage', transport:'job-transport', salary:'job-salary', withholdingRate:'job-whrate', taxRate:'job-taxrate', taxDeductRate:'job-taxded', walletId:'job-wallet' };
+function normalizeJobHistory(hist) {
+  const keys = new Set();
+  hist.forEach(h=>Object.keys(h.changes||{}).forEach(k=>keys.add(k)));
+  keys.forEach(k=>{
+    const chain = hist.filter(h=>h.changes && h.changes[k]).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    for (let i=1; i<chain.length; i++) chain[i].changes[k].from = chain[i-1].changes[k].to;
+  });
+  hist.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  return hist;
+}
+function jobHistValueInput(k, v, cls) {
+  if (k==='walletId') {
+    const opts = state.wallets.filter(w=>BANK_TYPES.includes(w.type)).map(w=>`<option value="${w.id}" ${w.id===v?'selected':''}>${escapeHTML(w.name)}</option>`).join('');
+    return `<select class="${cls}" style="width:auto;max-width:150px;padding:4px 6px"><option value="">未設定</option>${opts}</select>`;
+  }
+  return `<input type="number" inputmode="decimal" class="${cls}" value="${v===null||v===undefined?'':v}" style="width:90px;padding:4px 6px"${cls==='jh-add-val'?' placeholder="変更後の値"':''}>`;
+}
+function readHistVal(k, el) {
+  if (k==='walletId') return el.value || null;
+  const n = parseFloat(el.value); return isFinite(n) ? n : null;
+}
 function renderJobHistory() {
   const el = document.getElementById('job-history');
   if (!el) return;
-  if (!jobHistory.length) { el.innerHTML = '<div class="field-note" style="margin:0">変更履歴なし</div>'; return; }
-  el.innerHTML = jobHistory.map((h,i)=>`
-    <div class="pat-row" data-i="${i}">
+  normalizeJobHistory(jobHistory);
+  const firstSeen = new Set();
+  const rows = jobHistory.map((h,i)=>{
+    const ch = Object.entries(h.changes||{}).map(([k,v])=>{
+      const isFirst = !firstSeen.has(k); firstSeen.add(k);
+      const label = v.label || JOB_TRACKED_LABEL[k] || k;
+      return `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;margin:4px 0" data-k="${escapeHTML(k)}">
+        <span style="min-width:64px">${escapeHTML(label)}</span>
+        ${isFirst ? jobHistValueInput(k, v.from, 'jh-from') : `<span style="color:var(--text-secondary)">${escapeHTML(jobChangeValueText(k, v.from))}</span>`}
+        <span>→</span>${jobHistValueInput(k, v.to, 'jh-to')}</div>`;
+    }).join('');
+    return `<div class="pat-row" data-i="${i}">
       <div class="pat-row-head">
-        <input type="date" class="jh-date" value="${h.date||''}" style="width:auto">
+        <input type="date" class="jh-date" value="${h.date||''}" style="width:auto"><span style="font-size:12px">から</span>
         <span style="flex:1"></span>
         <button class="pat-del" onclick="removeJobHistory(${i})">✕</button>
-      </div>
-      <div style="font-size:12px;margin:4px 0">${escapeHTML(jobChangeText(h))}</div>
+      </div>${ch}
       <input type="text" class="jh-note" value="${escapeHTML(h.note||'')}" placeholder="メモ">
-    </div>`).join('');
+    </div>`;
+  }).join('');
+  // 最新の履歴の値と、今の設定が違う項目を知らせる
+  const warns = [];
+  JOB_HIST_FIELDS.forEach(([k,lb])=>{
+    const chain = jobHistory.filter(h=>h.changes && h.changes[k]);
+    if (!chain.length) return;
+    const last = chain[chain.length-1].changes[k].to;
+    const f = document.getElementById(JOB_FORM_ID[k]); if (!f) return;
+    const cur = k==='walletId' ? (f.value||null) : (isFinite(parseFloat(f.value)) ? parseFloat(f.value) : null);
+    if (String(last??'')!==String(cur??'')) warns.push(`${lb}：最新の履歴は ${jobChangeValueText(k,last)}、今の設定は ${jobChangeValueText(k,cur)}`);
+  });
+  el.innerHTML = (rows || '<div class="field-note" style="margin:0">変更履歴なし</div>')
+    + (warns.length ? `<div class="field-note" style="color:#C0392B">${warns.map(escapeHTML).join('<br>')}<br>今の設定（上の欄）か履歴のどちらかを直してください。</div>` : '')
+    + `<div style="border:1px dashed var(--border);border-radius:10px;padding:8px 10px;margin-top:8px">
+        <div style="font-size:12px;font-weight:700;margin-bottom:6px">＋ 履歴を追加（抜けている変更をあとから入れる）</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <input type="date" id="jh-add-date" style="width:auto">
+          <span style="font-size:12px">から</span>
+          <select id="jh-add-key" style="width:auto;padding:4px 6px" onchange="renderJhAddVal()">${JOB_HIST_FIELDS.map(([k,lb])=>`<option value="${k}">${lb}</option>`).join('')}</select>
+          <span id="jh-add-val-wrap"></span>
+          <button class="btn btn-primary btn-sm" onclick="addJobHistoryEntry()">追加</button>
+        </div>
+        <div class="field-note" style="margin:4px 0 0">変更後の値だけ入れれば、前後の履歴の「変更前」は自動でつなぎ直します。今の設定は変わりません。</div>
+      </div>`;
+  renderJhAddVal();
   el.querySelectorAll('.pat-row').forEach(row=>{
     const i = +row.dataset.i;
-    row.querySelector('.jh-date').onchange = e=>{ jobHistory[i].date = e.target.value; };
+    row.querySelector('.jh-date').onchange = e=>{ jobHistory[i].date = e.target.value; renderJobHistory(); };
     row.querySelector('.jh-note').oninput = e=>{ jobHistory[i].note = e.target.value; };
+    row.querySelectorAll('[data-k]').forEach(line=>{
+      const k = line.dataset.k;
+      const to = line.querySelector('.jh-to'); if (to) to.onchange = ()=>{ jobHistory[i].changes[k].to = readHistVal(k, to); renderJobHistory(); };
+      const fr = line.querySelector('.jh-from'); if (fr) fr.onchange = ()=>{ jobHistory[i].changes[k].from = readHistVal(k, fr); renderJobHistory(); };
+    });
   });
+}
+function renderJhAddVal() {
+  const k = (document.getElementById('jh-add-key')||{}).value || 'wage';
+  const w = document.getElementById('jh-add-val-wrap'); if (w) w.innerHTML = jobHistValueInput(k, '', 'jh-add-val');
+}
+function addJobHistoryEntry() {
+  const date = document.getElementById('jh-add-date').value;
+  const k = document.getElementById('jh-add-key').value;
+  const v = readHistVal(k, document.querySelector('#jh-add-val-wrap .jh-add-val'));
+  if (!date) { showToast('日付を入れてください'); return; }
+  if (v===null && k!=='walletId') { showToast('変更後の値を入れてください'); return; }
+  // 変更前は「その日の直前の値」（直前の履歴の変更後、無ければ最初の履歴の変更前、無ければ今の設定）
+  const chain = jobHistory.filter(h=>h.changes && h.changes[k]).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const prev = chain.filter(h=>h.date < date).pop();
+  const f = document.getElementById(JOB_FORM_ID[k]);
+  const curVal = f ? (k==='walletId' ? (f.value||null) : parseFloat(f.value)) : null;
+  const from = prev ? prev.changes[k].to : (chain.length ? chain[0].changes[k].from : curVal);
+  const same = jobHistory.find(h=>h.date===date);
+  if (same) { same.changes = same.changes || {}; same.changes[k] = { from, to: v }; }
+  else jobHistory.push({ date, changes: { [k]: { from, to: v } }, note: '' });
+  renderJobHistory();
+  showToast('履歴を追加しました（保存で確定）');
 }
 function removeJobHistory(i) { jobHistory.splice(i,1); renderJobHistory(); }
 
@@ -7843,6 +7957,7 @@ function openJobDetail(id) {
   dtJobId = id;
   // 時給が設定と違う勤務記録の数（v64）
   const wrongCnt = j.payType==='hourly' ? state.records.filter(r=>r.jobId===id && r.hours && r.wageUsed && Math.abs(expectedWage(j, r)-r.wageUsed)>0.001).length : 0;
+  const wrongT = j.payType==='hourly' ? state.records.filter(r=>r.jobId===id && r.hours && Math.abs(expectedTransport(j, r)-(r.transport||0))>0.001).length : 0;
   const mo = (state.members.length>=2 && j.memberId) ? memberById(j.memberId) : null;
   const acc = j.walletId ? walletById(j.walletId) : null;
   const tm = (st,en,br)=> (st||en) ? `${st||''}〜${en||''}${br?`（休憩${br}分）`:''}` : '';
@@ -7872,6 +7987,7 @@ function openJobDetail(id) {
   openDetail({ stamp: stampHTML(j.stamp), name: j.name, sub: payTypeLabel(j.payType),
     rows, memo: j.memo, onEdit: ()=>openJobModal(id),
     extraHTML: (wrongCnt ? `<button class="btn btn-ghost btn-block" style="margin-top:10px;color:#C0392B;white-space:normal;height:auto;padding-top:9px;padding-bottom:9px" onclick="fixAllHourlyWages('${id}')">⚠ 時給が設定と違う勤務記録が ${wrongCnt}日分あります → 設定の時給で計算し直す</button>` : '')
+      + (wrongT ? `<button class="btn btn-ghost btn-block" style="margin-top:8px;white-space:normal;height:auto;padding-top:9px;padding-bottom:9px" onclick="fixAllHourlyTransport('${id}')">交通費が設定と違う勤務記録が ${wrongT}日分あります → 設定の交通費に直す</button>` : '')
       + (pats ? `<div style="margin-top:10px;font-size:11.5px;color:var(--text-secondary)">シフトパターン</div>${pats}` : '')
       + (hist ? `<div style="margin-top:10px;font-size:11.5px;color:var(--text-secondary)">設定の変更履歴</div>${hist}` : '') + statementBtn('job', id) });
 }
@@ -9902,7 +10018,8 @@ function renderMemberBar() {
   el.innerHTML = `<div class="mem-chip ${cur==='all'?'active':''}" onclick="setCurrentMember('all')">全員</div>` +
     sortByOrder(state.members).map(m=>`
       <div class="mem-chip ${cur===m.id?'active':''}"
-        onclick="setCurrentMember('${m.id}')">${m.icon} ${escapeHTML(m.name)}</div>`).join('');
+        onclick="setCurrentMember('${m.id}')">${m.icon} ${escapeHTML(m.name)}</div>`).join('')
+    + `<div class="mem-chip" style="margin-left:auto" onclick="openLendView()">🤝 立て替え</div>`;
   applyMemberTheme(curMo);
 }
 // 選択中メンバーの色を上下バーに反映（切り替えミス防止）
@@ -12627,7 +12744,7 @@ function scrollToSection(id) { scrollToEl(document.getElementById(id)); }
 // 参照先がDOMに存在するかを検証する。v29のサブスク事故（削除済みIDへの参照でJSが停止）の再発防止。
 // 実行方法：設定 → データ → 「ID参照チェック」、または URL末尾に #debug を付けて開く（結果はコンソール）。
 // UIを削除・改名したら必ずこれを実行すること。JSが後から生成するIDは下の除外リストに登録する。
-const DIAG_DYNAMIC_IDS = new Set(['hdr-pad','tab-pad','meta-vp','input-form-area','gear-btn','meta-sb','inv-fund-list','tax-cover','wal-acc-hist','sb-wallet-hist','ios-glass-guard','status-fill','rec-duedate','rec-duetime','lsg-date','ps-subtotal','ps-withtax','rec-amtchg-area','rec-newamount','rec-chgdate','rec-chgnote',
+const DIAG_DYNAMIC_IDS = new Set(['jh-add-date','jh-add-key','jh-add-val-wrap','cal-lend-view','hdr-pad','tab-pad','meta-vp','input-form-area','gear-btn','meta-sb','inv-fund-list','tax-cover','wal-acc-hist','sb-wallet-hist','ios-glass-guard','status-fill','rec-duedate','rec-duetime','lsg-date','ps-subtotal','ps-withtax','rec-amtchg-area','rec-newamount','rec-chgdate','rec-chgnote',
   'dd-subtotal','ex-total','jd-total','rec-amount','rec-break','rec-date','rec-end',
   'rec-enddate','rec-memo','rec-name','rec-pat-chips','rec-preview','rec-start',
   'rec-transport','rec-wage','rec-workhours','rec-hourly-note','save-error-banner','boot-error-banner','rescue-info','fatal-error-banner','fatal-error-msg',
