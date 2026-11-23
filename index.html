@@ -89,6 +89,10 @@ try {
   .btn:active { transform: scale(0.96); }
   .btn-primary { background: var(--mint); color: #fff; }
   .btn-ghost { background: #fff; border: 1.5px solid var(--border); color: var(--text-primary); }
+  /* v66：ボタンの色分け
+     緑（btn-primary）…記録する・追加する ／ オレンジ（btn-todo）…これから入力が必要 ／ 青（btn-view）…明細を見る */
+  .btn-todo { background: #F39C12; color: #fff; border: 1.5px solid #F39C12; font-weight: 600; }
+  .btn-view { background: #EAF2FD; color: #2563B0; border: 1.5px solid #C9DCF5; }
   .btn-danger { background: #FFF0F3; color: #E53E3E; border: 1px solid #FFC5C5; }
   .btn-sm { padding: 5px 11px; font-size: 12px; }
   .btn-block { width: 100%; }
@@ -899,7 +903,7 @@ try {
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v65</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v66</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
           <div id="vp-info" style="margin-top:2px;opacity:.7"></div>
         </div>
       </div>
@@ -2341,7 +2345,7 @@ try {
      v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
      バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
 <script>
-window.APP_BOOT_VERSION = '65';
+window.APP_BOOT_VERSION = '66';
 // v49: iOS ホーム画面アプリの高さ補正
 // ステータスバー透過（black-translucent）で起動すると、iOS が画面の高さをステータスバー分だけ短く報告し、
 // フッターが持ち上がって下に白い帯ができることがある。画面の実寸（screen）を使って高さを決める。
@@ -2426,7 +2430,7 @@ window.addEventListener('orientationchange', function(){ setTimeout(window.fixVi
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '65';
+const APP_VERSION = '66';
 const SCHEMA_VERSION = 33;
 const STORAGE_KEY = 'financeManager';
 
@@ -4119,7 +4123,7 @@ function renderCalMonth() {
 // 仕事・クレカ・定期的な支払い・税金・積立・銘柄ごとに、年 → 月 → 明細 の順で見る
 function statementBtn(kind, id, label) {
   const safe = String(id).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
-  return `<button class="btn btn-ghost btn-block" style="margin-top:10px;white-space:normal;height:auto;line-height:1.4;padding-top:9px;padding-bottom:9px;overflow-wrap:anywhere" onclick="openStatement('${kind}','${safe}')">📅 ${escapeHTML(label||'年月ごとの明細')}</button>`;
+  return `<button class="btn btn-view btn-block" style="margin-top:10px;white-space:normal;height:auto;line-height:1.4;padding-top:9px;padding-bottom:9px;overflow-wrap:anywhere" onclick="openStatement('${kind}','${safe}')">📅 ${escapeHTML(label||'年月ごとの明細')}</button>`;
 }
 function ymAdd(ym, k) { let y=+ym.slice(0,4), m=+ym.slice(5,7)-1+k; while(m<0){m+=12;y--;} while(m>11){m-=12;y++;} return `${y}-${pad(m+1)}`; }
 function ymRange(from, to) { const out=[]; let c=from; let guard=0; while (c<=to && guard++<240) { out.push(c); c=ymAdd(c,1); } return out; }
@@ -4498,12 +4502,12 @@ function showDayDetail(ds) {
       else if (x.kind==='tax') btn = x.paid
         ? `<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openTaxModal('${x.ref.id}')">編集</button>`
         : `<button class="btn btn-primary btn-sm" onclick="closeModal('modal-day');openFixAmount('tax','${x.taxKey}','${ds}','${escapeHTML(x.label)}')">支払う</button>`;
-      else if (x.kind==='subsc') btn = `<button class="btn ${x.ref.variable && !x.confirmed ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="closeModal('modal-day');openSubMonth('${x.ref.id}','${ds.slice(0,7)}')">${x.ref.variable && !x.confirmed ? '金額入力' : 'この月'}</button>
+      else if (x.kind==='subsc') btn = `<button class="btn ${x.ref.variable && !x.confirmed ? 'btn-todo' : 'btn-ghost'} btn-sm" onclick="closeModal('modal-day');openSubMonth('${x.ref.id}','${ds.slice(0,7)}')">${x.ref.variable && !x.confirmed ? '金額入力' : 'この月'}</button>
           <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openSubscriptionDetail('${x.ref.id}')">詳細</button>`;
       else if (x.kind==='subtrial') btn = `<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openSubscriptionModal('${x.ref.id}')">編集</button>`;
       else if (x.kind==='invest') btn = `<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openInvestmentModal('${x.ref.id}')">編集</button>`;
       else if (x.kind==='cardrec') btn = `<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openCardPayment('${x.ref.cardId}','${x.ref.date}')">編集</button>`;
-      else if (x.kind==='cardpay') btn = `<button class="btn btn-ghost btn-sm" onclick="closeModal('modal-day');openCardPayment('${x.ref.id}','${ds}')">金額入力</button>`;
+      else if (x.kind==='cardpay') btn = `<button class="btn btn-todo btn-sm" onclick="closeModal('modal-day');openCardPayment('${x.ref.id}','${ds}')">金額入力</button>`;
       else if (x.kind==='due') btn = `<button class="btn btn-ghost btn-sm" onclick="toggleMoneyPaid('${x.ref.id}');showDayDetail('${ds}')">${x.ref.paid?'未払いに':'支払済に'}</button>`;
       else if (x.kind==='check') btn = `<button class="btn btn-ghost btn-sm" onclick="toggleCheck('${x.ref.id}');showDayDetail('${ds}')">${isCheckDone(x.ref)?'未完了に':'完了'}</button>`;
       return `<div style="display:flex;align-items:flex-start;gap:11px;padding:10px 0;border-bottom:1px solid var(--border)">
@@ -5262,12 +5266,16 @@ function recalcHourlyBase() {
   const from = document.getElementById('ps-from').value, to = document.getElementById('ps-to').value;
   const est = (from && to) ? estimateForPeriod(job, from, to) : { hours:0, base:0 };
   const ja = jobSettingAt(job, to);
-  const wage = est.hours>0 ? est.base/est.hours : (ja.wage||0);
+  // v66：対象期間の時給が1種類ならその時給をそのまま使う。平均（基本給÷時間）は小数の誤差で 1169.9999… になり、
+  // 22時間×1,170円＝25,740円 が 25,739円 になることがあった
+  const ws = [...new Set(est.recs ? est.recs.filter(r=>r.hours).map(r=>r.wageUsed).filter(Boolean) : [])];
+  let wage = ws.length===1 ? ws[0] : (est.hours>0 ? est.base/est.hours : (ja.wage||0));
+  wage = Math.round(wage*100)/100;
   if (!wage) return;
   const bases = psItems.filter(i=>i.wbase || (i.sign>0 && i.name==='基本給'));
   if (bases.length!==1) return;                 // 基本給が複数あると決められないので触らない
   bases[0].wbase = true;
-  bases[0].amount = Math.floor(h * wage);
+  bases[0].amount = Math.floor(h * wage + 1e-6);   // 小数の誤差で1円少なくならないように
   // 以前に保存した明細の源泉所得税も、税率が設定されていれば自動計算の対象にする
   if (isNum(ja.withholdingRate)) psItems.forEach(i=>{ if (i.sign<0 && /^源泉所得税/.test(i.name||'') && !i.auto) i.auto = 'incometax'; });
   psItems.forEach(i=>{ if (i.auto==='incometax') i.manual = false; });
@@ -6121,8 +6129,8 @@ function renderJobTab() {
           <span style="color:var(--text-secondary)">この月の入金</span>
           <span style="text-align:right">${payLine ? `<span class="mono" style="font-weight:600;color:${state.settings.colorPayday};${dim?`opacity:${(state.settings.unfixedOpacity||55)/100}`:''}">${fmt(payAmt)}</span><br><span style="font-size:10.5px;color:var(--text-secondary)">${payLine}${pe&&pe.plannedCount?`　予定${pe.plannedCount}件は未計上`:''}</span>` : '<span style="color:var(--text-secondary)">なし</span>'}</span></div>
         <div style="display:flex;gap:6px;margin-top:9px">
-          ${j.payType!=='monthly' ? `<button class="btn btn-ghost btn-sm" style="flex:1" onclick="openRecordModal('${j.id}','${todayStr()}')">＋ ${j.payType==='hourly'?'勤務':'案件'}を記録</button>` : ''}
-          <button class="btn btn-ghost btn-sm" style="flex:1" onclick="${ps?`openPayslipDetail('${ps.id}')`:`openPayslip('${j.id}','${ym}')`}">${ps?'明細を見る':'実受取を入力'}</button>
+          ${j.payType!=='monthly' ? `<button class="btn btn-primary btn-sm" style="flex:1" onclick="openRecordModal('${j.id}','${todayStr()}')">＋ ${j.payType==='hourly'?'勤務':'案件'}を記録</button>` : ''}
+          <button class="btn ${ps?'btn-view':'btn-todo'} btn-sm" style="flex:1" onclick="${ps?`openPayslipDetail('${ps.id}')`:`openPayslip('${j.id}','${ym}')`}">${ps?'明細を見る':'実受取を入力'}</button>
         </div>
       </div>`;
     }).join('');
@@ -8426,7 +8434,7 @@ function renderCardPayments() {
               : `<div style="font-size:11px;color:var(--text-secondary);border:1px dashed var(--border);padding:2px 8px;border-radius:8px">未定</div>`)}
           ${(()=>{ const est = cardPointEstimate(p); return est ? `<div class="mono" style="font-size:10px;color:${state.settings.colorPoint}">${est}</div>` : ''; })()}
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="openCardPayment('${p.wallet.id}','${p.date}')">${p.fixed?'編集':'金額入力'}</button>
+        <button class="btn ${p.fixed?'btn-ghost':'btn-todo'} btn-sm" onclick="openCardPayment('${p.wallet.id}','${p.date}')">${p.fixed?'編集':'金額入力'}</button>
       </div></div>`).join('');
 }
 
@@ -10019,7 +10027,7 @@ function renderMemberBar() {
     sortByOrder(state.members).map(m=>`
       <div class="mem-chip ${cur===m.id?'active':''}"
         onclick="setCurrentMember('${m.id}')">${m.icon} ${escapeHTML(m.name)}</div>`).join('')
-    + `<div class="mem-chip" style="margin-left:auto" onclick="openLendView()">🤝 立て替え</div>`;
+  ;
   applyMemberTheme(curMo);
 }
 // 選択中メンバーの色を上下バーに反映（切り替えミス防止）
