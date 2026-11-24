@@ -344,6 +344,9 @@ try {
   .st-line .st-l { flex: 1; min-width: 0; overflow-wrap: anywhere; }
   .st-line .st-a { white-space: nowrap; font-variant-numeric: tabular-nums; }
   .st-child { padding-left: 54px; color: var(--text-secondary); font-size: 11px; border-top: none; padding-top: 1px; padding-bottom: 3px; }
+  .band-st { display: inline-flex; align-items: center; vertical-align: -2px; margin-right: 2px; }
+  .band-st svg, .band-st img { width: 12px !important; height: 12px !important; }
+  .band-st .em, .band-st span { font-size: 10px !important; line-height: 1; }
   .hb-table { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-top: 4px; }
   .hb-table th, .hb-table td { padding: 2px 3px; border-bottom: 1px solid var(--border); white-space: nowrap; }
   .hb-table th { color: var(--text-secondary); font-weight: 600; text-align: left; }
@@ -903,7 +906,7 @@ try {
           <div class="settings-row"><span>ID参照チェック（開発用）</span><button class="btn btn-ghost btn-sm" onclick="runIdDiagnostics(true)">実行</button></div>
         </div>
         <div style="text-align:center;font-size:10.5px;color:var(--text-secondary);padding:6px 0 14px;">
-          FinanceManager <span id="ver-footer">v66</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
+          FinanceManager <span id="ver-footer">v67</span> / schema <span id="schema-footer">33</span> / 祝日データ 2025–2028
           <div id="vp-info" style="margin-top:2px;opacity:.7"></div>
         </div>
       </div>
@@ -2345,7 +2348,7 @@ try {
      v34/v35 は本体が1つのブロックだったため、最上位の例外で画面が空・全ボタン無反応・
      バージョン表示が初期値のまま、という復旧不能な状態になった。 -->
 <script>
-window.APP_BOOT_VERSION = '66';
+window.APP_BOOT_VERSION = '67';
 // v49: iOS ホーム画面アプリの高さ補正
 // ステータスバー透過（black-translucent）で起動すると、iOS が画面の高さをステータスバー分だけ短く報告し、
 // フッターが持ち上がって下に白い帯ができることがある。画面の実寸（screen）を使って高さを決める。
@@ -2430,7 +2433,7 @@ window.addEventListener('orientationchange', function(){ setTimeout(window.fixVi
 // ════════════════════════════════════════════════
 //  FinanceManager v4 (schema 3)
 // ════════════════════════════════════════════════
-const APP_VERSION = '66';
+const APP_VERSION = '67';
 const SCHEMA_VERSION = 33;
 const STORAGE_KEY = 'financeManager';
 
@@ -3957,7 +3960,8 @@ function bandList() {
     if (!inCurrentMember(r)) return;
     const j = jobById(r.jobId);
     if (j && j.payType==='piece' && r.endDate && r.endDate>r.date)
-      bands.push({ title:r.name||j.name, short:(r.shortName||j.shortName||''), color:j.color, start:r.date, end:r.endDate, evId:null, recDate:r.date, recId:r.id });
+      // 帯の名前は案件ごと（v67）：月は「案件の短縮名 → 案件名」。仕事の短縮名は使わない（全部同じ名前になるため）
+      bands.push({ title:r.name||j.name, short:(r.shortName||''), stamp:j.stamp, color:j.color, start:r.date, end:r.endDate, evId:null, recDate:r.date, recId:r.id });
   });
   bands.forEach((b,i)=>{ b.seq = i; });   // 登録順（並べ替えの最後の比較に使う）
   return bands;
@@ -4109,7 +4113,8 @@ function renderCalMonth() {
         el.style.gridColumn = (sIdx+1)+' / '+(eIdx+2);
         el.style.gridRow = String(++lane);
         el.style.background = b.color||PALETTE[0];
-        el.textContent = b.title;
+        // スタンプ（絵文字）を名前の前に（v67）
+        el.innerHTML = (b.stamp ? `<span class="band-st">${stampHTML(b.stamp)}</span>` : '') + escapeHTML(b.short || b.title);
         el.onclick = (e)=>{ e.stopPropagation(); bandClick(b.evId, b.recDate); };
         bg.appendChild(el);
       });
@@ -4180,7 +4185,7 @@ function statementData(kind, id) {
     const first = starts[0] && starts[0] > ymAdd(now,-36) ? starts[0] : ymAdd(now, -11);
     ymRange(first, ymAdd(now, 2)).forEach(ym=>{
       itemsInMonth(subscriptionItemsOn, ym, x=>x.kind==='subsc' && x.ref===sb).forEach(x=>{
-        lines.push({ ym, date: x.ds, label: `${payMethodName(subWalletAt(sb, ym))}${x.subUSD?'（USD）':''}${/確定額/.test(x.sub)?'・確定額':''}${x.unfixed?'・未確定':''}`,
+        lines.push({ ym, date: x.ds, label: `${payMethodName(subWalletAt(sb, ym))}${x.cardPay?`（${x.cardPay.slice(5).replace('-','/')} 引落）`:''}${x.subUSD?'（USD）':''}${/確定額/.test(x.sub)?'・確定額':''}${x.unfixed?'・未確定':''}`,
           amount: x.subUSD ? 0 : x.subAmount, usd: x.subUSD ? x.subAmount : 0, plan: x.ds > todayStr() || !!x.unfixed,
           tap: `openSubMonth('${sb.id}','${ym}')` });
       });
@@ -4351,7 +4356,7 @@ function renderCalWeek() {
       const a = (rec && recBaseDate(rec)===ds) ? weekItemAmount({kind:'record', ref:rec, amount:rec.amount}, ds) : null;
       const title = (useShort && b.short) ? b.short : b.title;
       return `<div class="wk-band ${cls}" style="background:${b.color||PALETTE[0]}">
-        <span class="edge">${edge}</span><span class="wk-band-title">${escapeHTML(title)}</span>
+        <span class="edge">${edge}</span>${b.stamp?`<span class="band-st">${stampHTML(b.stamp)}</span>`:''}<span class="wk-band-title">${escapeHTML(title)}</span>
         ${isStart?'<span class="edge">開始</span>':''}${isEnd?'<span class="edge">終了</span>':''}
         ${a?`<span class="wk-amt" style="color:${a.color}">${a.text}</span>`:''}</div>`;
     }).join('');
@@ -4741,6 +4746,8 @@ function openRecordModal(jobId, ds, recId) {
   } else {
     f.innerHTML = `
       <div class="form-group"><label>案件名・内容</label><input type="text" id="rec-name" value="${recEditing?(recEditing.name||''):''}" placeholder="例：記事執筆3本"></div>
+      <div class="form-group"><label>月表示用の短縮名（任意）</label><input type="text" id="rec-short" value="${recEditing?escapeHTML(recEditing.shortName||''):''}" placeholder="空欄なら案件名">
+        <div class="field-note">カレンダーの「月」の帯に出す名前です（週表示を「短縮名」にしたときも使います）。</div></div>
       <div class="form-row">
         <div class="form-group"><label>開始日</label><input type="date" id="rec-date" value="${ds}"></div>
         <div class="form-group"><label>終了日（単日なら空欄）</label><input type="date" id="rec-enddate" value="${recEditing?(recEditing.endDate||''):''}"></div>
@@ -4760,6 +4767,10 @@ function openRecordModal(jobId, ds, recId) {
         <div class="field-note" id="rec-hourly-note">入力すると時給換算が出ます。</div></div>
       <div class="form-group"><label>メモ</label><textarea id="rec-memo" class="memo-area" rows="4" placeholder="案件内容・作業メモなど">${recEditing?escapeHTML(recEditing.memo||''):''}</textarea></div>
       <div class="field-note">期間を設定するとカレンダーに帯で表示されます。収入は期日（無ければ終了日）基準で計上します。</div>`;
+    // 終了日が空のとき、タップしたら開始日を入れておく（日付選択が開始日の月から開く）v67
+    const ed = document.getElementById('rec-enddate');
+    if (ed) ed.addEventListener('focus', ()=>{ const st = document.getElementById('rec-date'); if (!ed.value && st && st.value) ed.value = st.value; });
+    if (ed) ed.addEventListener('click', ()=>{ const st = document.getElementById('rec-date'); if (!ed.value && st && st.value) ed.value = st.value; });
     // 期日：日付を入れたとき時刻が空なら仕事の「期日の既定の時刻」を入れる（v57）
     const dd = document.getElementById('rec-duedate');
     if (dd) dd.onchange = ()=>{
@@ -4982,6 +4993,10 @@ function renderPsItems() {
         <div><label>項目名</label><input type="text" class="psi-name" value="${escapeHTML(it.name||'')}" placeholder="${it.sign<0?'源泉所得税':'基本給'}"></div>
         <div><label>金額</label><input type="number" inputmode="numeric" class="psi-amt" value="${it.amount!==''&&it.amount!==undefined?it.amount:''}"></div>
       </div>
+      ${it.sign<0 ? `<div style="display:flex;align-items:center;gap:6px;margin-top:5px;font-size:11.5px;color:var(--text-secondary)">申告での区分
+        <select class="psi-cat" style="width:auto;padding:3px 6px;font-size:12px">
+          ${[['','自動（項目名から）'],['withholding','源泉所得税'],['social','社会保険料'],['resident','住民税'],['other','その他']].map(([k,lb])=>`<option value="${k}" ${(it.taxCat||'')===k?'selected':''}>${lb}</option>`).join('')}
+        </select><span>→ ${TAX_CAT_LABEL[payItemTaxCat(it)]}</span></div>` : ''}
       ${recNote ? `<div class="field-note" style="margin:4px 0 0">${recNote}</div>` : ''}
     </div>`
     + (mk.hasFee && i===mk.lastFee ? sumRow('小計', mk.subtotal, 'ps-subtotal') : '')
@@ -4990,6 +5005,7 @@ function renderPsItems() {
   el.querySelectorAll('.pat-row').forEach(row=>{
     const i = +row.dataset.i;
     row.querySelector('.psi-name').oninput = e=>{ psItems[i].name = e.target.value; };
+    const cat = row.querySelector('.psi-cat'); if (cat) cat.onchange = e=>{ psItems[i].taxCat = e.target.value; renderPsItems(); };
     const amt = row.querySelector('.psi-amt');
     amt.oninput = e=>{
       psItems[i].amount = e.target.value;
@@ -5397,6 +5413,7 @@ function savePayslip() {
       if (i.recId) o.recId = i.recId;
       if (i.auto) o.auto = i.auto;
       if (i.wbase) o.wbase = true;
+      if (i.taxCat) o.taxCat = i.taxCat;
       if (i.manual) o.manual = true;
       return o;
     }),
@@ -5526,7 +5543,8 @@ function saveRecord() {
     data={ jobId:j.id, date, endDate, start:'', end:'', breakMin:0, hours:0, transport:0,
       dueDate: (document.getElementById('rec-duedate')||{}).value || '',
       dueTime: (document.getElementById('rec-duetime')||{}).value || '',
-      amount: finalAmount, name, workHours:wh, memo:document.getElementById('rec-memo').value, amountHistory: hist };
+      amount: finalAmount, name, workHours:wh, memo:document.getElementById('rec-memo').value, amountHistory: hist,
+      shortName: ((document.getElementById('rec-short')||{}).value||'').trim() };
   }
   if (recEditing) { Object.assign(recEditing, data); showToast('更新しました ✓'); }
   else { state.records.push(Object.assign({id:'r'+Date.now()}, data)); showToast('記録しました ✓'); }
@@ -6130,7 +6148,11 @@ function renderJobTab() {
           <span style="text-align:right">${payLine ? `<span class="mono" style="font-weight:600;color:${state.settings.colorPayday};${dim?`opacity:${(state.settings.unfixedOpacity||55)/100}`:''}">${fmt(payAmt)}</span><br><span style="font-size:10.5px;color:var(--text-secondary)">${payLine}${pe&&pe.plannedCount?`　予定${pe.plannedCount}件は未計上`:''}</span>` : '<span style="color:var(--text-secondary)">なし</span>'}</span></div>
         <div style="display:flex;gap:6px;margin-top:9px">
           ${j.payType!=='monthly' ? `<button class="btn btn-primary btn-sm" style="flex:1" onclick="openRecordModal('${j.id}','${todayStr()}')">＋ ${j.payType==='hourly'?'勤務':'案件'}を記録</button>` : ''}
-          <button class="btn ${ps?'btn-view':'btn-todo'} btn-sm" style="flex:1" onclick="${ps?`openPayslipDetail('${ps.id}')`:`openPayslip('${j.id}','${ym}')`}">${ps?'明細を見る':'実受取を入力'}</button>
+          ${(()=>{ // 入金がない月（記録なし）は入力不要なので目立たせない（v67）
+            const noPay = !ps && pe && !pe.net && !pe.plannedCount && !pe.est.recs.length;
+            const cls = ps ? 'btn-view' : (noPay ? 'btn-ghost' : 'btn-todo');
+            const lb = ps ? '明細を見る' : (noPay ? 'この月は入金なし' : '実受取を入力');
+            return `<button class="btn ${cls} btn-sm" style="flex:1${noPay?';color:var(--text-secondary)':''}" onclick="${ps?`openPayslipDetail('${ps.id}')`:`openPayslip('${j.id}','${ym}')`}">${lb}</button>`; })()}
         </div>
       </div>`;
     }).join('');
@@ -9437,6 +9459,16 @@ function jobIncomeType(j) {
   return (j.payType==='piece') ? 'misc' : 'salary';
 }
 const INCOME_TYPE_LABEL = { salary:'給与', misc:'雑所得（業務）', business:'事業所得', none:'申告に入れない' };
+// 差し引き項目の申告での区分（v67）：明細で選んだ区分 → 自動計算の種類 → 項目名 の順に決める
+const TAX_CAT_LABEL = { withholding:'源泉所得税', social:'社会保険料', resident:'住民税', other:'その他' };
+function payItemTaxCat(it) {
+  if (it.taxCat) return it.taxCat;
+  const n = it.name||'';
+  if (it.auto==='incometax' || /源泉|所得税/.test(n)) return 'withholding';
+  if (/住民税/.test(n)) return 'resident';
+  if (/健康保険|厚生年金|雇用保険|介護保険|社会保険|年金保険/.test(n)) return 'social';
+  return 'other';
+}
 // 明細の項目を申告用に仕分ける
 function classifyPayItems(items, type) {
   const o = { pay:0, transport:0, withholding:0, social:0, resident:0, otherDed:0 };
@@ -9446,11 +9478,12 @@ function classifyPayItems(items, type) {
       if (type==='salary' && /通勤|交通費/.test(n)) o.transport += a;   // 給与の通勤手当は非課税（上限内）として分ける
       else o.pay += a;
     } else {
-      if (it.auto==='incometax' || /源泉|所得税/.test(n)) o.withholding += a;
-      else if (/住民税/.test(n)) o.resident += a;
-      else if (/健康保険|厚生年金|雇用保険|介護保険|社会保険|年金保険/.test(n)) o.social += a;
+      const c = payItemTaxCat(it);
+      if (c==='withholding') o.withholding += a;
+      else if (c==='resident') o.resident += a;
+      else if (c==='social') o.social += a;
       else if (type!=='salary' && (it.auto==='taxded' || /消費税控除/.test(n))) o.pay -= a;   // 報酬の消費税控除分は受け取っていないので収入から引く
-      else o.otherDed += a;
+      else { o.otherDed += a; o.otherNames = (o.otherNames||[]).concat(n||'（名前なし）'); }
     }
   });
   return o;
@@ -9478,7 +9511,7 @@ function taxIncomeByJob(year) {
       if (!c.pay && !c.transport) continue;
       ['pay','transport','withholding','social','resident','otherDed'].forEach(f=>{ g[f] += c[f]; });
       if (isActual) g.actual++; else g.estimate++;
-      g.months.push({ ym, payDate, isActual, pay:c.pay, transport:c.transport, withholding:c.withholding, social:c.social, psId: ps ? ps.id : '' });
+      g.months.push({ ym, payDate, isActual, pay:c.pay, transport:c.transport, withholding:c.withholding, social:c.social, psId: ps ? ps.id : '', other:c.otherDed, otherNames:c.otherNames||[] });
     }
     if (g.months.length) out.push(g);
   });
@@ -9527,11 +9560,11 @@ function renderTaxIncome(year, groups) {
         <div class="tx-row"><span class="tx-l">源泉徴収税額</span><span class="tx-v">${fmt(g.withholding)}</span></div>
         ${t==='salary' ? `<div class="tx-row"><span class="tx-l">社会保険料（給与から天引き）</span><span class="tx-v">${fmt(g.social)}</span></div>
           ${g.transport?`<div class="tx-row"><span class="tx-l">通勤手当（非課税として除外）</span><span class="tx-v" style="font-weight:400">${fmt(g.transport)}</span></div>`:''}` : ''}
-        ${g.otherDed?`<div class="tx-row"><span class="tx-l">その他の差し引き${t==='salary'?'':'（手数料などは経費に入れてください）'}</span><span class="tx-v" style="font-weight:400">${fmt(g.otherDed)}</span></div>`:''}
+        ${g.otherDed?`<div class="tx-row"><span class="tx-l">その他の差し引き${t==='salary'?'':'（手数料などは経費に入れてください）'}<br><span style="font-size:10.5px;color:#C0392B">${escapeHTML([...new Set(g.months.flatMap(mm=>mm.otherNames))].join('、'))} ／ 源泉所得税などなら、月ごとの明細を開いて「申告での区分」を選んでください</span></span><span class="tx-v" style="font-weight:400">${fmt(g.otherDed)}</span></div>`:''}
         <div style="display:${open?'block':'none'};margin-top:6px">
           ${g.months.map(mm=>`<div class="tx-row tapable" style="font-size:12px;${mm.isActual?'':'opacity:.7'}" onclick="${mm.psId?`openPayslipDetail('${mm.psId}')`:`openPayslip('${g.job.id}','${mm.ym}')`}">
             <span class="tx-l">${mm.payDate.replace(/-/g,'/')} ${mm.isActual?'':'<span class="badge-sm bd-limit">見込み</span>'}</span>
-            <span class="tx-v" style="font-weight:400">${fmt(mm.pay)}${mm.withholding?` ／ 源泉 ${fmt(mm.withholding)}`:''}</span></div>`).join('')}
+            <span class="tx-v" style="font-weight:400">${fmt(mm.pay)}${mm.withholding?` ／ 源泉 ${fmt(mm.withholding)}`:''}${mm.other?` <span style="color:#C0392B">／ その他 ${fmt(mm.other)}</span>`:''}</span></div>`).join('')}
         </div>
         <div style="font-size:10.5px;color:var(--text-secondary);margin-top:5px">${open?'▲ 月ごとを閉じる':'▼ 月ごとを見る（タップで明細を開く）'}</div>
       </div>`;
@@ -10228,6 +10261,17 @@ function clearSubMonth() {
   if (document.getElementById('modal-statement').classList.contains('open')) openStatement('sub', sb.id);
   showToast('通常の金額・日付に戻しました');
 }
+// カードで払った日（利用日）から、そのカードの引落日を出す（v67）
+function cardPayDateForUse(w, useDate) {
+  if (!w || w.type!=='card' || !w.closingDay || !w.payDay) return '';
+  let y=+useDate.slice(0,4), m=+useDate.slice(5,7)-1; const d=+useDate.slice(8,10);
+  const cd = +w.closingDay;
+  if (cd < 31 && d > cd) { m++; if (m>11){m=0;y++;} }     // 締め日を過ぎたら翌月締め
+  const info = cardPayDayInfo(w);
+  m += info.offset; while (m>11){ m-=12; y++; }
+  const dim = daysIn(y,m);
+  return adjustPayDate(dstr(y,m, info.day>=31 ? dim : Math.min(info.day, dim)), 'after');
+}
 function subChargesInMonth(sb, m1) {
   const cyc = sb.cycle||'monthly';
   if (cyc==='yearly') return m1===(sb.month||1);
@@ -10487,7 +10531,8 @@ function subscriptionItemsOn(ds) {
       out.push({ kind:'subsc', stamp:subStamp(sb), color:PALETTE[6]||PALETTE[1],
         label:`${sb.name}${sb.variable && !act.isActual ? '（未確定）' : ''}`, short:(sb.shortName||sb.name),
         confirmed: act.isActual, unfixed: !!(sb.variable && !act.isActual),
-        sub:`${subGenre(sb).label}${(sb.cycle||'monthly')==='yearly'?'（年額）':''}${ov.date?' / 日付変更':''}${wid?' / '+payMethodName(wid):''}${isUSD?' / USD':''}${act.isActual?' / 確定額':''}`,
+        cardPay: (wid && walletById(wid) && walletById(wid).type==='card') ? cardPayDateForUse(walletById(wid), ds) : '',
+        sub:`${subGenre(sb).label}${(sb.cycle||'monthly')==='yearly'?'（年額）':''}${ov.date?' / 日付変更':''}${(wid && walletById(wid) && walletById(wid).type==='card' && cardPayDateForUse(walletById(wid), ds))?` / ${cardPayDateForUse(walletById(wid), ds).slice(5).replace('-','/')} カード引落`:''}${wid?' / '+payMethodName(wid):''}${isUSD?' / USD':''}${act.isActual?' / 確定額':''}`,
         amount:0, subAmount:amt, subUSD:isUSD, walletAt: (wid==='__cash' ? '' : wid),
         subPoint:sb.point||0, subPtUnit:(pt?pt.unit:'pt'), memo:sb.memo||'', ref:sb });
     }
@@ -12752,7 +12797,7 @@ function scrollToSection(id) { scrollToEl(document.getElementById(id)); }
 // 参照先がDOMに存在するかを検証する。v29のサブスク事故（削除済みIDへの参照でJSが停止）の再発防止。
 // 実行方法：設定 → データ → 「ID参照チェック」、または URL末尾に #debug を付けて開く（結果はコンソール）。
 // UIを削除・改名したら必ずこれを実行すること。JSが後から生成するIDは下の除外リストに登録する。
-const DIAG_DYNAMIC_IDS = new Set(['jh-add-date','jh-add-key','jh-add-val-wrap','cal-lend-view','hdr-pad','tab-pad','meta-vp','input-form-area','gear-btn','meta-sb','inv-fund-list','tax-cover','wal-acc-hist','sb-wallet-hist','ios-glass-guard','status-fill','rec-duedate','rec-duetime','lsg-date','ps-subtotal','ps-withtax','rec-amtchg-area','rec-newamount','rec-chgdate','rec-chgnote',
+const DIAG_DYNAMIC_IDS = new Set(['rec-short','jh-add-date','jh-add-key','jh-add-val-wrap','cal-lend-view','hdr-pad','tab-pad','meta-vp','input-form-area','gear-btn','meta-sb','inv-fund-list','tax-cover','wal-acc-hist','sb-wallet-hist','ios-glass-guard','status-fill','rec-duedate','rec-duetime','lsg-date','ps-subtotal','ps-withtax','rec-amtchg-area','rec-newamount','rec-chgdate','rec-chgnote',
   'dd-subtotal','ex-total','jd-total','rec-amount','rec-break','rec-date','rec-end',
   'rec-enddate','rec-memo','rec-name','rec-pat-chips','rec-preview','rec-start',
   'rec-transport','rec-wage','rec-workhours','rec-hourly-note','save-error-banner','boot-error-banner','rescue-info','fatal-error-banner','fatal-error-msg',
